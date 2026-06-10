@@ -1,0 +1,302 @@
+[
+ {
+  "n": 3,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "const",
+  "backend": "bern-LP",
+  "t": -0.09000000002031466,
+  "time": 0.012195110321044922,
+  "size": "4"
+ },
+ {
+  "n": 3,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "const",
+  "backend": "SOS-SDP",
+  "t": -0.0899999991719032,
+  "time": 0.16466069221496582,
+  "size": "(8, 4)"
+ },
+ {
+  "n": 3,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "affine",
+  "backend": "bern-LP",
+  "t": 0.22000000001468586,
+  "time": 0.009410858154296875,
+  "size": "16"
+ },
+ {
+  "n": 3,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "affine",
+  "backend": "SOS-SDP",
+  "t": 0.2200000156615182,
+  "time": 0.19301939010620117,
+  "size": "(8, 16)"
+ },
+ {
+  "n": 3,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "multilinear",
+  "backend": "bern-LP",
+  "t": 0.21999999990161456,
+  "time": 0.01151895523071289,
+  "size": "32"
+ },
+ {
+  "n": 3,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "multilinear",
+  "backend": "SOS-SDP",
+  "t": 0.2200000043449361,
+  "time": 0.1588728427886963,
+  "size": "(8, 32)"
+ },
+ {
+  "n": 3,
+  "scene": "NEGATIVE",
+  "truly_collision": false,
+  "kind": "affine",
+  "backend": "bern-LP",
+  "t": -0.18999999999317332,
+  "time": 0.01012873649597168,
+  "size": "16"
+ },
+ {
+  "n": 3,
+  "scene": "NEGATIVE",
+  "truly_collision": false,
+  "kind": "affine",
+  "backend": "SOS-SDP",
+  "t": -0.189999998403368,
+  "time": 0.16079998016357422,
+  "size": "(8, 16)"
+ },
+ {
+  "n": 4,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "const",
+  "backend": "bern-LP",
+  "t": -0.0899999999985084,
+  "time": 0.009354352951049805,
+  "size": "4"
+ },
+ {
+  "n": 4,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "const",
+  "backend": "SOS-SDP",
+  "t": -0.08999997247554785,
+  "time": 0.5500774383544922,
+  "size": "(16, 4)"
+ },
+ {
+  "n": 4,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "affine",
+  "backend": "bern-LP",
+  "t": 0.2200000000163051,
+  "time": 0.016196250915527344,
+  "size": "20"
+ },
+ {
+  "n": 4,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "affine",
+  "backend": "SOS-SDP",
+  "t": 0.2200000055674641,
+  "time": 0.5590593814849854,
+  "size": "(16, 20)"
+ },
+ {
+  "n": 4,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "multilinear",
+  "backend": "bern-LP",
+  "t": 0.22000000001106565,
+  "time": 0.03378868103027344,
+  "size": "64"
+ },
+ {
+  "n": 4,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "multilinear",
+  "backend": "SOS-SDP",
+  "t": 0.22000002802867075,
+  "time": 0.6237080097198486,
+  "size": "(16, 64)"
+ },
+ {
+  "n": 4,
+  "scene": "NEGATIVE",
+  "truly_collision": false,
+  "kind": "affine",
+  "backend": "bern-LP",
+  "t": -0.18999999980131693,
+  "time": 0.018093585968017578,
+  "size": "20"
+ },
+ {
+  "n": 4,
+  "scene": "NEGATIVE",
+  "truly_collision": false,
+  "kind": "affine",
+  "backend": "SOS-SDP",
+  "t": -0.18999995950608145,
+  "time": 0.6212611198425293,
+  "size": "(16, 20)"
+ },
+ {
+  "n": 5,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "const",
+  "backend": "bern-LP",
+  "t": -0.09000000000145744,
+  "time": 0.016108036041259766,
+  "size": "4"
+ },
+ {
+  "n": 5,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "const",
+  "backend": "SOS-SDP",
+  "t": -0.08999995272279265,
+  "time": 2.6657299995422363,
+  "size": "(32, 4)"
+ },
+ {
+  "n": 5,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "affine",
+  "backend": "bern-LP",
+  "t": 0.2199999999985417,
+  "time": 0.03451132774353027,
+  "size": "24"
+ },
+ {
+  "n": 5,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "affine",
+  "backend": "SOS-SDP",
+  "t": 0.220000043985102,
+  "time": 3.073160409927368,
+  "size": "(32, 24)"
+ },
+ {
+  "n": 5,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "multilinear",
+  "backend": "bern-LP",
+  "t": 0.21999997990544085,
+  "time": 0.23399758338928223,
+  "size": "128"
+ },
+ {
+  "n": 5,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "multilinear",
+  "backend": "SOS-SDP",
+  "t": 0.22000002332545981,
+  "time": 2.783294916152954,
+  "size": "(32, 128)"
+ },
+ {
+  "n": 5,
+  "scene": "NEGATIVE",
+  "truly_collision": false,
+  "kind": "affine",
+  "backend": "bern-LP",
+  "t": -0.18999999999533482,
+  "time": 0.03246164321899414,
+  "size": "24"
+ },
+ {
+  "n": 5,
+  "scene": "NEGATIVE",
+  "truly_collision": false,
+  "kind": "affine",
+  "backend": "SOS-SDP",
+  "t": -0.18999997751223707,
+  "time": 2.8613357543945312,
+  "size": "(32, 24)"
+ },
+ {
+  "n": 6,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "const",
+  "backend": "bern-LP",
+  "t": -0.09000000000048176,
+  "time": 0.028819561004638672,
+  "size": "4"
+ },
+ {
+  "n": 6,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "affine",
+  "backend": "bern-LP",
+  "t": 0.22000000000276793,
+  "time": 0.10326480865478516,
+  "size": "28"
+ },
+ {
+  "n": 6,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "affine",
+  "backend": "SOS-SDP",
+  "t": 0.22000011253910687,
+  "time": 41.49831700325012,
+  "size": "(64, 28)"
+ },
+ {
+  "n": 6,
+  "scene": "collision",
+  "truly_collision": true,
+  "kind": "multilinear",
+  "backend": "bern-LP",
+  "t": 0.21999994648749377,
+  "time": 1.6165883541107178,
+  "size": "256"
+ },
+ {
+  "n": 6,
+  "scene": "NEGATIVE",
+  "truly_collision": false,
+  "kind": "affine",
+  "backend": "bern-LP",
+  "t": -0.1900000000005692,
+  "time": 0.10118937492370605,
+  "size": "28"
+ },
+ {
+  "n": 6,
+  "scene": "NEGATIVE",
+  "truly_collision": false,
+  "kind": "affine",
+  "backend": "SOS-SDP",
+  "t": -0.1899999663658873,
+  "time": 37.462697982788086,
+  "size": "(64, 28)"
+ }
+]
