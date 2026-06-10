@@ -147,3 +147,79 @@ obligatoire) ; la grille d'échantillonnage ne fait pas foi (micro-canal raté p
 **Prochaine étape** : S2 — témoin 3D (`witness.py`) : LP témoin slab-aware générique
 n-dim (corps convexe mobile vs polytope statique H-rep), degré de λ paramétrable,
 back-end cvxpy d'abord. Entrée : `BodyRatFK.vertex_numerators` + D par link.
+
+---
+
+## 2026-06-10 — S2 (Claude Code) — Témoin 3D vert
+
+**Fait** :
+- S1 re-vérifié vert avant démarrage (51 tests, 77 s).
+- `src/cnp/witness.py` implémenté : LP témoin slab-aware **générique n-dim**, corps
+  convexe mobile (sommets = numérateurs FK sur dénominateur commun, via `ratfk`) vs
+  polytope statique en **H-rep** (`Polytope`, fabrique `box`).
+  - Témoin x(s) = Σ_k λ_k(s)·v_k(s), Σλ_k≡1, λ_k≥0 (Bernstein) ; face j de O :
+    g_j = b_j·D − a_jᵀX ≥ 0 ; slab `T = δ²−φ²` ; contrainte **Bernstein(g_j − μ_j·T) ≥ t**,
+    μ_j ≥ 0 ; maximise t. Tout linéaire en (coeffs λ, μ, t) → **LP** (aucun SDP/Mosek).
+  - **Degré de λ paramétrable** : `const`/`affine`/`quadratic` (base à degré total
+    borné ; défaut affine).
+  - **Interface back-end isolée** : `build_witness_lp` rend un `WitnessLP`
+    solveur-agnostique (numpy pur) ; `LPBackend`/`CvxpyBackend` (CLARABEL) le
+    consomment. S8 branchera highspy sur le **même** `WitnessLP`.
+  - `eval_witness_point` : reconstruit x(s) batch (numpy vectorisé) depuis la solution,
+    pour le contrôle vérité-terrain échantillonnée.
+- `tests/test_witness.py` (14 tests) — critères de sortie S2 atteints :
+  - **Exit #1** — **S1-planaire embarquée en 3D reproduit le certificat E3** : b&b
+    (même flot que l'oracle `regref.certify_slab`, seul le certifieur change) →
+    **46 feuilles, 38 collision (UP 12 / DOWN 12 / MID 14), 8 outside, 0 fail**,
+    identique à E3. Parité t* par cellule **< 1e-7** vs oracle 2D (cas `unbounded`
+    inclus). Les 2 faces z extrudées sont esclaves (z=0), la marge vient des faces x/y.
+  - **Exit #2** — **3-DOF spatial minimal** (chaîne révolute générique 3R, back-end
+    **sympy**, sans réseau) : lien dans une boîte obstacle → **certifié (t=0.079)** ;
+    sur **1e5 échantillons** de la cellule, le point témoin est **toujours dans
+    l'obstacle (0 violation)** ⟹ aucun point libre.
+  - **Gel du signe de Putinar** (rule 2) sur le nouveau témoin : sur prémisse
+    réellement fausse (UP rétréci, cellule s1∈[−0.125,0]×s2∈[0.875,1], 4 configs
+    libres), `g − μT` refuse (t=−0.039), `g + μT` certifie **faussement** (t=+0.029).
+  - **Contrôles négatifs (soundness)** : E3 obstacles rétrécis 30 % → b&b **refuse**
+    (feuilles FAIL) ; 3-DOF obstacle rétréci ×0.5 → témoin **refuse** (t=−0.015) ET
+    188 configs libres trouvées (prémisse fausse confirmée).
+  - **Isolation back-end** prouvée : un second solveur indépendant (`scipy.linprog`,
+    HiGHS) sur le **même** `WitnessLP` donne le même t* (< 1e-6).
+  - λ quadratique certifie aussi ; `Polytope.box` et bases de degré testées.
+- `make test` complet : **65 passed** (43 régression + 8 ratfk + 14 témoin), 100 s,
+  mêmes 5 warnings Clarabel bénins.
+
+**Décisions** :
+- **K sommets explicites avec Σλ_k≡1, λ_k≥0** (au lieu du `0≤λ≤1` scalaire de l'oracle
+  E3) : la version K=2 redonne exactement le segment x=p1+λ(p2−p1) → parité E3 exacte ;
+  généralise au corps convexe quelconque (enveloppe à K sommets).
+- **D^p = D (p=1)** : sommets sur dénominateur commun unique D du link ; g_j = b_j·D − a_jᵀX
+  avec X = Σλ_k N_k numérateur sur D. Pas besoin de l'exposant p>1 du SPEC ici.
+- **Σλ=1 en coefficients bruts** (identité polynomiale), λ≥0 et faces en **Bernstein**
+  sur la cellule — même base que l'oracle, t* reproduit à 1e-7.
+- **`_putinar_sign` test-only** (défaut −1 sound), à l'identique de l'oracle `regref` :
+  le signe est figé par `test_witness_sign_is_frozen` ; production ne le touche jamais.
+- **Embarquement 3D de S1** = sommets planaires à z=0 + boîtes extrudées z∈[−1,1] :
+  les faces z restent esclaves (marge ≫ t*), donc certificat **identique** à E3.
+- **Back-end b&b reste dans le test**, pas dans `engine.py` : le moteur n-dim est S3 ;
+  le scaffold b&b du test reprend volontairement le flot de l'oracle pour isoler le
+  témoin comme seule variable.
+- **3-DOF spatial via sympy** (pas Drake) : pas de dépendance réseau dans la suite,
+  vérité-terrain reproductible et seedée.
+
+**Pièges rencontrés** :
+- **Matrice homogène / `PolyLin.__add__`** : addition de PolyLin de degrés différents
+  OK (slicing dans `zeros(n,d)`), mais bien **padder D et φ²** au degré de travail
+  `DPAD = max(d_λ+d_N, 2·d_φ)` (=4 ici, comme E3) avant Bernstein — sinon recouvrement
+  de tenseurs incohérent.
+- **Faces esclaves** : les 2 faces z (z=0, D>0 ⟹ b·D≥1≫t*) ne lient jamais ; c'est ce
+  qui garantit la parité E3 quand on embarque le planaire en 3D. Vérifié numériquement.
+- **Contrôle négatif 3-DOF** : un rétrécissement ×0.5 de la boîte (autour du centre)
+  ouvre 188 configs **entièrement** libres (segment hors boîte) sur grille 9³ — assez
+  pour le contrôle ; testé f∈[0.3,0.6], tous donnent prémisse fausse + refus.
+
+**Prochaine étape** : S3 — moteur branch-and-bound n-dim (`engine.py`) : généraliser
+le moteur E3 à n dims, heuristique d'axe (frontière de dalle puis pire marge LP),
+checkpoint/resume disque, parallélisme multiprocessing sur les feuilles, budget +
+verdict UNDECIDED propre. Entrée : `cnp.witness.certify_cell_pair`. Le scaffold b&b
+de `test_witness.py` documente le flot de référence (axe + test outside) à généraliser.
