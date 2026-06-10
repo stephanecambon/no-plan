@@ -73,3 +73,77 @@ obligatoire) ; la grille d'échantillonnage ne fait pas foi (micro-canal raté p
 
 **Prochaine étape** : S1 — FK rationnelle 3D (`ratfk.py`) ; installer l'extra
 `[drake]` (`pip install -e ".[drake,dev]"`) ou activer le repli sympy si friction.
+
+---
+
+## 2026-06-10 — S1 (Claude Code) — FK rationnelle 3D vert
+
+**Fait** :
+- G0' re-vérifié vert avant démarrage (43 tests, 64 s).
+- Drake 1.46.0 installé (wheel macOS arm64, `pip install drake`), `pydrake`
+  + `RationalForwardKinematics` importables sans friction.
+- `src/cnp/ratfk.py` implémenté : pour chaque body, pose monde en fonctions
+  **rationnelles de s = tan((q−q*)/2)**, numérateurs (rotation 3×3 + position 3)
+  sur **dénominateur commun canonique D(s) = ∏(1+s_i²) > 0**, degré ≤2/var.
+  - Container back-end-agnostique `BodyRatFK` (n, s_chain, D, pos_num, rot_num ;
+    `point_numerator(p_B)` = position monde d'un point body-frame = combinaison
+    linéaire des numérateurs sur D ; `vertex_numerators`, `eval_world_point`).
+  - Back-end Drake `DrakeRatFK(plant, locked, q_star)` ; back-end repli sympy
+    `SympyRatFK(joints, locked, q_star)` (chaîne révolute générique), **même
+    interface**.
+- `tests/test_ratfk.py` (8 tests) — critères de sortie S1 atteints :
+  - **FK numérique vs tenseurs, 1000 configs iiwa aléatoires** (dans les limites
+    usine ⊂ (−π,π)), 7 links × 3 points body-frame : **erreur max < 1e-9**
+    (typiquement ~3e-15).
+  - **joints verrouillés** : `locked={1,4}`, n=5, FK reproduite < 1e-9.
+  - **degré ≤2/var** par tenseur ; chaîne croissante (link_k dépend de s_0..s_{k-1},
+    EE de tous les 7).
+  - **repli sympy** validé vs FK numérique homogène indépendante (1000 configs,
+    chaîne spatiale 3-DOF aléatoire) + variante verrouillée + degré ≤2.
+  - **parité Drake↔sympy** sur cinématique identique (plant Drake construit par
+    programme, sans réseau) : tenseurs égaux à 1e-9.
+- `make test` complet : **51 passed** (43 régression + 8 ratfk), 77 s, mêmes
+  5 warnings Clarabel bénins.
+
+**Décisions** :
+- **Substitution rationnelle faite maison (Approche C), pas le dénominateur de
+  Drake.** `ConvertMultilinearPolynomialToRationalFunction` rend des dénominateurs
+  réduits **distincts par entrée** (4 différents sur une pose) → inutilisable comme
+  dénominateur commun. On part du polynôme **multilinéaire** (indéterminées
+  `cos_delta[i]`/`sin_delta[i]`) et on dégage soi-même le demi-angle sur le
+  dénominateur commun canonique : cos→(1−s²), sin→2s, joint absent→(1+s²). C'est
+  exactement la substitution que `verify.py` recalculera indépendamment en S4 → FK
+  auditable, pas « de confiance » (règle 4).
+- **Dénominateur commun par link** (∏ sur les joints débloqués de la chaîne du
+  body) — SPEC §2 « dénominateur commun » s'entend par link. Le témoin (S2) utilise
+  le D du link concerné.
+- **Joints verrouillés** : substitués par leurs cos/sin numériques, **sans variable
+  s ni facteur (1+s²)** ; les débloqués sont ré-indexés 0..n−1.
+- **Sommets d'enveloppe convexe en paramètre** (`point_numerator`/`vertex_numerators`)
+  plutôt qu'extraits de la géométrie ici : l'extraction depuis la scène est S6 et le
+  témoin (S2) fournira les sommets. Le livrable S1 = les tenseurs FK rationnels.
+- `sympy` ajouté aux deps de base (repli) ; **Makefile installe `.[drake,dev]`**
+  dès maintenant (Drake nécessaire au cœur à partir de S1) ; `importorskip` garde
+  la suite gracieuse si le wheel Drake échoue un jour.
+- Réutilisation du seul noyau partagé `cnp.polylin` pour l'algèbre tensorielle
+  (mono/tmul/teval/zeros).
+
+**Pièges rencontrés** :
+- **Matrice homogène et dénominateur** (bug sympy, attrapé par les tests) : le
+  coin (3,3) de la transfo homogène de rotation doit valoir `den`, pas 1, sinon la
+  colonne translation est silencieusement divisée par (1+s²). Construire `den·I`
+  puis écraser le bloc rotation.
+- **Ordre de composition** : X_parent_child = X_pj · Rot(axe,θ) (offset puis
+  rotation), pas l'inverse.
+- **Mosek tiré en transitif par le wheel Drake** (8 Mo) : jamais importé, règle 3
+  respectée (aucun `import mosek` dans le cœur). À surveiller qu'aucun chemin Drake
+  ne le réveille.
+- **Dépendance réseau** : le modèle iiwa est téléchargé une fois par Drake
+  (`package://drake_models`, cache local) ; les tests iiwa **skippent proprement**
+  hors-ligne (fixture try/except), le repli sympy et la parité tournent sans réseau.
+- Hypothèse de portée assumée : chaîne révolute série, base soudée ⟹ index de
+  position = index de joint/delta (asserté via limites ⊂ (−π,π) et n=positions).
+
+**Prochaine étape** : S2 — témoin 3D (`witness.py`) : LP témoin slab-aware générique
+n-dim (corps convexe mobile vs polytope statique H-rep), degré de λ paramétrable,
+back-end cvxpy d'abord. Entrée : `BodyRatFK.vertex_numerators` + D par link.

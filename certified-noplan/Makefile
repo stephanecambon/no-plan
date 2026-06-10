@@ -20,7 +20,9 @@ $(STAMP): pyproject.toml
 	@test -x "$(PYTHON)" || { echo "ERROR: $(PYTHON) not found. Install with: brew install python@3.12  (or pass PYTHON=...)"; exit 1; }
 	$(PYTHON) -m venv $(VENV)
 	$(VENV_PY) -m pip install --upgrade pip
-	$(VENV_PY) -m pip install -e ".[dev]"
+	# Drake is needed from S1 (ratfk). The sympy fallback (SPEC §9.4) lets the
+	# suite degrade gracefully (importorskip) if the wheel ever fails to install.
+	$(VENV_PY) -m pip install -e ".[drake,dev]"
 	@touch $(STAMP)
 	@echo "setup OK: $$($(VENV_PY) --version) in $(VENV)"
 

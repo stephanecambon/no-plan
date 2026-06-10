@@ -18,6 +18,7 @@ dependencies = [
     "clarabel>=0.6",       # default LP/SDP back-end used by the sandbox campaign
     "highspy>=1.7",        # direct HiGHS LP back-end (used from S8)
     "scikit-learn>=1.4",   # SVM fit for phifit (S5)
+    "sympy>=1.12",         # symbolic FK fallback in ratfk (REPLI, SPEC §9.4)
     "pyyaml>=6.0",         # scene parser (S6)
     "matplotlib>=3.8",     # figures (S11)
     "meshcat>=0.3",        # 3D viz (S11)
