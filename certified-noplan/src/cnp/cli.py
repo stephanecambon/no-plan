@@ -122,6 +122,9 @@ def _cmd_show(args) -> int:
     if args.config == "both":
         print(f"showing scene {args.scene!r}: start (blue) and goal (green) in one "
               "view (Ctrl-C to stop the server)")
+    elif args.config == "sweep":
+        print(f"showing scene {args.scene!r}: start->goal sweep, colliding poses in "
+              "red (Ctrl-C to stop the server)")
     else:
         print(f"showing scene {args.scene!r} at config {args.config!r} "
               "(Ctrl-C to stop the server)")
@@ -157,8 +160,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("show", help="minimal Meshcat view of a scene (design inspection)")
     s.add_argument("scene", help="path to the YAML scene")
-    s.add_argument("--config", choices=["both", "start", "goal"], default="both",
-                   help="which configuration(s) to draw: both (default), start, or goal")
+    s.add_argument("--config", choices=["both", "start", "goal", "sweep"],
+                   default="both",
+                   help="draw: both (default), start, goal, or 'sweep' (a fan of "
+                        "start->goal poses, colliding ones in red — shows why the "
+                        "direct motion is blocked)")
     s.add_argument("--png", default=None,
                    help="save a 2-D top-down figure to this path (planar scenes) "
                         "instead of launching the Meshcat server")

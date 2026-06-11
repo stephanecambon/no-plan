@@ -780,7 +780,11 @@ puis scenes.py + YAML + `cnp show` + `cnp certify` + adversarial initial
   aussi le **builtin spatial** : `cnp show scenes/S2b_spatial3.yaml` dessine le vrai
   robot 3R en 3D (poteau vertical + segment distal swingué gauche/goal-droite, mur
   en façade) et `scene_S2b_spatial_cspace.png` rejoue la même preuve visuelle en
-  C-space spatial. (viz complet `cnp viz <cert>` = S11.)
+  C-space spatial. **Mode `sweep`** (`cnp show --config sweep` + `save_sweep_figure`
+  → `scene_S2b_spatial_sweep.png`) : éventail des poses interpolées start→goal,
+  collisions en ROUGE — montre POURQUOI le mouvement direct est bloqué (le bras
+  balaie le mur), complément du C-space qui montre que TOUT chemin l'est. (viz
+  complet `cnp viz <cert>` = S11.)
 - **Scènes** : `scenes/S1_relais.yaml` (E3, 46 feuilles, régression rapide),
   `scenes/S2_peigne.yaml` (**peigne 3-DOF planaire**), `scenes/S2b_spatial3.yaml`
   (3-DOF spatiale → ENGINE-PROOF).

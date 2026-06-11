@@ -56,12 +56,20 @@ def spatial_figure():
     scene, _ = scenes.load(os.path.join(SCENES, "S2b_spatial3.yaml"))
     os.makedirs(OUT, exist_ok=True)
     oracle = scenes.collision_oracle(scene, n_samples=30)
-    path = os.path.join(OUT, "scene_S2b_spatial_cspace.png")
+    p1 = os.path.join(OUT, "scene_S2b_spatial_cspace.png")
     viz.save_cspace_figure(
-        scene, oracle, path, axes=(0, 1), n=140, fixed={2: 0.0},
+        scene, oracle, p1, axes=(0, 1), n=140, fixed={2: 0.0},
         title="S2b spatial 3R (C-space s0,s1 ; s2 passif) : mur de collision a "
               "s0=0 -> goal libre mais INATTEIGNABLE depuis start")
-    print("written", os.path.normpath(path))
+    print("written", os.path.normpath(p1))
+
+    # Sweep filmstrip: the direct start->goal motion sweeps the arm through the wall.
+    p2 = os.path.join(OUT, "scene_S2b_spatial_sweep.png")
+    viz.save_sweep_figure(
+        scene, oracle, p2, n=11, project=(0, 1),
+        title="S2b : balayage start->goal (la base tourne) — les poses du milieu "
+              "(rouge) plantent dans le mur : le mouvement direct est bloque")
+    print("written", os.path.normpath(p2))
 
 
 if __name__ == "__main__":

@@ -117,6 +117,57 @@ def save_planar_figure(scene: _cert.Scene, path: str, poses=None, title=None):
     return path
 
 
+def save_sweep_figure(scene: _cert.Scene, oracle, path, n=9, project=(0, 1),
+                      title=None):
+    """Top-down 'filmstrip' showing WHY you cannot move from start to goal: draw the
+    arm at ``n`` configs interpolated in s-space along the straight start->goal line,
+    each coloured by collision (green = free, red = colliding). The free endpoints are
+    reachable, but every intermediate pose plows into the obstacle — the motion is
+    blocked. (The straight path is just the obvious attempt; the C-space figure shows
+    that EVERY path is blocked, since the colliding band spans the whole box.)"""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
+
+    i, j = project
+    st = np.array([float(v) for v in scene.start_s])
+    go = np.array([float(v) for v in scene.goal_s])
+
+    fig, ax = plt.subplots(figsize=(7.5, 7))
+    for nm, (A, b) in scene.obstacles.items():
+        bnds = _box_bounds(A, b)
+        if bnds is None:
+            continue
+        (xlo, xhi), (ylo, yhi) = bnds[i], bnds[j]
+        ax.add_patch(Rectangle((xlo, ylo), xhi - xlo, yhi - ylo,
+                               facecolor="0.55", edgecolor="0.3", alpha=0.8, zorder=1))
+        ax.text((xlo + xhi) / 2, (ylo + yhi) / 2, nm, ha="center", va="center",
+                fontsize=8, weight="bold", zorder=6)
+
+    n_coll = 0
+    for k in range(n):
+        s = st + (go - st) * (k / (n - 1))
+        colliding = oracle(s)
+        n_coll += colliding
+        colour = "#d62728" if colliding else "#2ca02c"
+        pts = _joint_world_positions(scene, s)
+        ax.plot(pts[:, i], pts[:, j], "-", color=colour,
+                lw=2.4, alpha=0.85, zorder=3)
+        ax.plot(pts[:, i], pts[:, j], "o", color=colour, ms=4, zorder=4)
+    ax.plot(0, 0, "ks", ms=9, zorder=7)
+    ax.set_aspect("equal")
+    ax.grid(True, ls=":", alpha=0.5)
+    ax.set_xlabel(f"axe monde {i} (m)")
+    ax.set_ylabel(f"axe monde {j} (m)")
+    ax.set_title(title or f"balayage start->goal : {n_coll}/{n} poses en collision "
+                          "(rouge) — le mouvement direct traverse l'obstacle")
+    fig.tight_layout()
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+    return path
+
+
 def save_cspace_figure(scene: _cert.Scene, oracle, path, axes=(0, 1), n=140,
                        fixed=None, title=None):
     """Configuration-space figure (the view that shows 'goal free but UNREACHABLE'):
@@ -218,9 +269,30 @@ def show_scene(scene: _cert.Scene, config: str = "both"):
                                               transparent=True))
         node.set_transform(tf.translation_matrix(center))
 
-    # --- robot at the requested config(s), all in the same viewer ---
-    configs = ["start", "goal"] if config == "both" else [config]
-    for cfg in configs:
-        _draw_robot(vis, scene, cfg, _CONFIG_COLOUR[cfg])
+    # --- robot poses ---
+    if config == "sweep":
+        # A fan of poses interpolated start->goal in s-space; colliding ones (which a
+        # straight motion would have to pass through) are red, free ones green. Shows
+        # WHY the direct motion is blocked (the C-space figure shows ALL paths are).
+        from . import scenes as _scenes
+        oracle = _scenes.collision_oracle(scene)
+        st = np.array([float(v) for v in scene.start_s])
+        go = np.array([float(v) for v in scene.goal_s])
+        n = 11
+        for k in range(n):
+            s = st + (go - st) * (k / (n - 1))
+            colour = 0xd62728 if oracle(s) else 0x2ca02c
+            pts = _joint_world_positions(scene, s)
+            node = vis["sweep"][str(k)]
+            node["links"].set_object(
+                g.Line(g.PointsGeometry(pts.T.astype(np.float32)),
+                       g.LineBasicMaterial(color=colour)))
+            for i, p in enumerate(pts):
+                jn = node["joints"][str(i)]
+                jn.set_object(g.Sphere(0.02), g.MeshLambertMaterial(color=colour))
+                jn.set_transform(tf.translation_matrix(list(p)))
+    else:
+        for cfg in (["start", "goal"] if config == "both" else [config]):
+            _draw_robot(vis, scene, cfg, _CONFIG_COLOUR[cfg])
 
     return vis.url()
