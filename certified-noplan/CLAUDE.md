@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.2 — 11 juin 2026 (révision post-S3 ; v1.0/v1.1 dans git).
+Version 1.3 — 11 juin 2026 (révision post-S4 ; v1.0/v1.1/v1.2 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -9,8 +9,11 @@ humaine** (règle 11) ; anti-dérive de SPEC (règle 12) ; anti-skip silencieux
 (règle 13). Changements v1.1 → v1.2 (revue S3, annotations A8-A10) : règle 11
 amendée — la validation ne bloque jamais le commit du code ; S3 actée ; S8
 re-scopé (cvxpy réveille mosek à l'import ⟹ HiGHS déjà défaut depuis S3) ;
-note heuristique d'axe en S9. Détail : entrées « Revue de supervision » de
-JOURNAL.md.
+note heuristique d'axe en S9. Changements v1.2 → v1.3 (revue S4, annotations
+A11-A14) : S4 actée ; CONTRAT engine↔verify « coupe au milieu » (A14, règle 9) ;
+gardes d'ouverture S5 (A12 q*≠0 bruyant sur chemin sympy ; A13 arrondi λ
+adaptatif + boucle de re-résolution) ; figures prêt-papier slab-aware (A11 →
+S11). Détail : entrées « Revue de supervision » de JOURNAL.md.
 
 ---
 
@@ -52,7 +55,14 @@ JOURNAL.md.
    obligatoire) ; **la grille d'échantillonnage ne fait pas foi** (micro-canal raté
    par 41 points, attrapé par le certificateur) ; profondeur de b&b = paramètre de
    coût, pas de faisabilité ; coin (3,3) des homogènes = den, pas 1 (bug S1) ;
-   padder D et φ² au degré de travail DPAD avant Bernstein (piège S2).
+   padder D et φ² au degré de travail DPAD avant Bernstein (piège S2) ;
+   **CONTRAT [A14, v1.3] : le moteur ne coupe les cellules QU'AU MILIEU** —
+   verify reconstruit le pavage sous cette hypothèse ; tout point de coupe
+   « intelligent » casserait la vérification (faux rejet) : si nécessaire un
+   jour, amender engine ET verify ET la SPEC dans le même commit ; verify
+   calcule Bernstein AU MÊME DEGRÉ que le générateur (plus bas = borne plus
+   lâche = faux rejets, piège S4) ; q* est absorbé dans s pour les joints
+   débloqués (piège S4 — garde A12 en S5).
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).

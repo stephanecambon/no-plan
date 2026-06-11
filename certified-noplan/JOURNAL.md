@@ -524,3 +524,43 @@ et des obstacles H-rep exacts ; phifit devra rationaliser son φ appris (cf. `e4
 qui rationalise à 1e-6). NB S6 : brancher `cnp verify cert scene.yaml` (croisement scène
 externe), et `cnp certify`.
 
+## 2026-06-11 — Revue de supervision S4 (claude.ai) — **CLAUDE.md v1.3**
+
+**Verdict** : S4 validée — la session la plus structurante du projet. Trois
+points au-dessus de l'attendu : (1) le vérificateur **forme lui-même g − μT**
+(le certificat ne transporte que λ et μ) ⟹ le signe unsound devient
+structurellement impossible à glisser dans une preuve, plus seulement testé ;
+(2) pavage prouvé par RECONSTRUCTION (récursion sur bissections au milieu)
+plutôt qu'en modifiant engine.py — règle 1 respectée, trou ET recouvrement
+prouvés ; (3) refus honnête de q*≠0 par le vérificateur planaire plutôt qu'une
+fausse vérification (règle 5), et condition (i) restreinte aux s rationnels
+(SPEC amendée). 26 mutations rejetées, audit AST, 498 lignes, 117 tests 0 skip.
+
+**Annotations (intégrées à CLAUDE.md v1.3)** :
+- [A12 → ouverture S5] `SympyRatFK` IGNORE silencieusement q* des joints
+  débloqués (« sans effet à q*=0 » — vrai aujourd'hui, mine pour S9). Garde
+  bruyante exigée : ValueError si q*≠0 sur le chemin sympy, + 1 test.
+- [A13 → ouverture S5] L'arrondi mélange-au-barycentre est calibré en dur sur
+  la marge d'E3 (α=0.0063 vs marge ~1e-2). À 7-DOF les marges visent ~1e-3 :
+  α doit être adaptatif (fraction de la marge mesurée par feuille) + boucle de
+  re-résolution si verify rejette après arrondi (promesse SPEC §4) + test à
+  marge fine.
+- [A14 → règle 9, contrat] La reconstruction du pavage par verify suppose que
+  le moteur ne coupe QU'AU MILIEU. Désormais contrat explicite engine↔verify :
+  changer l'un = amender l'autre + SPEC dans le même commit. Corollaire
+  documenté : verify calcule Bernstein au même degré que le générateur (plus
+  bas = faux rejets).
+- [A11 → S11, issu de V1] Figures de publication : rogner/hachurer la partie
+  hors-dalle des feuilles slab-aware et tracer la frontière de dalle sur le
+  panneau partition (les grandes feuilles E4 débordant en zone libre sont
+  sound — la couleur ne vaut que sur cellule∩dalle — mais piégeuses pour un
+  lecteur).
+
+**V1 (clôturée)** : figures partition_E3/E4 validées par Stéphane sur les trois
+points de la checklist (continuité de dalle sans FAIL, relais des paires
+conforme à la vérité-terrain, raffinement concentré aux frontières/relais).
+
+**Prochaine étape** : S5 — tâches d'ouverture A12+A13 (< 30 min), puis pipeline
+φ (échantillonnage seedé, fit SVM, approximation polynomiale RATIONALISÉE,
+δ auto avec s_start/s_goal rationnels, boucle de retry). V2 en fin de session.
+
