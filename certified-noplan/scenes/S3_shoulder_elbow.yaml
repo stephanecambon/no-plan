@@ -49,8 +49,12 @@ body:
   hull_vertices: [["0", "0", "0"], ["2/5", "0", "0"]]      # base -> elbow segment
 
 obstacles:
-  PANEL:                         # thin vertical shelf panel: x[3/20,1/5], y[-3/50,3/50], z[-1/2,1/2]
-    box: [["3/20", "1/5"], ["-3/50", "3/50"], ["-1/2", "1/2"]]
+  PANEL:                         # thin vertical shelf panel: x[3/20,1/5], y[-3/50,3/50], z[-3/5,3/5]
+    # The panel TOP (z=3/5=0.6 m) is taller than the WHOLE upper-arm reach (2/5=0.4 m):
+    # no arm configuration places any arm point above z=0.4, so "passing over the top" is
+    # geometrically IMPOSSIBLE (it is the wall HEIGHT, not the pitch joint limit — even at
+    # max pitch the upper arm crosses the panel depth at z<=0.19, deep inside the panel).
+    box: [["3/20", "1/5"], ["-3/50", "3/50"], ["-3/5", "3/5"]]
 
 phi: {degree_per_var: 2, coeffs: {"1,0,0,0": "1"}}         # barrier phi = s0 (base yaw)
 delta: "1/10"

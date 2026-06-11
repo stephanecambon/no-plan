@@ -1138,6 +1138,37 @@ Critère de réussite : la paire de figures raconte « bras 4-DOF, cible bloqué
   4-DOF de Li-Dantam.
 Réponse attendue  : « VALIDÉ S7-V4 » ou description de l'anomalie.
 
+**Itération V4 (1er retour Stéphane : NON VALIDÉ, point 0 en échec)** — l'objection
+était juste : la vue de dessus masque la HAUTEUR du panneau ⟹ « pourquoi pas
+par-dessus ? ». Corrections :
+- **Vue de CÔTÉ + éventail de tangage** (`scene_S3_shoulder_elbow_side.png`, plan x-z) :
+  bras supérieur balayé sur tout son tangage à lacet=0, **9/9 poses en collision**,
+  enveloppe de portée (rayon 0.4) tracée, sommet du panneau au-dessus. **Réponse
+  explicite : le blocage par-dessus est la HAUTEUR DU MUR, pas la limite articulaire.**
+  Géométrie : portée verticale max du bras supérieur = sa longueur 0.4 m (un point du
+  segment ne dépasse jamais z=0.4) ; panneau remonté à **z∈[-3/5,3/5]** (sommet 0.6 >
+  0.4) ⟹ aucune config ne place le bras au-dessus du panneau. Même au tangage max
+  (43.6°) le bras croise la profondeur du panneau à z≤0.19 (bas dedans). La limite de
+  tangage |s1|≤2/5 borne la boîte mais n'est PAS la raison du blocage par-dessus (au
+  tangage limite, le bras plante encore dans le panneau). Re-vérifié : PROOF, start/goal
+  libres, 0 libre/100k dans la dalle (le panneau plus haut n'ajoute que de la collision).
+  Figure « bras supérieur seul » (le corps certifié) ⟹ argument de hauteur étanche.
+- **[A21] Tableau de correspondance géométrique** papier↔YAML archivé
+  (`benchmarks/GEOMETRY-S3-vs-LiDantam.md`) : Li-Dantam ne publient AUCUN chiffre
+  (RSS2021 §V-B = structure cinématique + tâche en prose, Fig 7b graphique seul). Le
+  tableau sépare FIDÈLE (topologie épaule sphérique+coude, 4-DOF, tâche d'atteinte
+  infaisable) de CHOISI PAR NOUS (toutes les longueurs/dimensions/limites). Honnêteté
+  de reproduction approchée (anticipée par la revue S6).
+- **[A23] Décision de périmètre actée + checklist V4 amendée (diff CLAUDE.md, commit
+  doc séparé)** : le critère A20 « apparence faisable » est réservé aux scènes-VITRINES
+  V5/V6 (non négociable là-bas) ; une scène de BENCHMARK (V4) doit avant tout
+  **répondre aux objections naturelles du spectateur** (vue de côté + sweeps lacet ET
+  tangage + contrainte bloquante explicite). V5/V6 point (0) marqué « non négociable ».
+  Changelog header annoté (revue V4, A21/A23).
+- Tests re-verts après remontée du panneau (6/6). Nouvelle figure dans `make figures`.
+  La paire de figures est désormais un trio : sweep (lacet, dessus) + côté (tangage,
+  hauteur) + C-space (mur sur tout le tangage). V4 re-soumise à Stéphane.
+
 **Prochaine étape** : V4, micro-commit de clôture, puis (selon revue) S8 — perf :
 **tâche n°1 dims passives par intervalles** (A18, données S7 : oracle 8→36 feuilles
 sur 0→3 dims passives), highspy direct, sparsité, warnings. NB : la vérification EXACTE

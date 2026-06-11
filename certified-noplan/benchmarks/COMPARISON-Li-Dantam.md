@@ -45,6 +45,13 @@ of base yaw, for every pitch and all configurations of the passive roll + elbow 
 *proximal* trap (a distal-joint barrier is defeated by the arm's redundancy; the S5/S6
 lesson). This is a genuine disconnection of a **4-DOF** configuration space.
 
+The exact paper↔YAML geometry correspondence (what is faithful vs chosen by us, since
+Li-Dantam publish no numbers) is archived in `benchmarks/GEOMETRY-S3-vs-LiDantam.md`
+(A21). The V4 figures pre-empt the viewer's natural objections (A23): the side view
+`figures/scene_S3_shoulder_elbow_side.png` shows the panel is taller than the arm's
+reach (so "over the top" is impossible — a wall-height block, not a joint-limit one),
+and the C-space figure shows the collision wall spans every pitch (no yaw/pitch detour).
+
 Our certificate is a **Bernstein-LP disconnection proof**: a low-degree polynomial
 barrier φ (here φ = s0, the base-yaw coordinate) whose slab `{|φ|≤δ}` is certified
 entirely in collision by a branch-and-bound partition, each leaf carrying an

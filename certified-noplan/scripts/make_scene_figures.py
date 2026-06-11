@@ -138,6 +138,54 @@ def shoulder_elbow_figures():
     plt.close(fig)
     print("written", os.path.normpath(p1))
 
+    # (a') SIDE view (world x-z) + pitch-plane fan: answers "why not go OVER the panel?".
+    # At yaw 0 (in the slab) the upper arm is swept over its whole pitch range; every pose
+    # (red) rams the panel. The panel TOP (z=0.6) is higher than the arm's entire reach
+    # (the radius-0.4 dashed envelope), so no configuration ever gets above it — the block
+    # is the WALL HEIGHT, not the pitch joint limit (even at max pitch the arm crosses the
+    # panel low). This is the natural-objection answer the V4 review (A23) requires.
+    fig, ax = plt.subplots(figsize=(7.5, 7))
+    (pxlo, pxhi), _, (pzlo, pzhi) = viz._box_bounds(*scene.obstacles["PANEL"])
+    ax.add_patch(Rectangle((pxlo, pzlo), pxhi - pxlo, pzhi - pzlo, facecolor="0.55",
+                           edgecolor="0.3", alpha=0.85, zorder=2))
+    ax.text((pxlo + pxhi) / 2, pzhi + 0.03, f"panneau (sommet z={pzhi:g})",
+            ha="center", fontsize=9, weight="bold")
+    reach = L_UP
+    th = np.linspace(-np.pi / 2, np.pi / 2, 100)
+    ax.plot(reach * np.cos(th), reach * np.sin(th), "--", color="0.4", lw=1.2,
+            zorder=1, label=f"portee max du bras sup. (r={reach:g})")
+    ax.axhline(reach, ls=":", color="#7f0000", lw=1.0, zorder=1)
+    s1lo, s1hi = float(scene.box[1][0]), float(scene.box[1][1])
+    n_coll = 0
+    for s1 in np.linspace(s1lo, s1hi, 9):
+        s = np.array([0.0, s1, 0.0, 0.0])             # yaw 0 (in slab), vary pitch
+        colliding = oracle(s)
+        n_coll += colliding
+        colour = "#d62728" if colliding else "#2ca02c"
+        # draw ONLY the UPPER ARM (base->elbow) — the certified body and the link the
+        # height argument is about; its tip never leaves the radius-0.4 envelope.
+        elbow = fk.body("j2").eval_world_point([L_UP, 0, 0], s)
+        pts = np.array([[0, 0, 0], elbow])
+        ax.plot(pts[:, 0], pts[:, 2], "-", color=colour, lw=2.6, alpha=0.9, zorder=3)
+        ax.plot(pts[1, 0], pts[1, 2], "o", color=colour, ms=4, zorder=4)
+    ax.plot(0, 0, "ks", ms=10, zorder=7)
+    ax.set_aspect("equal")
+    ax.set_ylim(pzlo - 0.08, pzhi + 0.18)
+    ax.grid(True, ls=":", alpha=0.5)
+    ax.set_xlabel("x monde (m) — profondeur")
+    ax.set_ylabel("z monde (m) — hauteur")
+    ax.legend(loc="lower left", fontsize=8, framealpha=0.95)
+    ax.set_title("S3 vue de COTE (plan du tangage, lacet=0) — bras superieur sur tout "
+                 f"son tangage : {n_coll}/9 poses en collision\n"
+                 "sommet panneau 0.6 > portee du bras 0.4  =>  passer PAR-DESSUS est "
+                 "IMPOSSIBLE (raison = HAUTEUR DU MUR,\npas la limite articulaire : meme "
+                 "au tangage max le bras plante bas dans le panneau)", fontsize=10)
+    p3 = os.path.join(OUT, "scene_S3_shoulder_elbow_side.png")
+    fig.tight_layout()
+    fig.savefig(p3, dpi=130)
+    plt.close(fig)
+    print("written", os.path.normpath(p3))
+
     # (b) C-space wall (yaw s0, pitch s1); s2 roll + s3 elbow are passive for the body.
     p2 = os.path.join(OUT, "scene_S3_shoulder_elbow_cspace.png")
     viz.save_cspace_figure(
