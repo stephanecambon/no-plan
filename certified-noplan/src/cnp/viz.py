@@ -61,9 +61,30 @@ def _box_bounds(A, b):
     return list(zip(lo, hi))
 
 
-def show_scene(scene: _cert.Scene, config: str = "start"):
-    """Open a Meshcat view of ``scene`` with the arm at ``config`` ('start'|'goal')
-    and the obstacles drawn as boxes. Returns the viewer URL (string)."""
+_CONFIG_COLOUR = {"start": 0x1f77b4, "goal": 0x2ca02c}   # start = blue, goal = green
+
+
+def _draw_robot(vis, scene, config, colour):
+    """Draw the arm at one config as a polyline skeleton + joint spheres."""
+    import meshcat.geometry as g
+    import meshcat.transformations as tf
+
+    pts = _joint_world_positions(scene, _config_q_to_s(scene, config))
+    root = vis["robot"][config]
+    root["links"].set_object(
+        g.Line(g.PointsGeometry(pts.T.astype(np.float32)),
+               g.LineBasicMaterial(color=colour, linewidth=4)))
+    for i, p in enumerate(pts):
+        node = root["joints"][str(i)]
+        node.set_object(g.Sphere(0.04), g.MeshLambertMaterial(color=colour))
+        node.set_transform(tf.translation_matrix(list(p)))
+
+
+def show_scene(scene: _cert.Scene, config: str = "both"):
+    """Open ONE Meshcat view of ``scene`` and the obstacles, drawing the arm at the
+    requested config(s): ``"both"`` (default — start in blue AND goal in green in the
+    same scene, so the two poses are compared without launching two servers),
+    ``"start"`` or ``"goal"`` for a single pose. Returns the viewer URL (string)."""
     import meshcat
     import meshcat.geometry as g
     import meshcat.transformations as tf
@@ -74,27 +95,19 @@ def show_scene(scene: _cert.Scene, config: str = "start"):
     # --- obstacles (boxes) ---
     for nm, (A, b) in scene.obstacles.items():
         bounds = _box_bounds(A, b)
-        node = vis["obstacles"][nm]
         if bounds is None:                      # non-box H-rep: skip with no crash
             continue
         size = [hi - lo for lo, hi in bounds]
         center = [0.5 * (lo + hi) for lo, hi in bounds]
+        node = vis["obstacles"][nm]
         node.set_object(g.Box(size),
                         g.MeshLambertMaterial(color=0xB0B0B0, opacity=0.55,
                                               transparent=True))
         node.set_transform(tf.translation_matrix(center))
 
-    # --- robot at the chosen config (polyline skeleton + joint spheres) ---
-    s = _config_q_to_s(scene, config)
-    pts = _joint_world_positions(scene, s)
-    colour = 0x1f77b4 if config == "start" else 0x2ca02c
-    vis["robot"]["links"].set_object(
-        g.Line(g.PointsGeometry(pts.T.astype(np.float32)),
-               g.LineBasicMaterial(color=colour, linewidth=4)))
-    for i, p in enumerate(pts):
-        node = vis["robot"]["joints"][str(i)]
-        node.set_object(g.Sphere(0.04),
-                        g.MeshLambertMaterial(color=colour))
-        node.set_transform(tf.translation_matrix(list(p)))
+    # --- robot at the requested config(s), all in the same viewer ---
+    configs = ["start", "goal"] if config == "both" else [config]
+    for cfg in configs:
+        _draw_robot(vis, scene, cfg, _CONFIG_COLOUR[cfg])
 
     return vis.url()

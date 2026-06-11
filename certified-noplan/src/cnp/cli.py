@@ -114,8 +114,12 @@ def _cmd_show(args) -> int:
     scene, _ = _scenes.load(args.scene)
     url = _viz.show_scene(scene, config=args.config)
     print(f"Meshcat: {url}")
-    print(f"showing scene {args.scene!r} at config {args.config!r} "
-          "(Ctrl-C to stop the server)")
+    if args.config == "both":
+        print(f"showing scene {args.scene!r}: start (blue) and goal (green) in one "
+              "view (Ctrl-C to stop the server)")
+    else:
+        print(f"showing scene {args.scene!r} at config {args.config!r} "
+              "(Ctrl-C to stop the server)")
     try:
         import time
         while True:
@@ -148,8 +152,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("show", help="minimal Meshcat view of a scene (design inspection)")
     s.add_argument("scene", help="path to the YAML scene")
-    s.add_argument("--config", choices=["start", "goal"], default="start",
-                   help="which configuration to draw the robot at (default: start)")
+    s.add_argument("--config", choices=["both", "start", "goal"], default="both",
+                   help="which configuration(s) to draw: both (default), start, or goal")
     s.set_defaults(func=_cmd_show)
     return p
 
