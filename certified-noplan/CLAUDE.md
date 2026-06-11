@@ -199,13 +199,13 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   tests/test_adversarial.py (micro-canal : grille grossière 0-libre mais moteur
   refuse) zéro faux certificat ; SPEC §6 amendée (149 tests, 0 skip). **V3 validée**
   (figures workspace/C-space/sweep du peigne + 3R spatial).
-- 🟡 **S7** — code vert, **V4 validée côté figures, widget A24 livré (re-soumission)**.
-  Scène épaule-coude 4-DOF fidèle (Li-Dantam RSS2021) → ENGINE-PROOF + 0 libre/300k ;
-  harness benchmarks/ + table comparative honnête + balayage dims passives (margin plat
-  8 / oracle 8→36) ; figures sweep+côté+C-space + **widget interactif HTML
-  (`cnp show --interactive`, A24)** + table géométrie A21 (158 tests, 0 skip).
-  **Réserve G3'** : la moitié « + vérifiée (exact) » est reportée à S9 (verify spatial)
-  — Option A actée avec Stéphane.
+- ✅ **S7** — **V4 validée** (« VALIDÉ S7-V4 »). Scène épaule-coude 4-DOF fidèle
+  (Li-Dantam RSS2021) → ENGINE-PROOF + 0 libre/300k ; harness benchmarks/ + table
+  comparative honnête + balayage dims passives (margin plat 8 / oracle 8→36) ; figures
+  sweep+côté+C-space + **widget interactif HTML (`cnp show --interactive`, A24)** +
+  table géométrie A21 + limites explicites partout (A25) (158 tests, 0 skip).
+  **Réserve G3'** : la moitié « + vérifiée (exact) » portée à S9 (verify spatial,
+  Option A actée avec Stéphane) — arbitrage du libellé de la porte par la revue.
 
 ---
 

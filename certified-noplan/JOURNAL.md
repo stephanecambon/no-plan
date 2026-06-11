@@ -977,7 +977,7 @@ peut pas.
 ancrage Li-Dantam 4-DOF (porte G3', validation V4 avec point « apparence
 faisable »).
 
-## 2026-06-11 — S7 (Claude Code) — Ancrage Li-Dantam 4-DOF (**code vert, V4 en attente**)
+## 2026-06-11 — S7 (Claude Code) — Ancrage Li-Dantam 4-DOF (**V4 validée — clôture**)
 
 **Fait** :
 - **Ouverture** : diffs de revue S6 D6-D11 appliqués au CLAUDE.md du repo (circuit
@@ -1234,7 +1234,17 @@ V4 acquise sur les figures ; nouvelle exigence à journaliser et appliquer :
 « V4 en attente » : V4 validée côté figures mais re-soumise après A24/A25, pas encore
 de « VALIDÉ S7-V4 » — le titre passera à « V4 validée » au micro-commit de clôture.
 
-**Prochaine étape** : V4, micro-commit de clôture, puis (selon revue) S8 — perf :
+**Clôture S7 — V4 VALIDÉE par Stéphane (« VALIDÉ S7-V4 »)** après 3 itérations
+(figures → vue de côté/objection « par-dessus » + A21 → widget interactif A24 →
+limites explicites A25). **S7 vert**, tous critères de sortie acquis AU SENS SPEC §8
+(S3 reproduite + chiffrée + V4 validée), avec la **réserve G3' actée** : la moitié
+« + vérifiée (exact) » est portée à S9 (verify `spatial_revolute`) — à arbitrer par la
+revue de supervision (scinder G3' engine/S7 + exact/S9 ?). Annotations produites cette
+session : A21 (table géométrie), A23 (benchmark vs vitrine), A24 (artefact interactif),
+A25 (limites explicites) — toutes appliquées + journalisées + intégrées à CLAUDE.md
+(règle 11 / checklists V4-V6, commits doc séparés, circuit A16).
+
+**Prochaine étape** : revue de supervision S7 (arbitrage G3'), puis S8 — perf :
 **tâche n°1 dims passives par intervalles** (A18, données S7 : oracle 8→36 feuilles
 sur 0→3 dims passives), highspy direct, sparsité, warnings. NB : la vérification EXACTE
 des scènes spatiales (kind `spatial_revolute` dans verify.py) reste S9 — c'est elle qui
