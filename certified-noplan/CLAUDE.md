@@ -154,7 +154,16 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   certifié+vérifié via le pipeline complet (76 feuilles) ; scène 3-DOF spatiale
   certifiée moteur-PROOF + 0 point libre dans la dalle sur 300k échantillons
   (130 tests, 0 skip). **V2 validée** (figures phi_E4/phi_3dof).
-- ⏳ S6 — prochaine session (scenes.py + YAML + cnp show).
+- ✅ **S6** — parser YAML (scenes.py) → modèle Scene exact ; obstacles box/H-rep,
+  hull extrait du link ; CLI `cnp certify` bout-en-bout + `cnp verify cert scene`
+  (cross-check scène) + `cnp show` Meshcat minimal ; **verdicts à trois statuts
+  PROOF / ENGINE-PROOF / UNDECIDED (A17)** ; builtin `spatial_revolute` côté
+  moteur (→ ENGINE-PROOF). **G1' vert** : S2-peigne 3-DOF certifié end-to-end +
+  vérifié exact (54 feuilles) + 0 point libre / 300k ; suite adversariale
+  tests/test_adversarial.py (micro-canal : grille grossière 0-libre mais moteur
+  refuse) zéro faux certificat ; SPEC §6 amendée (149 tests, 0 skip). **V3 en
+  attente** (cnp show scenes/S2_peigne.yaml).
+- ⏳ S7 — prochaine session (ancrage Li-Dantam 4-DOF, porte G3').
 
 ---
 

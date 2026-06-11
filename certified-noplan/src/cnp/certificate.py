@@ -71,12 +71,18 @@ def Q(x) -> Fraction:
 @dataclass
 class Robot:
     """A serial revolute robot, exact rationals. ``kind="planar_revolute"`` is the
-    S4 regression robot (planar n-R arm, joint axes +z, links along local x)."""
+    S4 regression robot (planar n-R arm, joint axes +z, links along local x).
+
+    ``kind="spatial_revolute"`` (S6, engine-only): a generic 3-D revolute chain whose
+    geometry is carried by ``joints`` (each ``{"offset": [x,y,z], "axis": [x,y,z]}``).
+    The exact verifier stays planar until S9, so a spatial scene certifies to the
+    **ENGINE-PROOF** verdict (engine OK, exact verification unavailable — A17)."""
 
     kind: str
-    link_lengths: list           # [Fraction]; one per joint (link carried after it)
+    link_lengths: list           # [Fraction]; one per joint (planar: link carried after)
     q_star: list                 # [Fraction] reference posture (rad), one per joint
     locked: dict = field(default_factory=dict)  # joint idx -> locked angle (rad); S4: {}
+    joints: list | None = None   # spatial_revolute: [{"offset": [..], "axis": [..]}]
 
     def __post_init__(self):
         self.link_lengths = [Q(v) for v in self.link_lengths]
@@ -85,7 +91,7 @@ class Robot:
 
     @property
     def n_joints(self) -> int:
-        return len(self.link_lengths)
+        return len(self.joints) if self.joints is not None else len(self.link_lengths)
 
     @property
     def n(self) -> int:

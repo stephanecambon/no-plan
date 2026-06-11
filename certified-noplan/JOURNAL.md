@@ -741,3 +741,124 @@ clôture.
 puis scenes.py + YAML + `cnp show` + `cnp certify` + adversarial initial
 (porte G1', validation V3).
 
+---
+
+## 2026-06-11 — S6 (Claude Code) — Scènes + CLI + adversarial (**code vert, V3 en attente**)
+
+**Fait** :
+- **Ouverture** : diffs de revue S5 D1-D5 appliqués au CLAUDE.md du repo (circuit
+  A16, repo = source de vérité), commit doc séparé (3904640) : règle 14
+  (gouvernance CLAUDE.md, A15), verdicts à trois statuts dans la tâche S6 (A17),
+  note figures slab-aware S11 (A11/D1), en-tête plan (D2), header v1.4 + changelog
+  (D5). S5 re-vérifié vert avant démarrage (130 passed, 0 skip).
+- **`src/cnp/scenes.py`** : parser YAML rationnel → `certificate.Scene` exact.
+  Obstacles en **boîte axis-aligned (lo/hi par axe)** ou **H-rep brute (A,b)** ;
+  enveloppe convexe du corps **extraite de la géométrie du link** (planaire =
+  segment `[0,0,0]→[len,0,0]`) si `hull_vertices` absent ; budget (depth, leaves,
+  temps, **heuristique d'axe**). `is_exactly_verifiable` (planaire q*=0),
+  `scene_matches_cert` (cross-check scène↔cert, comparaison de rationnels en
+  chaîne), `planar_collision_oracle` (oracle générique pour phifit/vérité-terrain),
+  `build_problem` (dispatch planaire→certificate / spatial→ici).
+- **`src/cnp/cli.py`** réécrit : `cnp certify <scene> [-o cert]` bout-en-bout
+  (parse→build_problem→solve→make_certificate auto-vérifié→write) ; `cnp verify
+  cert [scene]` (re-vérif exacte + cross-check scène externe optionnel) ; `cnp show
+  <scene>` (Meshcat). **Verdicts à trois statuts (A17)** : PROOF (vérifié exact) /
+  ENGINE-PROOF (moteur OK, vérif. exacte indisponible — TOUJOURS avec son
+  avertissement) / UNDECIDED. Erreurs propres (exit 2).
+- **`src/cnp/viz.py`** (minimal S6) : `show_scene` — bras planaire (squelette
+  polyline + sphères aux joints) aux configs start/goal + obstacles boîtes en
+  Meshcat ; URL retournée. (viz complet `cnp viz <cert>` = S11.)
+- **Scènes** : `scenes/S1_relais.yaml` (E3, 46 feuilles, régression rapide),
+  `scenes/S2_peigne.yaml` (**peigne 3-DOF planaire**), `scenes/S2b_spatial3.yaml`
+  (3-DOF spatiale → ENGINE-PROOF).
+- **G1' — S2-peigne 3-DOF certifié end-to-end** : `cnp certify scenes/S2_peigne.yaml`
+  → PROOF, `cnp verify … scene` → OK (54 feuilles : 46 collision + 8 outside) +
+  cross-check scène ; **0 point libre dans la dalle sur 300k échantillons**
+  (vérité-terrain). Construction : E3 **relevé en 3-DOF par piégeage proximal**
+  (le link MÉDIAN, fonction de s0,s1 seulement, est relayé par 3 dents ; joint
+  distal s2 passif). Genuinement n=3, multi-paires, exactement vérifiable
+  (planaire, q*=0).
+- **`src/cnp/certificate.py`** : `Robot` reçoit un champ optionnel `joints`
+  (builtin `spatial_revolute` côté moteur) ; sinon inchangé (verify ne lit jamais
+  Robot). Schéma cert inchangé (spec_version 1.2).
+- **Suite adversariale `tests/test_adversarial.py`** (zéro faux certificat, G1') :
+  dents rétrécies ×0.7 (chemin libre) → moteur UNDECIDED, `make_certificate` lève ;
+  **micro-canal** ×0.95 : grille grossière 11³ trouve **0 libre dans la dalle**
+  (la grille est dupée) mais échantillonnage dense en trouve (prémisse réellement
+  fausse) ET le moteur **REFUSE** (UNDECIDED) — le certificateur > la grille
+  (règle 9) ; CLI refuse une prémisse fausse (exit 1, aucun cert écrit).
+- **`tests/test_scenes.py`** (16 tests) : round-trip S1 reproduit l'oracle + vérifié ;
+  peigne 3-DOF certifié+vérifié exact ; box≡hrep ; hull dérivé ; cross-check
+  accepte/rejette (4 mutations) ; 5 scènes malformées lèvent proprement ; spatial
+  → ENGINE-PROOF ; CLI certify→verify, ENGINE-PROOF spatial, rejet cross-check
+  mauvaise scène ; helpers viz (positions joints + bornes boîte).
+- `make test` complet : **149 passed, 0 skipped, 25 warnings, 184 s**
+  (130 S5 + 16 scenes + 3 adversarial). `make test-fast` = **88 passed,
+  61 deselected, 25.6 s**.
+
+**Décisions** :
+- **Peigne = E3 relevé par piégeage proximal** (pas une déconnexion distale).
+  Une déconnexion 3-DOF pilotée par le joint DISTAL est défaite par la redondance
+  (leçon S5 : « mur frontal contourné en tangage »). Le link médian (indépendant
+  de s2) piégé sur une bande garantit une collision pour TOUT s2 → vraie
+  déconnexion topologique dans la boîte 3D. Sound, peu coûteux, exactement
+  vérifiable. Construction endorsée par la supervision S5.
+- **`axis: margin` requis pour le peigne** : s2 est une dimension PASSIVE
+  (collision/outside constants en s2) ; le défaut `oracle` (axe le plus large)
+  gaspille la profondeur à découper s2 → 736 feuilles, 256 FAIL, UNDECIDED. Le
+  lookahead-relais `margin` ne découpe pas la dimension passive → 54 feuilles,
+  PROOF. L'heuristique ne touche jamais la soundness (règle 9) ; la mitigation
+  « dims passives par intervalles » propre est S8 (SPEC §9.1). Le budget de scène
+  porte donc `axis`.
+- **Verdicts à trois statuts réels et testés (A17)** : ENGINE-PROOF n'est pas du
+  code mort — le builtin `spatial_revolute` (chaîne 3R par joints offset/axe,
+  géométrie de S5) est solvable par le moteur mais le vérificateur exact reste
+  planaire jusqu'à S9 ⟹ `cnp certify scenes/S2b_spatial3.yaml` rend ENGINE-PROOF
+  avec son avertissement. Rule 5 visible dans le produit.
+- **φ baké, pas fité par cnp certify** : le hint φ rationnel est obligatoire dans
+  la scène (le peigne = φ=s0 à la main, naturel pour un E3 relevé). Le fit
+  automatique (phifit/S5) reste disponible hors-ligne pour produire le φ rationnel
+  à baker ; testé sur le peigne (lstsq surajuste le bruit en s2 → φ=s0 à la main
+  est le bon barrière). cnp certify reste déterministe.
+- **Cross-check scène hors de verify.py** : `verify.py` reste SACRÉ (intouché,
+  498 lignes, stdlib, zéro import générateur) ; le croisement scène↔cert (qui lit
+  du YAML, côté générateur) vit dans `scenes.scene_matches_cert`, appelé par la
+  CLI APRÈS la vérif exacte. Séparation des préoccupations : verify prouve la
+  PREUVE (λ,μ,partition), le cross-check lie l'ÉNONCÉ au fichier scène.
+
+**Pièges rencontrés** :
+- **Dimension passive = explosion de feuilles** (risque #1 SPEC §9 rencontré en
+  vrai) : φ=s0 sur la boîte 3D du peigne avec axe `oracle` → 256 FAIL (la
+  profondeur part dans s2 inutile). Diagnostic immédiat (collision indépendante de
+  s2) ; correctif `axis=margin` (54 feuilles). Pas un bug de soundness : le moteur
+  refuse honnêtement quand la profondeur manque.
+- **Suite adversariale d'abord à 433 s** : les solves moteur sur scènes à dalle
+  LIBRE explorent profond (chaque cellule = 3 LP témoins) + échantillonnage dense
+  60k. Resserré à **22.7 s** : budget feuilles borné (80 — il suffit d'UN FAIL
+  pour ≠ PROOF), profondeur 12, échantillonnage dense 15k, micro-canal marqué
+  `slow`. Le critère « zéro faux certificat » ne demande pas d'épuiser l'arbre,
+  juste de prouver que le certificateur ne délivre pas de fausse preuve.
+- **lstsq surajuste les dimensions passives** : sur le peigne 3D, le fit moindres
+  carrés met du degré-2 partout (bruit en s2) → φ tordu → UNDECIDED (2 FAIL). Le
+  barrière à la main φ=s0 est net et certifie. (À garder pour S9 : pénaliser/
+  contraindre les coeffs des dims passives au fit.)
+- **test-fast repassé sous 30 s** : les tests de scène refaisant un solve E3
+  complet (cross-check, CLI certify→verify) marqués `slow` ; restent rapides le
+  round-trip S1, le spatial (8 feuilles), un contrôle adversarial. 25.6 s.
+
+**Décompte exact (sortie de session)** : `make test` = **149 passed, 0 skipped,
+25 warnings, 184 s** (mêmes 20 fork-deprecation + 5 Clarabel, documentés S0/S3).
+`make test-fast` = 88 passed, 61 deselected, 25.6 s.
+
+**Critères de sortie S6** : parser YAML + scenes S1/peigne ✓ ; `cnp show` Meshcat ✓ ;
+`cnp certify` bout-en-bout + verdicts 3 statuts (A17) ✓ ; suite adversariale
+zéro faux certificat ✓ ; **G1' — S2-peigne certifié end-to-end (certify→verify OK) +
+0 faux cert sur l'adversarial ✓** ; SPEC §6 amendée (règle 12) ✓ ; décompte
+journalisé ✓. **V3 EN ATTENTE** (validation visuelle Meshcat du peigne). Code
+commité « S6 — V3 pending » ; clôture par micro-commit après « VALIDÉ S6-V3 ».
+
+**Prochaine étape** : V3 (cnp show scenes/S2_peigne.yaml), micro-commit de clôture,
+puis S7 — ancrage Li-Dantam 4-DOF (porte G3'). NB S7/S9 : le builtin
+`spatial_revolute` du parser est prêt côté moteur ; la certification EXACTE des
+scènes spatiales (kind `spatial_revolute` dans verify.py) reste S9.
+

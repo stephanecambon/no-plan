@@ -1,0 +1,36 @@
+# S2b — spatial 3-DOF scene (axes z, y, y). Demonstrates the ENGINE-PROOF verdict
+# (annotation A17): the engine proves the disconnection, but the independent EXACT
+# verifier is planar until S9, so `cnp certify` reports ENGINE-PROOF *with its warning*
+# rather than a (false) PROOF — rule 5 made visible in the product.
+#
+# Geometry (the S5 "proximal-trapping" scene): a generic 3R chain whose distal segment
+# (body link j2) has its PROXIMAL endpoint (the wrist, a function of the base yaw s0 and
+# first pitch s1 only — NOT the distal joint s2) trapped by a tall front wall over a band
+# of s0. So every config with |s0| <= 1/10 collides for ALL pitches: any path from
+# start (s0<0) to goal (s0>0) must cross the colliding band — a genuine disconnection,
+# proved by the engine and (in S5) cross-checked by dense sampling.
+robot:
+  kind: spatial_revolute
+  joints:
+    - {offset: ["0", "0", "0"],    axis: ["0", "0", "1"]}   # j0: base yaw   (z)
+    - {offset: ["0", "0", "3/10"], axis: ["0", "1", "0"]}   # j1: pitch      (y)
+    - {offset: ["3/10", "0", "0"], axis: ["0", "1", "0"]}   # j2: distal     (y)
+
+body:
+  link: 2
+  hull_vertices: [["0", "0", "0"], ["3/10", "0", "0"]]      # distal segment
+
+obstacles:
+  WALL:                       # tall front wall, x in [2/25,8/25], y in [-1/10,1/10], z in [-1/20,31/50]
+    hrep:
+      A: [["1","0","0"], ["0","1","0"], ["0","0","1"], ["-1","0","0"], ["0","-1","0"], ["0","0","-1"]]
+      b: ["8/25", "1/10", "31/50", "-2/25", "1/10", "1/20"]
+
+phi: {degree_per_var: 2, coeffs: {"1,0,0": "1"}}      # phi = s0 (base yaw)
+delta: "1/10"
+
+box: [["-7/10", "7/10"], ["-7/10", "7/10"], ["-7/10", "7/10"]]
+start_s: ["-3/5", "0", "0"]
+goal_s:  ["3/5", "0", "0"]
+pairs: ["WALL"]
+budget: {max_depth: 18}

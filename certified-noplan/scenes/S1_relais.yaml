@@ -1,0 +1,34 @@
+# S1 — planar 2-DOF "relay" scene (SPEC §6). Regression port of the frozen E3 oracle:
+# a 2-link arm whose distal link is relayed across three obstacles (UP / DOWN / MID) by
+# the barrier phi = s0. Certifying this scene with `cnp certify` reproduces the oracle
+# exactly (46 leaves: 38 collision — UP 12 / DOWN 12 / MID 14 — and 8 outside) and the
+# certificate verifies in exact arithmetic. Role: fast end-to-end regression of the
+# whole scene -> certify -> verify path.
+robot:
+  kind: planar_revolute
+  link_lengths: ["1", "1"]
+  q_star: ["0", "0"]
+
+body:
+  link: 1                       # distal link; hull derived = segment [0,0,0]->[1,0,0]
+
+obstacles:                      # 2-D boxes extruded over z in [-1, 1] (the S2 embedding)
+  UP:
+    box: [["97/100", "13/10"], ["2/25", "21/20"], ["-1", "1"]]
+  DOWN:
+    box: [["97/100", "13/10"], ["-21/20", "-2/25"], ["-1", "1"]]
+  MID:
+    box: [["9/5", "21/10"], ["-9/20", "9/20"], ["-1", "1"]]
+
+phi:                            # hand barrier phi = s0 (degree 1, stored degree-2 tensor)
+  degree_per_var: 2
+  coeffs: {"1,0": "1"}
+delta: "1/20"
+
+box: [["-1", "1"], ["-1", "1"]]   # s-box P
+start_s: ["-9/10", "0"]
+goal_s:  ["9/10", "0"]
+pairs: ["UP", "DOWN", "MID"]
+
+lam_degree: affine
+budget: {max_depth: 16}

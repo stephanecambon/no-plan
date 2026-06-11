@@ -1,6 +1,6 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
-Version 1.2 — 11 juin 2026 (amendée post-S4 ; v1.0/v1.1 dans git).
+Version 1.3 — 11 juin 2026 (amendée post-S6 ; v1.0/v1.1/v1.2 dans git).
 Projet : « certified-noplan ». Contexte : campagnes E1-E4 (CAMPAGNE-E1-E4-RESULTATS.md).
 Amendements v1.1 (actés en S0/S1/S2, règle 12 de CLAUDE.md) : paramétrisation autour
 d'une configuration de référence q* ; dénominateur commun PAR LINK ; exposant p=1 ;
@@ -14,7 +14,14 @@ scènes Drake, S9+) — chemin planaire = oracle regref, chemin 3-DOF spatial = 
 3R sympy, tout sans réseau (cohérent avec S2) ; la scène 3-DOF spatiale est certifiée
 **moteur-PROOF + échantillonnage dense** (le vérificateur exact reste planaire
 jusqu'à S9, kind `spatial_revolute` du schéma §4 = S9+) — portée honnête, pas un
-affaiblissement. Marqués « [amendé S<X>] ».
+affaiblissement. Amendements (actés en S6) : §6 — le parser YAML accepte les
+obstacles en **boîtes axis-aligned (lo/hi par axe)** ou **H-rep brute (A,b)**,
+toutes rationnelles ; les prismes convexes en **V-rep (sommets → enveloppe →
+H-rep)** sont différés (l'enveloppe convexe exacte est un chantier à part) ; le
+builtin **`spatial_revolute`** (chaîne 3R générique par joints offset/axe) est
+supporté **côté moteur** ⟹ verdict **ENGINE-PROOF** (le vérificateur exact reste
+planaire jusqu'à S9, A17) ; verdicts produit à trois statuts PROOF /
+ENGINE-PROOF / UNDECIDED. Marqués « [amendé S<X>] ».
 
 ---
 
@@ -183,9 +190,19 @@ ré-implémentée en exact dans verify.py (duplication assumée, c'est le but).
 
 ## 6. Scènes (du jouet au real-world)
 
-Format YAML : robot (URDF Drake ou planaire builtin), joints verrouillés,
-obstacles (boîtes, prismes convexes ; sommets rationnels), start/goal,
-hint φ optionnel, budget (depth max, temps).
+Format YAML [amendé S6] : robot (`planar_revolute` builtin, ou `spatial_revolute`
+= chaîne 3R générique par joints offset/axe ; URDF Drake en S9+), joints
+verrouillés, obstacles en **boîtes axis-aligned (lo/hi par axe)** ou **H-rep brute
+(A,b)** — toutes rationnelles ; les prismes convexes en V-rep (sommets → enveloppe
+→ H-rep) sont différés. start/goal en **images s rationnelles** (cond. i, §2),
+boîte P en espace-s, hint φ rationnel (obligatoire en S6 : le fit automatique
+phifit/S5 bake son φ rationnel dans la scène), budget (depth max, temps,
+**heuristique d'axe** oracle/margin — ne touche jamais la soundness, règle 9).
+L'enveloppe convexe du corps mobile est **extraite de la géométrie du link** (le
+link planaire = segment `[0,0,0]→[len,0,0]`) si `hull_vertices` n'est pas donné.
+`cnp certify` rend PROOF (vérifié exact) / ENGINE-PROOF (moteur OK, vérif. exacte
+indisponible — spatial avant S9) / UNDECIDED ; `cnp verify cert scene.yaml`
+croise la scène externe ; `cnp show scene.yaml` ouvre une vue Meshcat minimale.
 
 - **S1 — planaire 2-DOF « relais »** (portage E3/E4) : 3 obstacles à relais de
   paires. Rôle : régression, tests rapides.

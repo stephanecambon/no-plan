@@ -1,0 +1,44 @@
+# S2 — planar 3-DOF "comb" scene (SPEC §6). The first n>2, multi-pair certified scene.
+#
+# A 3-link planar arm threads a comb of three teeth (UP / DOWN / MID). The MIDDLE link
+# (body.link = 1) is the relayed body: its world position depends only on s0 and s1
+# (the base and first joints), NOT on the distal joint s2. So over the thin slab
+# {|s0| <= 1/20}, the middle link is caught against one of the three teeth for EVERY
+# value of s1 (the relay) AND every value of the distal joint s2 — any continuous path
+# from start (s0<0) to goal (s0>0) must cross that fully-colliding band: a genuine
+# disconnection in the full 3-D configuration box.
+#
+# This is the E3 relay LIFTED to 3-DOF by a passive distal joint (the principled
+# "proximal-trapping" construction validated in S5). It is certified AND re-checked by
+# the independent exact verifier (planar, q*=0). Because s2 is passive, the widest-axis
+# heuristic would waste depth splitting it (736 leaves, 256 FAIL) — the relay-lookahead
+# `axis: margin` avoids that and certifies in 54 leaves (the passive-dimension
+# optimisation proper is S8). The barrier is the hand phi = s0.
+robot:
+  kind: planar_revolute
+  link_lengths: ["1", "1", "1"]
+  q_star: ["0", "0", "0"]
+
+body:
+  link: 1                       # MIDDLE link; hull derived = segment [0,0,0]->[1,0,0]
+
+obstacles:                      # three comb teeth, 2-D boxes extruded over z in [-1,1]
+  UP:
+    box: [["97/100", "13/10"], ["2/25", "21/20"], ["-1", "1"]]
+  DOWN:
+    box: [["97/100", "13/10"], ["-21/20", "-2/25"], ["-1", "1"]]
+  MID:
+    box: [["9/5", "21/10"], ["-9/20", "9/20"], ["-1", "1"]]
+
+phi:                            # hand barrier phi = s0 (the relay separates on s0)
+  degree_per_var: 2
+  coeffs: {"1,0,0": "1"}
+delta: "1/20"
+
+box: [["-1", "1"], ["-1", "1"], ["-1", "1"]]   # 3-D s-box P
+start_s: ["-9/10", "0", "0"]
+goal_s:  ["9/10", "0", "0"]
+pairs: ["UP", "DOWN", "MID"]
+
+lam_degree: affine
+budget: {max_depth: 18, axis: margin}
