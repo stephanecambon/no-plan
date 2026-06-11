@@ -743,7 +743,7 @@ puis scenes.py + YAML + `cnp show` + `cnp certify` + adversarial initial
 
 ---
 
-## 2026-06-11 — S6 (Claude Code) — Scènes + CLI + adversarial (**code vert, V3 en attente**)
+## 2026-06-11 — S6 (Claude Code) — Scènes + CLI + adversarial (**V3 validée**)
 
 **Fait** :
 - **Ouverture** : diffs de revue S5 D1-D5 appliqués au CLAUDE.md du repo (circuit
@@ -871,11 +871,33 @@ puis scenes.py + YAML + `cnp show` + `cnp certify` + adversarial initial
 `cnp certify` bout-en-bout + verdicts 3 statuts (A17) ✓ ; suite adversariale
 zéro faux certificat ✓ ; **G1' — S2-peigne certifié end-to-end (certify→verify OK) +
 0 faux cert sur l'adversarial ✓** ; SPEC §6 amendée (règle 12) ✓ ; décompte
-journalisé ✓. **V3 EN ATTENTE** (validation visuelle Meshcat du peigne). Code
-commité « S6 — V3 pending » ; clôture par micro-commit après « VALIDÉ S6-V3 ».
+journalisé ✓. **V3 VALIDÉE par Stéphane** (« j'ai envie de te dire oui » après
+itération sur les figures). **S6 vert, tous critères acquis.**
 
-**Prochaine étape** : V3 (cnp show scenes/S2_peigne.yaml), micro-commit de clôture,
-puis S7 — ancrage Li-Dantam 4-DOF (porte G3'). NB S7/S9 : le builtin
-`spatial_revolute` du parser est prêt côté moteur ; la certification EXACTE des
-scènes spatiales (kind `spatial_revolute` dans verify.py) reste S9.
+**Itération V3 (échange de validation — leçons viz)** : la validation a demandé
+5 itérations de visualisation, chacune instructive : (1) Meshcat 3D pour une scène
+PLANAIRE est illisible (on ne voit que boules + murs) → figure 2D top-down
+(`save_planar_figure`) ; (2) deux poses figées ne disent pas « inatteignable » →
+figure C-SPACE (`save_cspace_figure`) montrant le mur de collision séparant les
+composantes libres ; (3) « je vois pas ce qui empêche de passer » → vue SWEEP
+(`save_sweep_figure`, éventail des poses interpolées, collisions en rouge) ;
+(4) « pourquoi le bras ne relève pas à la base ? c'est une rotule ? » → **non,
+chaîne ROTOÏDE** (charnières 1 axe) : base = lacet (axe z, ne relève pas),
+tangage = joint 1 (axe y) ; figure C-space annotée (axes lacet/tangage) + 2
+trajectoires candidates (passage direct ET « relever puis traverser ») toutes deux
+plongeant dans le mur. Leçon produit : expliciter le TYPE d'articulation et nommer
+les axes du C-space par leur sens physique ; pour les scènes jouets la pédagogie de
+la déconnexion est non triviale.
+
+**Demande produit (Stéphane, pour les prochaines validations)** : voir une
+situation **monde-réel** où le chemin a l'air faisable mais ne l'est pas (pas une
+scène jouet). C'est exactement l'objet des scènes du plan : S7 (étagère 4-DOF,
+objet derrière une planche), S9 (bin-picking, objet au fond d'un bac inatteignable
+sans retirer la caisse), S10 (étagère 7-DOF, case haute inatteignable depuis home).
+À garder en tête pour V4/V5/V6 : concevoir la scène ET sa figure pour raconter
+« atteignable en apparence, prouvé inatteignable ».
+
+**Prochaine étape** : S7 — ancrage Li-Dantam 4-DOF (porte G3'). NB S7/S9 : le
+builtin `spatial_revolute` du parser est prêt côté moteur ; la certification EXACTE
+des scènes spatiales (kind `spatial_revolute` dans verify.py) reste S9.
 

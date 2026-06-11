@@ -161,8 +161,8 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   moteur (→ ENGINE-PROOF). **G1' vert** : S2-peigne 3-DOF certifié end-to-end +
   vérifié exact (54 feuilles) + 0 point libre / 300k ; suite adversariale
   tests/test_adversarial.py (micro-canal : grille grossière 0-libre mais moteur
-  refuse) zéro faux certificat ; SPEC §6 amendée (149 tests, 0 skip). **V3 en
-  attente** (cnp show scenes/S2_peigne.yaml).
+  refuse) zéro faux certificat ; SPEC §6 amendée (149 tests, 0 skip). **V3 validée**
+  (figures workspace/C-space/sweep du peigne + 3R spatial).
 - ⏳ S7 — prochaine session (ancrage Li-Dantam 4-DOF, porte G3').
 
 ---
