@@ -169,7 +169,7 @@ def save_sweep_figure(scene: _cert.Scene, oracle, path, n=9, project=(0, 1),
 
 
 def save_cspace_figure(scene: _cert.Scene, oracle, path, axes=(0, 1), n=140,
-                       fixed=None, title=None):
+                       fixed=None, title=None, axis_labels=None, paths=None):
     """Configuration-space figure (the view that shows 'goal free but UNREACHABLE'):
     a 2-D slice over two s-axes, collision shaded grey, the slab ``{|phi|<=delta}``
     in gold, start (★) and goal (✚) marked. When the slab is a full COLLISION WALL
@@ -211,13 +211,20 @@ def save_cspace_figure(scene: _cert.Scene, oracle, path, axes=(0, 1), n=140,
         ax.axvspan(-delta, delta, color="gold", alpha=0.35, zorder=2,
                    label=f"dalle |phi|<={scene.delta}")
 
+    # candidate motion attempts (each a list of (s_i, s_j) waypoints), drawn dashed so
+    # the eye sees them plunge into the grey collision wall whatever the detour.
+    for lbl, pts in (paths or []):
+        pts = np.asarray(pts, dtype=float)
+        ax.plot(pts[:, 0], pts[:, 1], "--", lw=2, color="#7f0000", zorder=4, label=lbl)
+
     st = [float(v) for v in scene.start_s]
     go = [float(v) for v in scene.goal_s]
     ax.plot(st[i], st[j], "*", color="#1f77b4", ms=20, mec="k", zorder=5, label="start")
     ax.plot(go[i], go[j], "P", color="#2ca02c", ms=16, mec="k", zorder=5, label="goal")
-    ax.set_xlabel(f"s{i}")
-    ax.set_ylabel(f"s{j}")
-    ax.legend(loc="upper right", framealpha=0.95)
+    xl, yl = axis_labels or (f"s{i}", f"s{j}")
+    ax.set_xlabel(xl)
+    ax.set_ylabel(yl)
+    ax.legend(loc="upper right", framealpha=0.95, fontsize=8)
     ax.set_title(title or "C-space slice (grey = collision)")
     fig.tight_layout()
     fig.savefig(path, dpi=130)

@@ -57,10 +57,17 @@ def spatial_figure():
     os.makedirs(OUT, exist_ok=True)
     oracle = scenes.collision_oracle(scene, n_samples=30)
     p1 = os.path.join(OUT, "scene_S2b_spatial_cspace.png")
+    # The robot is a REVOLUTE chain (hinges), not a ball joint: s0 = base yaw (turns
+    # left/right, in-plane), s1 = pitch ("lifts the arm"). The wall covers ALL s1, so
+    # neither the direct crossing nor a "lift then cross" detour escapes the collision.
+    paths = [("passage direct (lacet seul)", [(-0.6, 0), (0.6, 0)]),
+             ("tentative: relever (tangage) puis traverser",
+              [(-0.6, 0), (-0.6, 0.65), (0.6, 0.65), (0.6, 0)])]
     viz.save_cspace_figure(
-        scene, oracle, p1, axes=(0, 1), n=140, fixed={2: 0.0},
-        title="S2b spatial 3R (C-space s0,s1 ; s2 passif) : mur de collision a "
-              "s0=0 -> goal libre mais INATTEIGNABLE depuis start")
+        scene, oracle, p1, axes=(0, 1), n=160, fixed={2: 0.0}, paths=paths,
+        axis_labels=("s0 = lacet base (tourne G/D)", "s1 = tangage (releve le bras)"),
+        title="S2b 3R (joints rotoides, PAS rotule) : le mur couvre tout le tangage "
+              "s1\n-> ni le passage direct ni la tentative de relever ne sortent du libre")
     print("written", os.path.normpath(p1))
 
     # Sweep filmstrip: the direct start->goal motion sweeps the arm through the wall.
