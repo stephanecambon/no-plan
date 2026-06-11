@@ -49,5 +49,21 @@ def peigne_figures():
     print("written", os.path.normpath(p2))
 
 
+def spatial_figure():
+    """Spatial 3R scene (S2b): the same 'goal free but unreachable' story with a
+    GENUINE 3-D robot (orbit it with `cnp show scenes/S2b_spatial3.yaml`). The C-space
+    (s0,s1) slice shows the collision wall at s0~=0 separating start from goal."""
+    scene, _ = scenes.load(os.path.join(SCENES, "S2b_spatial3.yaml"))
+    os.makedirs(OUT, exist_ok=True)
+    oracle = scenes.collision_oracle(scene, n_samples=30)
+    path = os.path.join(OUT, "scene_S2b_spatial_cspace.png")
+    viz.save_cspace_figure(
+        scene, oracle, path, axes=(0, 1), n=140, fixed={2: 0.0},
+        title="S2b spatial 3R (C-space s0,s1 ; s2 passif) : mur de collision a "
+              "s0=0 -> goal libre mais INATTEIGNABLE depuis start")
+    print("written", os.path.normpath(path))
+
+
 if __name__ == "__main__":
     peigne_figures()
+    spatial_figure()

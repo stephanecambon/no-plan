@@ -776,7 +776,11 @@ puis scenes.py + YAML + `cnp show` + `cnp certify` + adversarial initial
   (**C-space (s0,s1), s2 passif** — `save_cspace_figure` : collision en gris, dalle
   en or, ★ start / ✚ goal ; un **mur de collision plein à s0≈0** sépare start
   (gauche) de goal (droite) ⟹ la figure « goal libre mais INATTEIGNABLE » que la
-  V3 demandait). (viz complet `cnp viz <cert>` = S11.)
+  V3 demandait). `show_scene` et l'oracle de collision (`collision_oracle`) gèrent
+  aussi le **builtin spatial** : `cnp show scenes/S2b_spatial3.yaml` dessine le vrai
+  robot 3R en 3D (poteau vertical + segment distal swingué gauche/goal-droite, mur
+  en façade) et `scene_S2b_spatial_cspace.png` rejoue la même preuve visuelle en
+  C-space spatial. (viz complet `cnp viz <cert>` = S11.)
 - **Scènes** : `scenes/S1_relais.yaml` (E3, 46 feuilles, régression rapide),
   `scenes/S2_peigne.yaml` (**peigne 3-DOF planaire**), `scenes/S2b_spatial3.yaml`
   (3-DOF spatiale → ENGINE-PROOF).

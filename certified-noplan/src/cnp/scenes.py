@@ -325,15 +325,27 @@ def scene_matches_cert(scene: _cert.Scene, cert: dict) -> tuple[bool, str]:
     return True, "scene matches certificate"
 
 
-def planar_collision_oracle(scene: _cert.Scene, n_samples: int = 40):
-    """A generic collision oracle ``f(s) -> bool`` for the planar builtin: sample the
-    moving body link in world space and test it against every scene obstacle (H-rep).
+def _body_fk(scene: _cert.Scene):
+    """Float FK of the scene's moving body for any supported kind."""
+    if scene.robot.kind == "planar_revolute":
+        return _planar_body_fk(scene)
+    if scene.robot.kind == "spatial_revolute":
+        fk = SympyRatFK(_spatial_joints(scene.robot),
+                        locked={k: float(v) for k, v in scene.robot.locked.items()},
+                        q_star=[float(v) for v in scene.robot.q_star])
+        return fk.body(f"j{scene.body_link}")
+    raise NotImplementedError(f"collision oracle for {scene.robot.kind!r} not supported")
+
+
+def collision_oracle(scene: _cert.Scene, n_samples: int = 40):
+    """A generic collision oracle ``f(s) -> bool`` (planar or spatial builtin): sample
+    the moving body link in world space and test it against every scene obstacle (H-rep).
 
     This is the robot-agnostic oracle the φ-pipeline (S5) consumes and the ground-truth
-    / adversarial checks use; it is INDEPENDENT of the certificate (it samples the link,
-    it does not read λ/μ). ``True`` iff some sampled body point lies inside some
-    obstacle (all faces ``A y <= b`` satisfied)."""
-    body = _planar_body_fk(scene)
+    / adversarial / C-space-figure checks use; it is INDEPENDENT of the certificate (it
+    samples the link, it does not read λ/μ). ``True`` iff some sampled body point lies
+    inside some obstacle (all faces ``A y <= b`` satisfied)."""
+    body = _body_fk(scene)
     hull = np.array([[float(c) for c in v] for v in scene.hull_vertices])
     obstacles = [(np.array([[float(x) for x in row] for row in A]),
                   np.array([float(x) for x in b]))
@@ -352,3 +364,8 @@ def planar_collision_oracle(scene: _cert.Scene, n_samples: int = 40):
         return False
 
     return f
+
+
+def planar_collision_oracle(scene: _cert.Scene, n_samples: int = 40):
+    """Backward-compatible alias of :func:`collision_oracle` (planar callers)."""
+    return collision_oracle(scene, n_samples)

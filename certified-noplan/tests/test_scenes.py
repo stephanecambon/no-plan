@@ -167,6 +167,18 @@ def test_cli_verify_rejects_cert_against_wrong_scene(tmp_path, capsys):
 # viz geometry (no Meshcat server)
 # --------------------------------------------------------------------------- #
 
+def test_spatial_oracle_and_viz_geometry():
+    """Spatial builtin: collision oracle + viz skeleton work, and the scene is a
+    genuine 'free start/goal, colliding slab' (the V3 unreachability story in 3-D)."""
+    scene, _ = _scene("S2b_spatial3.yaml")
+    oracle = scenes.collision_oracle(scene, n_samples=30)
+    assert not oracle([float(v) for v in scene.start_s])      # start is free
+    assert not oracle([float(v) for v in scene.goal_s])       # goal is free
+    assert oracle([0.0, 0.0, 0.0])                            # in-slab (s0=0): collision
+    pts = viz._joint_world_positions(scene, viz._config_q_to_s(scene, "start"))
+    assert pts.shape == (4, 3)                                # 3 joints + distal tip
+
+
 def test_viz_joint_positions_and_box_bounds():
     scene, _ = _scene("S1_relais.yaml")
     pts = viz._joint_world_positions(scene, viz._config_q_to_s(scene, "start"))

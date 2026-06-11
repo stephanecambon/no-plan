@@ -21,22 +21,32 @@ def _config_q_to_s(scene: _cert.Scene, which: str):
     return np.array([float(v) for v in s])
 
 
+def _fk_and_names(scene: _cert.Scene):
+    """Build the FK back-end and the per-joint body names for a planar or spatial
+    builtin robot. Returns ``(fk, names, body_name, tip_body_frame_point)``."""
+    locked = {k: float(v) for k, v in scene.robot.locked.items()}
+    q_star = [float(v) for v in scene.robot.q_star]
+    kind = scene.robot.kind
+    if kind == "planar_revolute":
+        fk = SympyRatFK(_cert._planar_joints(scene.robot), locked=locked, q_star=q_star)
+        names = [f"link{i}" for i in range(scene.robot.n_joints)]
+    elif kind == "spatial_revolute":
+        from . import scenes as _scenes
+        fk = SympyRatFK(_scenes._spatial_joints(scene.robot), locked=locked,
+                        q_star=q_star)
+        names = [f"j{i}" for i in range(scene.robot.n_joints)]
+    else:
+        raise NotImplementedError(f"show_scene for {kind!r} not supported")
+    tip = [float(c) for c in scene.hull_vertices[-1]]      # distal hull vertex
+    return fk, names, names[scene.body_link], tip
+
+
 def _joint_world_positions(scene: _cert.Scene, s):
-    """World positions of every joint origin + the end-effector, for the planar
-    builtin arm at s-config ``s`` (all joints assumed unlocked here)."""
-    if scene.robot.kind != "planar_revolute":
-        raise NotImplementedError(f"show_scene for {scene.robot.kind!r} is S9+")
-    fk = SympyRatFK(_cert._planar_joints(scene.robot),
-                    locked={k: float(v) for k, v in scene.robot.locked.items()},
-                    q_star=[float(v) for v in scene.robot.q_star])
-    pts = []
-    n_joints = scene.robot.n_joints
-    for i in range(n_joints):
-        body = fk.body(f"link{i}")
-        pts.append(body.eval_world_point([0.0, 0.0, 0.0], s))
-    # end-effector = distal endpoint of the last link
-    last = fk.body(f"link{n_joints - 1}")
-    pts.append(last.eval_world_point([float(scene.robot.link_lengths[-1]), 0.0, 0.0], s))
+    """World positions of every joint origin + the moving body's distal tip, for the
+    arm at s-config ``s`` (planar or spatial builtin; all joints assumed unlocked)."""
+    fk, names, body_name, tip = _fk_and_names(scene)
+    pts = [fk.body(nm).eval_world_point([0.0, 0.0, 0.0], s) for nm in names]
+    pts.append(fk.body(body_name).eval_world_point(tip, s))   # distal tip of the body
     return np.array(pts)
 
 
