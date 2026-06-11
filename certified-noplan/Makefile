@@ -44,6 +44,11 @@ figures: setup
 	$(VENV_PY) scripts/make_figures.py
 	$(VENV_PY) scripts/make_scene_figures.py
 
+# Benchmark harness (S7, gate G3'): time certify on the shipped scenes + the
+# passive-dimension cost-model sweep, written to benchmarks/results/<UTC>/ (rule 7).
+benchmark: setup
+	$(VENV_PY) benchmarks/run_benchmark.py
+
 clean:
 	rm -rf $(VENV) .pytest_cache
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +

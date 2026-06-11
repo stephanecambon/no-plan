@@ -1,0 +1,70 @@
+# S3 — 4-DOF shoulder-elbow arm (Li-Dantam anchoring, gate G3').
+#
+# Faithful reproduction of the 4-DOF benchmark robot of Li & Dantam, "Learning Proofs
+# of Motion Planning Infeasibility", RSS 2021, §V-B / Fig. 7b (journal version: IJRR
+# 2023, doi:10.1177/02783649231154674): a SPHERICAL SHOULDER (3-DOF) + a REVOLUTE
+# ELBOW (1-DOF), whose goal "reach inside the [box]" is provably infeasible. Their
+# method is a learned separating manifold (SVM + triangulation + collision check); we
+# certify the SAME kind of 4-DOF infeasibility with our algebraic Bernstein-LP barrier
+# instead — a documented approximate reproduction (no public code/scene/URDF exists),
+# adapted so a low-degree barrier applies (the S6-review "Vigilances S7" anticipated
+# exactly this).
+#
+# ROBOT (spatial_revolute, exact-rational joints):
+#   j0 yaw   (axis z)  \
+#   j1 pitch (axis y)   }  spherical shoulder, 3 concurrent axes at the base
+#   j2 roll  (axis x)  /
+#   j3 elbow (axis y), offset by the upper-arm length (2/5 m) along local x.
+#
+# BODY = the UPPER ARM (link 2, segment base->elbow). Key geometric fact that makes the
+# disconnection SOUND: the upper arm lies on j2's x-axis, and a roll (j2, axis x) about
+# its own axis does not move a coaxial segment, while the elbow (j3) is distal — so the
+# upper-arm endpoints depend ONLY on yaw s0 and pitch s1 (s2, s3 are PASSIVE for it).
+#
+# DISCONNECTION (proximal trap, the S5/S6 lesson — a distal-joint barrier is defeated by
+# redundancy; a proximal one is not): a thin vertical PANEL ("plank"/shelf side wall) in
+# front of the shoulder catches the upper arm over a band of base yaw |s0|<=delta, for
+# EVERY pitch s1 in the limits and ALL passive s2, s3. So any motion from start (arm
+# swung left, s0<0, hand in the left bay) to goal (arm swung right, s0>0, hand reaching
+# the target in the right bay) must cross the colliding yaw band — start and goal are in
+# different connected components of C_free.  "Reachable in appearance, proven
+# unreachable" (A20): both endpoints are free and the target is close; only the swing
+# through the middle is blocked (see the sweep figure).
+#
+# VERDICT: ENGINE-PROOF. The engine proves the disconnection (Bernstein-LP), and a dense
+# 300k seeded sample finds 0 free configs in the slab (soundness cross-check). The
+# independent EXACT verifier is planar until S9 (kind `spatial_revolute` in verify.py is
+# an S9 task), so `cnp certify` reports ENGINE-PROOF *with its warning*, never a (false)
+# PROOF — rule 5 made visible. The exact-arithmetic re-check of this scene lands in S9.
+robot:
+  kind: spatial_revolute
+  joints:
+    - {offset: ["0", "0", "0"],   axis: ["0", "0", "1"]}   # j0 yaw   (z)  ACTIVE
+    - {offset: ["0", "0", "0"],   axis: ["0", "1", "0"]}   # j1 pitch (y)  ACTIVE
+    - {offset: ["0", "0", "0"],   axis: ["1", "0", "0"]}   # j2 roll  (x)  passive (own-axis)
+    - {offset: ["2/5", "0", "0"], axis: ["0", "1", "0"]}   # j3 elbow (y)  passive (distal)
+
+body:
+  link: 2                                                  # the upper arm
+  hull_vertices: [["0", "0", "0"], ["2/5", "0", "0"]]      # base -> elbow segment
+
+obstacles:
+  PANEL:                         # thin vertical shelf panel: x[3/20,1/5], y[-3/50,3/50], z[-1/2,1/2]
+    box: [["3/20", "1/5"], ["-3/50", "3/50"], ["-1/2", "1/2"]]
+
+phi: {degree_per_var: 2, coeffs: {"1,0,0,0": "1"}}         # barrier phi = s0 (base yaw)
+delta: "1/10"
+
+# s-box P (one [lo,hi] per UNLOCKED joint). Pitch s1 is bounded to +/-2/5 so the upper
+# arm always reaches the panel's depth at every allowed pitch (a near-vertical arm would
+# fall short — then the band would not be all-collision and the engine would REFUSE, not
+# lie). Passive s2, s3 span the full range: the engine must certify across them too.
+box: [["-7/10", "7/10"], ["-2/5", "2/5"], ["-7/10", "7/10"], ["-7/10", "7/10"]]
+start_s: ["-3/5", "0", "0", "0"]    # hand swung left  (free)
+goal_s:  ["3/5", "0", "0", "0"]     # hand swung right (free), target in the right bay
+pairs: ["PANEL"]
+
+# margin = relay-lookahead, the default for any new scene since S6 (A10 tranché): it does
+# not waste depth splitting the passive dims s2, s3 (the S6 peigne lesson at n=4). axis
+# never touches soundness (rule 9).
+budget: {axis: margin, max_depth: 20, max_leaves: 4000}

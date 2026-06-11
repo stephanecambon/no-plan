@@ -169,7 +169,11 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   tests/test_adversarial.py (micro-canal : grille grossière 0-libre mais moteur
   refuse) zéro faux certificat ; SPEC §6 amendée (149 tests, 0 skip). **V3 validée**
   (figures workspace/C-space/sweep du peigne + 3R spatial).
-- 🚧 S7 — en cours (ancrage Li-Dantam 4-DOF, porte G3', validation V4).
+- 🟡 **S7** — code vert, **V4 en attente**. Scène épaule-coude 4-DOF fidèle
+  (Li-Dantam RSS2021) → ENGINE-PROOF + 0 libre/300k ; harness benchmarks/ +
+  table comparative honnête + balayage dims passives (margin plat 8 / oracle 8→36) ;
+  figures sweep+C-space (156 tests, 0 skip). **Réserve G3'** : la moitié « + vérifiée
+  (exact) » est reportée à S9 (verify spatial) — Option A actée avec Stéphane.
 
 ---
 

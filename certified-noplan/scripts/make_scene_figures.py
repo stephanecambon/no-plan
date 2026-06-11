@@ -79,6 +79,76 @@ def spatial_figure():
     print("written", os.path.normpath(p2))
 
 
+def shoulder_elbow_figures():
+    """S3 — 4-DOF shoulder-elbow arm (Li-Dantam anchor, V4). Two figures:
+      (a) a top-down filmstrip of the FULL arm (upper arm + forearm) sweeping base yaw
+          start->goal, the middle poses (red) ramming the shelf panel — 'reachable in
+          appearance, proven unreachable' (A20);
+      (b) the C-space (yaw s0, pitch s1) slice with the collision WALL spanning every
+          pitch and the gold slab inside it — goal free but UNREACHABLE.
+    The arm is drawn in full so it reads as the shoulder-elbow robot of Li-Dantam RSS
+    2021 Fig. 7b; collision colour is the UPPER-ARM body (the link the certificate traps)."""
+    import numpy as np
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
+
+    scene, _ = scenes.load(os.path.join(SCENES, "S3_shoulder_elbow.yaml"))
+    os.makedirs(OUT, exist_ok=True)
+    oracle = scenes.collision_oracle(scene, n_samples=30)
+    fk, _names, _bn, _tip = viz._fk_and_names(scene)
+    L_UP, L_FORE = 0.40, 0.30
+
+    def full_arm(s):
+        """base -> elbow -> hand (upper arm length L_UP, forearm L_FORE)."""
+        elbow = fk.body("j2").eval_world_point([L_UP, 0, 0], s)
+        hand = fk.body("j3").eval_world_point([L_FORE, 0, 0], s)
+        return np.array([[0, 0, 0], elbow, hand])
+
+    # (a) full-arm sweep, top-down (world x,y)
+    st = np.array([float(v) for v in scene.start_s])
+    go = np.array([float(v) for v in scene.goal_s])
+    fig, ax = plt.subplots(figsize=(7.5, 7))
+    (xlo, xhi), (ylo, yhi), _ = viz._box_bounds(*scene.obstacles["PANEL"])
+    ax.add_patch(Rectangle((xlo, ylo), xhi - xlo, yhi - ylo, facecolor="0.55",
+                           edgecolor="0.3", alpha=0.85, zorder=1))
+    ax.text((xlo + xhi) / 2, yhi + 0.02, "panneau / etagere", ha="center",
+            fontsize=8, weight="bold")
+    n = 9
+    n_coll = 0
+    for k in range(n):
+        s = st + (go - st) * (k / (n - 1))
+        colliding = oracle(s)
+        n_coll += colliding
+        colour = "#d62728" if colliding else "#2ca02c"
+        pts = full_arm(s)
+        ax.plot(pts[:, 0], pts[:, 1], "-", color=colour, lw=2.4, alpha=0.85, zorder=3)
+        ax.plot(pts[:, 0], pts[:, 1], "o", color=colour, ms=4, zorder=4)
+    ax.plot(0, 0, "ks", ms=10, zorder=7)
+    ax.set_aspect("equal")
+    ax.grid(True, ls=":", alpha=0.5)
+    ax.set_xlabel("x monde (m)")
+    ax.set_ylabel("y monde (m)")
+    ax.set_title(f"S3 epaule-coude 4-DOF : balayage du lacet base ({n_coll}/{n} poses "
+                 "en collision)\nstart/goal libres, le panneau bloque le bras median")
+    p1 = os.path.join(OUT, "scene_S3_shoulder_elbow_sweep.png")
+    fig.tight_layout()
+    fig.savefig(p1, dpi=130)
+    plt.close(fig)
+    print("written", os.path.normpath(p1))
+
+    # (b) C-space wall (yaw s0, pitch s1); s2 roll + s3 elbow are passive for the body.
+    p2 = os.path.join(OUT, "scene_S3_shoulder_elbow_cspace.png")
+    viz.save_cspace_figure(
+        scene, oracle, p2, axes=(0, 1), n=140, fixed={2: 0.0, 3: 0.0},
+        axis_labels=("s0 = lacet base (tourne G/D)", "s1 = tangage epaule (releve)"),
+        title="S3 epaule-coude (C-space lacet s0 / tangage s1 ; roll+coude passifs) :\n"
+              "mur de collision couvrant tout le tangage -> goal libre mais INATTEIGNABLE")
+    print("written", os.path.normpath(p2))
+
+
 if __name__ == "__main__":
     peigne_figures()
     spatial_figure()
+    shoulder_elbow_figures()

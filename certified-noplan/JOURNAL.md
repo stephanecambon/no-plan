@@ -977,3 +977,170 @@ peut pas.
 ancrage Li-Dantam 4-DOF (porte G3', validation V4 avec point « apparence
 faisable »).
 
+## 2026-06-11 — S7 (Claude Code) — Ancrage Li-Dantam 4-DOF (**code vert, V4 en attente**)
+
+**Fait** :
+- **Ouverture** : diffs de revue S6 D6-D11 appliqués au CLAUDE.md du repo (circuit
+  A16), commit doc séparé (10efe2c) : `margin` défaut scènes nouvelles + `oracle`
+  parité régression (A10 tranché, D6) ; dims passives par intervalles = tâche n°1 S8
+  (A18, D7) ; fit structuré S9 (A19, D8) ; point (0) « apparence faisable » +
+  vue sweep en conception de scène, checklists V4/V5/V6 (A20, D9) ; sweep + axes
+  physiques standard S11 (D10) ; header v1.5 + changelog (D11) ; État : S7 en cours.
+  S6 re-vérifié vert avant démarrage (150 passed, 0 skip ; +1 vs les 149 journalisés
+  en clôture S6 = `test_spatial_oracle_and_viz_geometry` ajouté pendant l'itération
+  figures V3, après le décompte de clôture — tracé honnêtement).
+- **Recherche de littérature (correction importante)** : les deux arXiv cités au plan
+  (2406.04795, 2501.11434) ne sont **pas** la source 4-DOF. **2406.04795** (Li &
+  Dantam, « Scaling MP Infeasibility Proofs ») est un suivi **5-6 DOF sur GPU**, zéro
+  résultat 4-DOF ; **2501.11434** est un autre groupe (Thomas et al., Gênes,
+  bitmap/segmentation). Le benchmark 4-DOF vit dans **Li & Dantam, RSS 2021 / IJRR
+  2023, « Learning Proofs of Motion Planning Infeasibility »** : bras **épaule-coude
+  4-DOF** (épaule sphérique 3-DOF + coude révolute, « reach inside a box »,
+  **≈ 231 s CPU**) et **SCARA 4-DOF** (3 révolute coplanaires + 1 prismatique,
+  ≈ 433 s). Leur certificat = **manifold séparateur appris** (SVM RBF + triangulation
+  + collision numérique), pas un certificat algébrique. Aucun code/scène/URDF public.
+- **Décision de portée S7 (Stéphane : « décide toi-même »)** : **Option A — scène
+  spatiale épaule-coude 4-DOF fidèle → ENGINE-PROOF + échantillonnage dense**, la
+  vérification EXACTE restant liée à S9 (`spatial_revolute` dans verify.py est une
+  tâche S9). Raison : c'est le robot révolute-only 4-DOF fidèle de Li-Dantam
+  (le SCARA a un prismatique hors-périmètre v1 ; le verrouiller donne un planaire
+  3-DOF, plus 4-DOF) ; le verdict est honnête (précédent S5/S6 du 3-DOF spatial,
+  règles 5/6) ; verify.py reste SACRÉ et le plan S9 intact. **La moitié « + vérifiée
+  (exact) » de G3' est donc architecturalement reportée à S9** ; G3' est atteinte au
+  sens SPEC §8 (« S3 reproduit et chiffré »). **Je n'amende pas le libellé de la porte
+  G3' (règle 14)** — la réconciliation éventuelle (scinder G3' en engine/S7 +
+  exact/S9 ?) revient à la revue de supervision.
+- **`scenes/S3_shoulder_elbow.yaml`** : `spatial_revolute` 4 joints (épaule sphérique
+  lacet z / tangage y / roll x concourants à la base + coude y). **Corps = bras
+  supérieur (link 2)** : sur l'axe x de j2, donc un roll (axe x) autour de son propre
+  axe ne le bouge pas, et le coude est distal ⟹ ses extrémités ne dépendent QUE de
+  s0 (lacet) et s1 (tangage). **s2 (roll) et s3 (coude) sont PASSIFS** pour le corps.
+  **Déconnexion par piégeage PROXIMAL** (leçon S5/S6 : un barrage piloté par le joint
+  distal est défait par la redondance) : un panneau vertical mince devant l'épaule
+  piège le bras supérieur sur une bande de lacet |s0|≤δ, pour TOUT tangage admissible
+  et TOUS s2,s3. φ=s0, δ=1/10, start lacet gauche / goal lacet droite, tous deux
+  libres. « Atteignable en apparence, prouvé inatteignable » (A20).
+- **`cnp certify scenes/S3_shoulder_elbow.yaml` → ENGINE-PROOF** (8 feuilles, axe
+  margin) avec son avertissement règle 5. Cross-checks soundness : **start/goal
+  libres**, **0 point libre dans la dalle sur 300k échantillons seedés**, **libres
+  des deux côtés** (deux composantes libres distinctes) ⟹ vraie déconnexion 4-DOF.
+  Contrôle négatif : panneau rétréci en y ⟹ chemin libre ⟹ moteur **UNDECIDED**,
+  aucun faux certificat.
+- **Harness `benchmarks/run_benchmark.py`** (`make benchmark`) : chronométrage certify
+  des scènes livrées + **balayage du coût en dimensions passives** (mini-version de la
+  micro-tâche feuilles(n) de S9, avancée car c'est le risque n°1). Écrit dans
+  `benchmarks/results/<UTC>/results.json` seedé + hash de commit (règle 7). Métriques
+  SPEC §7 (verdict, feuilles, profondeur, #LP, degré témoin, temps moteur, temps de
+  vérif exacte). **Données obtenues** :
+  - S1 PROOF 46 feuilles (vérif exacte ~0.09 s) ; S2 PROOF 54 (~0.18 s) ;
+    **S3 ENGINE-PROOF 8 feuilles**, moteur ~0.5 s, dense 0/300k.
+  - **Balayage dims passives (margin vs oracle)** : n=2/3/4/5 joints (0/1/2/3 dims
+    passives) → margin **plat à 8 feuilles**, oracle **8/12/20/36** (exponentiel en
+    dims passives). Preuve chiffrée sur runs moteur réels du défaut margin (A10) et de
+    la priorité n°1 S8 (A18) ; levier n°1 de G2', mesuré 2 sessions à l'avance.
+- **Table comparative** `benchmarks/COMPARISON-Li-Dantam.md` (G3' « chiffré ») :
+  nos chiffres vs Li-Dantam RSS2021 publiés, avec **caveats honnêtes** (méthode
+  différente : manifold-SVM numérique vs Bernstein-LP algébrique ; matériel/métrique
+  différents ; force de certificat différente — nous exact-vérifiable au planaire /
+  moteur+dense au spatial, eux collision numérique ; notre barrière est bakée). Dit
+  ce qu'elle PEUT comparer (même régime 4-DOF, certificat algébrique des ordres de
+  grandeur moins cher quand une barrière basse existe, exact-vérifiable) et ce qu'elle
+  NE PEUT PAS (pas une course de vitesse apples-to-apples — pas de claim « ×400 »).
+- **Figures V4** (`scripts/make_scene_figures.py`, `make figures`) :
+  `scene_S3_shoulder_elbow_sweep.png` (bras épaule-coude COMPLET, éventail du lacet,
+  poses du milieu rouges plantées dans le panneau) + `scene_S3_shoulder_elbow_cspace.png`
+  (C-space lacet s0 / tangage s1 : mur de collision couvrant tout le tangage, dalle or
+  dedans, start/goal de part et d'autre = goal libre mais INATTEIGNABLE).
+- **Tests `tests/test_s3_anchor.py`** (6) : 4-DOF spatial ENGINE-PROOF ; start/goal
+  libres + dalle 0-libre (4k rapide, 300k @slow) ; CLI ENGINE-PROOF avec avertissement
+  + note de portée S9 ; contrôle négatif panneau rétréci (@slow) ; balayage dims
+  passives margin-plat/oracle-croît (@slow). `make benchmark` cible.
+- `make test` : **156 passed, 0 skipped, 25 warnings, 252 s** (150 S6 + 6 S3).
+  `make test-fast` = **92 passed, 64 deselected, 28.7 s** (sous 30 s).
+
+**Décisions** :
+- **Robot fidèle = épaule-coude (pas SCARA)** : le SCARA a un joint prismatique
+  (hors-périmètre v1) ; le verrouiller le réduit à un planaire 3-DOF, perdant le
+  4-DOF. L'épaule-coude est révolute-only et c'est la vraie scène 4-DOF de leur papier.
+- **Reproduction APPROCHÉE documentée** (anticipé par la revue S6) : on reproduit leur
+  ROBOT 4-DOF et un échec d'atteinte de même nature (cible bloquée par un panneau),
+  la tâche étant adaptée pour qu'une barrière basse s'applique (piégeage proximal).
+  Pas un import (aucun artefact public). La table le dit explicitement.
+- **Corps = bras supérieur, déconnexion proximale** : un barrage distal est défait par
+  la redondance (leçon S5 « mur frontal contourné en tangage », S6 peigne). Le bras
+  supérieur indépendant de s2,s3 garantit une bande pleine ⟹ déconnexion topologique
+  réelle dans la boîte 4-DOF. 2 dims actives + 2 passives, exactement la structure qui
+  stresse le coût (et que margin encaisse à plat).
+- **`axis=margin` (défaut A10)** : ne découpe pas les 2 dims passives → 8 feuilles vs
+  20 (oracle). Validé par le balayage.
+- **Harness avec balayage dims passives** : la donnée la plus utile de S7 pour G2' ;
+  obtenue gratuitement en construisant l'ancrage. Quantifie A18.
+
+**Pièges rencontrés** :
+- **arXiv mal attribués dans le plan** : les deux IDs cités ne contiennent pas la scène
+  4-DOF (l'un est 5-6 DOF GPU, l'autre un autre groupe). Source réelle = RSS2021/IJRR2023.
+  Recherche web nécessaire avant de coder (sinon reproduction d'une scène inexistante).
+- **Panneau trop large en y** (1er prototype) : start/goal PIÉGÉS (collision) au lieu de
+  libres — la déconnexion doit séparer deux configs LIBRES. Resserré en y (w=0.06) :
+  la bande de lacet est attrapée (y≤0.022 au panneau) mais les lacets extrêmes
+  (start/goal, y≈0.13-0.24) passent libres. Diagnostic par le contrôle « start free ».
+- **Reach au tangage extrême** : à |s1| max, le bras n'atteint qu'environ x=0.18 ;
+  le panneau doit être à x<reach pour TOUT tangage admissible, sinon la dalle n'est
+  pas toute-collision et le moteur REFUSE (UNDECIDED, pas faux). Tangage borné à ±2/5,
+  panneau à x∈[3/20,1/5]. Le moteur (pas l'œil) arbitre : la dalle 0-libre/300k confirme.
+- **test-fast à 66 s** (1ʳᵉ version) : les checks denses (oracle sympy-lambdifié, 20k×30
+  évals) coûtent cher. Dense rapide ramené à 4k + n_samples=20, le 300k / le contrôle
+  négatif / le balayage passés @slow → test-fast 28.7 s.
+- **Tip == elbow dans la viz du corps** : le corps (bras sup.) s'arrête au coude ; la
+  figure ne montrait qu'un segment. Ajout du dessin de l'avant-bras (via la FK de j3)
+  dans la figure S3 pour qu'elle lise comme un vrai bras épaule-coude (fidélité V4).
+
+**Décompte exact (sortie de session)** : `make test` = **156 passed, 0 skipped,
+25 warnings, 252 s** (mêmes 20 fork-deprecation + 5 Clarabel, documentés S0/S3).
+`make test-fast` = 92 passed, 64 deselected, 28.7 s. Benchmark canonique :
+`benchmarks/results/20260611T194801Z/` (à régénérer post-commit pour aligner le hash —
+les chiffres figurent aussi dans COMPARISON-Li-Dantam.md).
+
+**Critères de sortie S7** : scène S3 4-DOF reproduite (épaule-coude fidèle) ✓ ;
+harness benchmarks/ + résultats datés/commit-stampés (règle 7) ✓ ; **table comparative
+honnête vs Li-Dantam** ✓ ; écarts commentés (méthode/matériel/certificat ; pas de
+course de vitesse) ✓ ; SPEC : pas d'amendement requis (reproduction approchée prévue
+au plan, ENGINE-PROOF aligné sur §1/§6) ; décompte journalisé ✓.
+**RÉSERVE** : la moitié « + vérifiée (exact) » de G3' (libellé CLAUDE.md S7) est
+reportée à S9 (verify spatial) — décision actée avec Stéphane (Option A), non un échec ;
+**à arbitrer par la revue** (scinder G3' ?). **V4 EN ATTENTE** (demande ci-dessous).
+
+=== DEMANDE DE VALIDATION VISUELLE (S7-V4) ===
+Commande à lancer :
+  make figures          # (re)génère les PNG ; ou directement :
+  # python scripts/make_scene_figures.py
+  open benchmarks/figures/scene_S3_shoulder_elbow_sweep.png
+  open benchmarks/figures/scene_S3_shoulder_elbow_cspace.png
+  # robot 3-D (orbitable) : python -m cnp show scenes/S3_shoulder_elbow.yaml
+  #   (--config sweep pour l'éventail ; Ctrl-C pour arrêter le serveur Meshcat)
+Ouvrir            : les deux PNG ci-dessus (figure sweep + figure C-space).
+Référence papier  : Li & Dantam, RSS 2021 « Learning Proofs of Motion Planning
+                    Infeasibility », Fig. 7b (bras épaule-coude 4-DOF). (Je ne peux
+                    pas reproduire leur figure ; comparer la topologie/le robot.)
+Vérifier          :
+  0. [A20] La scène a l'air FAISABLE : le goal (lacet droite) est proche/visible,
+     start et goal sont libres, la vue sweep montre POURQUOI on croirait passer
+     (l'éventail des poses balaie le panneau).
+  1. Même topologie qu'eux : un bras épaule-coude (épaule sphérique + coude) dont la
+     cible est bloquée par un panneau/étagère devant — « atteignable en apparence ».
+  2. Même robot / joints actifs : épaule sphérique (lacet/tangage/roll) + coude ;
+     le mouvement bloqué est le balayage du LACET de base (s0), roll+coude passifs.
+  3. Figure C-space : un MUR de collision (gris) couvre TOUT le tangage s1, la dalle
+     or |φ|≤1/10 est entièrement dedans, start (★) et goal (✚) de part et d'autre
+     ⟹ goal libre mais INATTEIGNABLE.
+Critère de réussite : la paire de figures raconte « bras 4-DOF, cible bloquée par un
+  panneau, atteignable en apparence mais prouvé inatteignable », fidèle au scénario
+  4-DOF de Li-Dantam.
+Réponse attendue  : « VALIDÉ S7-V4 » ou description de l'anomalie.
+
+**Prochaine étape** : V4, micro-commit de clôture, puis (selon revue) S8 — perf :
+**tâche n°1 dims passives par intervalles** (A18, données S7 : oracle 8→36 feuilles
+sur 0→3 dims passives), highspy direct, sparsité, warnings. NB : la vérification EXACTE
+des scènes spatiales (kind `spatial_revolute` dans verify.py) reste S9 — c'est elle qui
+complétera le « + vérifiée » de G3' sur S3.
+
