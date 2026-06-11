@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.3 — 11 juin 2026 (révision post-S4 ; v1.0/v1.1/v1.2 dans git).
+Version 1.4 — 11 juin 2026 (révision post-S5 ; v1.0/v1.1/v1.2/v1.3 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -13,7 +13,11 @@ note heuristique d'axe en S9. Changements v1.2 → v1.3 (revue S4, annotations
 A11-A14) : S4 actée ; CONTRAT engine↔verify « coupe au milieu » (A14, règle 9) ;
 gardes d'ouverture S5 (A12 q*≠0 bruyant sur chemin sympy ; A13 arrondi λ
 adaptatif + boucle de re-résolution) ; figures prêt-papier slab-aware (A11 →
-S11). Détail : entrées « Revue de supervision » de JOURNAL.md.
+S11). Changements v1.3 → v1.4 (revue S5, annotations A15-A17) : S5 actée ;
+gouvernance CLAUDE.md (règle 14) ; circuit doc par diffs journalisés (les revues
+ne livrent plus de fichiers entiers — le repo est l'unique source de vérité) ;
+verdicts à trois statuts PROOF / ENGINE-PROOF / UNDECIDED (S6) ; résidus v1.3
+appliqués (A11 → S11). Détail : entrées « Revue de supervision » de JOURNAL.md.
 
 ---
 
@@ -109,6 +113,16 @@ S11). Détail : entrées « Revue de supervision » de JOURNAL.md.
     = sortie rouge. La sortie de session colle le décompte exact
     (passed/skipped/warnings) dans JOURNAL.md.
 
+14. **Gouvernance de CLAUDE.md (NOUVEAU, A15).** Code PEUT modifier CLAUDE.md
+    pour : (a) réconcilier avec des décisions de supervision journalisées,
+    (b) tenir l'« État d'avancement », (c) le changelog. Code ne modifie JAMAIS
+    de sa propre initiative une règle, un critère de sortie ou une porte. Tout
+    diff de CLAUDE.md est listé dans l'entrée de journal de la session.
+    Corollaire (A16) : les revues de supervision ne livrent plus de fichiers
+    CLAUDE.md entiers (risque de copie périmée) — elles livrent une entrée de
+    journal + instructions de diff explicites, appliquées en tâche d'ouverture
+    de la session suivante. Le repo est l'unique source de vérité.
+
 ## Definition of Done (rappel global)
 
 Démonstrateur : `cnp certify scenes/S5_iiwa_shelf.yaml` produit un certificat
@@ -144,7 +158,7 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
 
 ---
 
-## Plan de développement (sessions Opus) — révisé v1.1
+## Plan de développement (sessions Opus) — tenu à jour (voir changelog)
 
 Chaque session : **Entrée** / **Tâches** / **Sortie** (critères vérifiables).
 Une session = un contexte Opus ; si débordement, couper au critère partiel le
@@ -221,7 +235,11 @@ plus proche et journaliser.
      start/goal commutables, obstacles, repères) — avancé depuis S11, car
      l'inspection visuelle de la géométrie AVANT certification fait partie de la
      conception de scène ;
-  4. CLI `cnp certify <scene>` bout-en-bout ;
+  4. CLI `cnp certify <scene>` bout-en-bout ; **verdicts à trois statuts
+     PROOF / ENGINE-PROOF / UNDECIDED (A17)** : PROOF = vérifié exact ;
+     ENGINE-PROOF = moteur OK mais vérification exacte indisponible (ex. 3-DOF
+     spatial avant S9), TOUJOURS affiché avec son avertissement ; UNDECIDED =
+     pas de certificat. README et messages alignés (règles 5/6) ;
   5. suite adversariale initiale tests/test_adversarial.py (obstacles rétrécis,
      micro-canal inséré exprès).
 - **[V3] Validation visuelle** : `cnp show scenes/S2_peigne.yaml`, ouvrir l'URL
@@ -311,6 +329,9 @@ plus proche et journaliser.
 - Tâches : `cnp viz <cert>` complet (Meshcat : scène, configs, animation de la
   dalle projetée, feuilles en échec si UNDECIDED) ; figures C-space/partition
   généralisées (coupes pour n>2) ; tables/courbes de benchmark auto-générées.
+  **[A11, V1]** : rogner ou hachurer la partie hors-dalle des feuilles
+  slab-aware et tracer la frontière de dalle {|φ|=δ} sur le panneau partition
+  (sans quoi un lecteur croit qu'on certifie de la collision en zone libre).
 - **[V7] Validation visuelle** : pack de figures prêt-papier.
   Vérifier : (1) chaque figure raconte une histoire lisible sans légende orale ;
   (2) les chiffres des tables correspondent aux JSON de benchmarks/results/ ;

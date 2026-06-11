@@ -676,3 +676,68 @@ YAML + `cnp show` Meshcat + `cnp certify` bout-en-bout + suite adversariale
 initiale (porte G1'). NB S6 : `phi_scenes.py` (oracle + build_problem) est la base
 du branchement scène→pipeline ; le 3-DOF spatial attend `spatial_revolute` dans
 certificate+verify (S9) pour une certification exacte.
+
+## 2026-06-11 — Revue de supervision S5 (claude.ai) — **annotations A15-A17, nouveau circuit doc**
+
+**Mea culpa (incident doc v1.3)** : l'incohérence réconciliée en ouverture de S5
+venait du superviseur, pas de Code. Le patch v1.3 livré depuis claude.ai
+s'appliquait en deux scripts ; le premier a avorté sans écrire (tout-ou-rien),
+le second n'a écrit que le bloc règle 9 — fichier livré à moitié patché, sans
+vérification finale avant remise. La réconciliation de Code depuis le journal
+était la bonne réaction (trace faisant foi, commit doc séparé, signalement).
+Deux résidus que Code ne pouvait pas deviner restent à appliquer (diffs D1-D2
+ci-dessous).
+
+**Verdict S5** : validée. Trois points au-dessus de l'attendu :
+(1) A13 implémentée mieux que demandé — `make_certificate(verify_loop=True)`
+par défaut : auto-vérification exacte + escalade max_den, promesse SPEC §4
+tenue en standard ; (2) insight SVM : étiqueter les LIBRES par côté start/goal
+(et non libre/collision) place le séparateur DANS le gap de collision — bonne
+formulation du problème de barrière ; (3) déconnexion 3-DOF par piégeage
+PROXIMAL, géométries écartées documentées chiffres à l'appui (mur frontal
+contourné en tangage : 64/225 libres). Étiquetage honnête « moteur-PROOF, pas
+certifié » (règle 5 appliquée spontanément). Trouvaille à retenir : δ PETIT est
+le bon réflexe (dalle fine ⊆ collision ; balayage 0.03-0.3 PROOF vs 0.5
+UNDECIDED 549 feuilles) — l'inverse de l'intuition « marge confortable ».
+Nit de tenue de journal : le titre de l'entrée S5 dit « V2 en attente » alors
+que la clôture dit « V2 VALIDÉE » — mettre le titre à jour au micro-commit de
+clôture.
+
+**Annotations** :
+- [A15 — gouvernance CLAUDE.md] Code PEUT modifier CLAUDE.md pour :
+  (a) réconcilier avec des décisions de supervision journalisées,
+  (b) tenir l'« État d'avancement », (c) le changelog. Code ne modifie JAMAIS
+  de sa propre initiative une règle, un critère de sortie ou une porte. Tout
+  diff de CLAUDE.md est listé dans l'entrée de journal de la session.
+  (→ devient la règle 14, diff D3.)
+- [A16 — circuit de révision doc] Les revues de supervision ne livrent plus de
+  fichiers CLAUDE.md entiers (risque de copie périmée, cause racine de
+  l'incident) : elles livrent une entrée de journal + instructions de diff
+  explicites, que Code applique au CLAUDE.md DU REPO en tâche d'ouverture de la
+  session suivante. Le repo est l'unique source de vérité.
+- [A17 — verdicts mécaniques] Trois statuts produit dès S6 (CLI, sorties,
+  README) : PROOF (vérifié exact) ; ENGINE-PROOF (moteur OK, vérification
+  exacte indisponible — ex. 3-DOF spatial avant S9, toujours affiché avec son
+  avertissement) ; UNDECIDED. La règle 5 devient visible dans le produit.
+  (→ diff D4.)
+
+**Diffs à appliquer par Code en ouverture de S6 (CLAUDE.md du repo)** :
+- D1 [résidu v1.3] Section S11, tâche figures : ajouter « **[A11, V1]** :
+  rogner ou hachurer la partie hors-dalle des feuilles slab-aware et tracer la
+  frontière de dalle sur le panneau partition (sans quoi un lecteur croit qu'on
+  certifie de la collision en zone libre) ».
+- D2 [cosmétique] En-tête du plan : « révisé v1.1 » → « tenu à jour (voir
+  changelog) ».
+- D3 [A15] Nouvelle règle 14 « Gouvernance de CLAUDE.md » : texte de
+  l'annotation A15 ci-dessus.
+- D4 [A17] Section S6, ajouter aux tâches CLI : « verdicts à trois statuts
+  PROOF / ENGINE-PROOF / UNDECIDED (A17) ; ENGINE-PROOF toujours accompagné de
+  son avertissement ; README et messages alignés (règles 5/6) ».
+- D5 Header : version 1.4, ligne de changelog « v1.3→v1.4 (revue S5, A15-A17) :
+  gouvernance CLAUDE.md (règle 14) ; circuit doc par diffs journalisés ;
+  verdicts à trois statuts ; résidus v1.3 appliqués (A11→S11) ».
+
+**Prochaine étape** : S6 — ouverture : appliquer D1-D5 (+ commit doc séparé),
+puis scenes.py + YAML + `cnp show` + `cnp certify` + adversarial initial
+(porte G1', validation V3).
+
