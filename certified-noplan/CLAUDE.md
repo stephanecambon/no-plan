@@ -27,7 +27,11 @@ composants standard en S11 (D10). Revue V4 (S7, A21/A23) : checklist V4 amendée
 scène de BENCHMARK doit répondre aux objections naturelles (vue de côté + sweeps lacet
 ET tangage, contrainte bloquante explicite) ; « apparence faisable » (A20) réservé aux
 scènes-vitrines V5/V6 (non négociable) ; tableau de correspondance géométrique
-papier↔YAML archivé (A21). Détail : entrées « Revue de supervision » de JOURNAL.md.
+papier↔YAML archivé (A21) ; **[A24] artefact de validation principal d'une scène
+spatiale = HTML interactif auto-suffisant (`cnp show --interactive`) — curseurs,
+collision visuelle, fantômes start/goal sur toutes les vues, boutons d'évasion ;
+chaque vue déclare ce qu'elle montre** (règle 11 amendée, standard V4-V6). Détail :
+entrées « Revue de supervision » de JOURNAL.md.
 
 ---
 
@@ -109,6 +113,16 @@ papier↔YAML archivé (A21). Détail : entrées « Revue de supervision » de J
     l'œil humain rate les micro-canaux aussi ; seul le certificat + verify fait
     foi sur la vérité mathématique. Ne jamais présenter une validation visuelle
     comme une preuve.
+    **[A24] Artefact principal pour une scène SPATIALE = interactif ou animé.**
+    L'artefact de validation principal d'une scène spatiale est un
+    **`cnp show <scene> --interactive`** exportant un **HTML auto-suffisant** (curseurs
+    articulaires, détection de collision visuelle, fantômes start/goal, boutons rejouant
+    les tentatives d'évasion naturelles avec verdict) — ou, à défaut, un GIF animé de ces
+    tentatives. Les figures statiques restent des compléments. De plus : (a) les poses
+    start/goal apparaissent en **fantômes étiquetés sur TOUTES les vues d'espace de
+    travail** (pas seulement en symboles dans le C-space) ; (b) **chaque vue déclare ce
+    qu'elle montre** (bras complet vs bras supérieur/corps certifié seul). Standard pour
+    V4 (livré S7) et obligatoire pour V5/V6.
 
 12. **Anti-dérive de spec (NOUVEAU).** Si l'implémentation diverge délibérément de
     SPEC.md (exemples actés en S1-S2 : s = tan((q−q*)/2) avec q* de référence au
@@ -173,11 +187,13 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   tests/test_adversarial.py (micro-canal : grille grossière 0-libre mais moteur
   refuse) zéro faux certificat ; SPEC §6 amendée (149 tests, 0 skip). **V3 validée**
   (figures workspace/C-space/sweep du peigne + 3R spatial).
-- 🟡 **S7** — code vert, **V4 en attente**. Scène épaule-coude 4-DOF fidèle
-  (Li-Dantam RSS2021) → ENGINE-PROOF + 0 libre/300k ; harness benchmarks/ +
-  table comparative honnête + balayage dims passives (margin plat 8 / oracle 8→36) ;
-  figures sweep+C-space (156 tests, 0 skip). **Réserve G3'** : la moitié « + vérifiée
-  (exact) » est reportée à S9 (verify spatial) — Option A actée avec Stéphane.
+- 🟡 **S7** — code vert, **V4 validée côté figures, widget A24 livré (re-soumission)**.
+  Scène épaule-coude 4-DOF fidèle (Li-Dantam RSS2021) → ENGINE-PROOF + 0 libre/300k ;
+  harness benchmarks/ + table comparative honnête + balayage dims passives (margin plat
+  8 / oracle 8→36) ; figures sweep+côté+C-space + **widget interactif HTML
+  (`cnp show --interactive`, A24)** + table géométrie A21 (158 tests, 0 skip).
+  **Réserve G3'** : la moitié « + vérifiée (exact) » est reportée à S9 (verify spatial)
+  — Option A actée avec Stéphane.
 
 ---
 
@@ -284,9 +300,9 @@ plus proche et journaliser.
   publiés vs nôtres) ; **produire la vue sweep de la scène (A20)** (éventail des
   poses start→goal, collisions en rouge — montre pourquoi le chemin a l'air
   faisable).
-- **[V4] Validation visuelle** : image côte-à-côte produite par la session :
-  rendu Meshcat de notre scène vs figure du papier (référence de figure et page
-  citées).
+- **[V4] Validation visuelle** : **artefact PRINCIPAL = `cnp show <scene>
+  --interactive` (HTML auto-suffisant, A24)** ; figures statiques (sweep dessus + côté
+  + C-space) en compléments ; côte-à-côte vs figure du papier (référence citée).
   Vérifier : (0) **[A23] la figure RÉPOND AUX OBJECTIONS NATURELLES du spectateur**
   (« pourquoi pas par-dessus / autour ? ») — vue de CÔTÉ montrant la hauteur réelle
   des obstacles vs la portée du bras, ET les sweeps pertinents (lacet ET tangage),
@@ -342,8 +358,9 @@ plus proche et journaliser.
   même scène à n = 3,4,5,6 joints débloqués (distinguer dims actives/passives)
   pour ajuster l'exposant empirique du modèle de coût.
 - **[V5] Validation visuelle — OBLIGATOIRE AVANT TOUT RUN LONG** :
-  `cnp show scenes/S4_bac.yaml` + coupes 2D du C-space échantillonné (paires de
-  joints les plus actives) + vue sweep (A20).
+  **artefact PRINCIPAL = `cnp show scenes/S4_bac.yaml --interactive` (HTML, A24)** ;
+  + coupes 2D du C-space échantillonné (paires de joints les plus actives) +
+  vue sweep (A20) en compléments.
   Vérifier : (0) **[A20] la scène a l'air FAISABLE — goal proche/visible, la vue
   sweep montre pourquoi on croirait passer** (scène-VITRINE, NON NÉGOCIABLE — A23) ;
   (1) le bac enferme réellement
@@ -363,8 +380,9 @@ plus proche et journaliser.
   extrapolation de budget depuis S9 (feuilles, temps) présentée AVANT de lancer ;
   runs longs avec checkpoints ; si φ deg ≤2 insuffisant : φ par morceaux
   (théorème composé, amender SPEC).
-- **[V6] Validation visuelle + go/no-go** : `cnp show scenes/S5_iiwa_shelf.yaml`
-  + budget estimé (temps, feuilles, RAM) + vue sweep (A20).
+- **[V6] Validation visuelle + go/no-go** : **artefact PRINCIPAL = `cnp show
+  scenes/S5_iiwa_shelf.yaml --interactive` (HTML, A24)** + budget estimé (temps,
+  feuilles, RAM) + vue sweep (A20) en compléments.
   Vérifier : (0) **[A20] la scène a l'air FAISABLE — goal proche/visible, la vue
   sweep montre pourquoi on croirait passer** (scène-VITRINE, NON NÉGOCIABLE — A23) ;
   (1) étagère + panneau obstruant
