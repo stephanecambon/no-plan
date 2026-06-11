@@ -1228,6 +1228,12 @@ V4 acquise sur les figures ; nouvelle exigence à journaliser et appliquer :
 - Boîte du widget « contourner » corrigée pour rester dans les limites (s3 ne descend plus
   sous 0). Limite assumée déjà notée : projection x-z ambiguë (collision calculée en 3D).
 
+**Décompte exact consolidé (après itérations V4 A24+A25)** : `make test` = **158 passed,
+0 skipped, 25 warnings** (156 du commit V4-pending + 2 tests widget/limites A24/A25).
+`make test-fast` = 92 passed, 64 deselected, ~29 s. Le titre de l'entrée garde
+« V4 en attente » : V4 validée côté figures mais re-soumise après A24/A25, pas encore
+de « VALIDÉ S7-V4 » — le titre passera à « V4 validée » au micro-commit de clôture.
+
 **Prochaine étape** : V4, micro-commit de clôture, puis (selon revue) S8 — perf :
 **tâche n°1 dims passives par intervalles** (A18, données S7 : oracle 8→36 feuilles
 sur 0→3 dims passives), highspy direct, sparsité, warnings. NB : la vérification EXACTE
