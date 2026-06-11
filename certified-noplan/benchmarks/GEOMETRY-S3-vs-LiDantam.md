@@ -23,7 +23,7 @@ box."* — that is the full extent of the published geometry.
 | Upper-arm length | not published | **2/5 m** (= 0.40) | chosen (plausible) |
 | Forearm length | not published | **3/10 m** (= 0.30) — *visual only*, NOT in the certificate (the certified body is the upper arm) | chosen |
 | Obstacle ("box"/panel) | not published | front panel, box `x∈[3/20,1/5], y∈[-3/50,3/50], z∈[-3/5,3/5]` m (= x∈[0.15,0.20], y∈[±0.06], z∈[±0.60]) | chosen |
-| Joint limits | not published (factory limits ⊂ (−π,π) assumed) | s-box `s0∈[±7/10], s1∈[±2/5], s2,s3∈[±7/10]`; q = 2·arctan(s) ⟹ yaw/roll/elbow ∈ ±(1.22 rad), pitch ∈ ±(0.76 rad) — all ⊂ (−π,π) | chosen (⊂ (−π,π), SPEC §2) |
+| Joint limits | not published (factory limits ⊂ (−π,π) assumed) | s-box `s0∈[±7/10]`, `s1∈[±2/5]`, `s2∈[±1]`, `s3∈[0,7/5]`; q = 2·arctan(s) ⟹ **lacet ±70°, tangage ±44°, roll ±90°, coude 0–109°** — all ⊂ (−π,π). Roll/elbow are passive, given physically realistic ranges (no elbow hyperextension) | chosen (⊂ (−π,π), SPEC §2; explicit on every figure/slider/verdict — A25) |
 | start / goal | shown graphically only | `s0 = −3/5` (yaw left, free) → `s0 = +3/5` (yaw right, free); other joints 0 | chosen (both free) |
 | Barrier φ | (their method learns a manifold) | φ = s0 (base yaw), δ = 1/10 | our method (baked rational barrier) |
 

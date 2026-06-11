@@ -99,6 +99,13 @@ def shoulder_elbow_figures():
     oracle = scenes.collision_oracle(scene, n_samples=30)
     fk, _names, _bn, _tip = viz._fk_and_names(scene)
     L_UP, L_FORE = 0.40, 0.30
+    LIMS = viz.limits_caption(scene)          # A25: explicit joint limits, e.g. "lacet ±70° ..."
+    BOX = dict(boxstyle="round", fc="#fff7e0", ec="#e0c060")
+
+    def limits_box(ax):                       # the "encadré limites" required on every figure
+        ax.text(0.015, 0.015, LIMS + "\n(toutes ⊂ ±180° : pas de wrap-around)",
+                transform=ax.transAxes, fontsize=7.0, va="bottom", ha="left",
+                bbox=BOX, zorder=10)
 
     def full_arm(s):
         """base -> elbow -> hand (upper arm length L_UP, forearm L_FORE)."""
@@ -141,6 +148,7 @@ def shoulder_elbow_figures():
     ax.set_title(f"S3 epaule-coude 4-DOF (vue DESSUS, plan x-y) : balayage du lacet base "
                  f"— {n_coll}/{n} poses en collision\nMONTRE : bras COMPLET (sup. epais = "
                  "corps certifie ; avant-bras fin = affichage) ; fantomes start/goal etiquetes")
+    limits_box(ax)
     p1 = os.path.join(OUT, "scene_S3_shoulder_elbow_sweep.png")
     fig.tight_layout()
     fig.savefig(p1, dpi=130)
@@ -198,6 +206,7 @@ def shoulder_elbow_figures():
                  "sommet panneau 0.6 > portee du bras 0.4  =>  passer PAR-DESSUS est "
                  "IMPOSSIBLE (raison = HAUTEUR DU MUR,\npas la limite articulaire : meme "
                  "au tangage max le bras plante bas dans le panneau)", fontsize=10)
+    limits_box(ax)
     p3 = os.path.join(OUT, "scene_S3_shoulder_elbow_side.png")
     fig.tight_layout()
     fig.savefig(p3, dpi=130)
@@ -208,7 +217,9 @@ def shoulder_elbow_figures():
     p2 = os.path.join(OUT, "scene_S3_shoulder_elbow_cspace.png")
     viz.save_cspace_figure(
         scene, oracle, p2, axes=(0, 1), n=140, fixed={2: 0.0, 3: 0.0},
-        axis_labels=("s0 = lacet base (tourne G/D)", "s1 = tangage epaule (releve)"),
+        axis_labels=("s0 = lacet base (tourne G/D) — limite ±70°",
+                     "s1 = tangage epaule (releve) — limite ±44°"),
+        footer=LIMS + "\nLE CADRE DE CE GRAPHE = LES LIMITES ARTICULAIRES (lacet × tangage)",
         title="S3 epaule-coude (C-space lacet s0 / tangage s1 ; roll+coude passifs) :\n"
               "mur de collision couvrant tout le tangage -> goal libre mais INATTEIGNABLE")
     print("written", os.path.normpath(p2))

@@ -45,6 +45,15 @@ def _cmd_verify(args) -> int:
     if ok:
         print("verdict: PROOF (verified in exact arithmetic"
               + (" + scene cross-check)" if args.scene is not None else ")"))
+        import math
+        from fractions import Fraction as _F
+        lims = " · ".join(
+            f"q{i} {round(math.degrees(2*math.atan(float(_F(lo)))))}…"
+            f"{round(math.degrees(2*math.atan(float(_F(hi)))))}°"
+            for i, (lo, hi) in enumerate(cert.get("box", [])))
+        print("  hypotheses (SPEC §2) : limites articulaires " + lims
+              + " (within ±180° => pas de wrap-around) ; "
+              + ", ".join(cert.get("assumptions", [])))
         return 0
     print("verdict: UNDECIDED (certificate not verified; NOT a proof of feasibility)")
     return 1
@@ -53,6 +62,17 @@ def _cmd_verify(args) -> int:
 # --------------------------------------------------------------------------- #
 # certify
 # --------------------------------------------------------------------------- #
+
+def _print_assumptions(scene) -> None:
+    """A25: every PROOF / ENGINE-PROOF reminds its hypotheses (SPEC §2), including the
+    EXPLICIT joint limits in degrees — the proof is only as strong as these premises."""
+    from . import viz as _viz
+    print("  hypotheses (SPEC §2, rappelees a chaque preuve) :")
+    print("    - " + _viz.limits_caption(scene) + " ; toutes within (-180,180) deg => "
+          "pas de wrap-around")
+    print("    - obstacles statiques ; corps robot = polytopes convexes ; "
+          "geometrie de scene exacte (rationnels)")
+
 
 def _cmd_certify(args) -> int:
     from . import certificate as _cert
@@ -78,6 +98,7 @@ def _cmd_certify(args) -> int:
               "EXACT verifier does not yet support this robot kind — "
               f"{scene.robot.kind!r}, exact verification arrives in S9)")
         print("  WARNING: this is NOT an exact-arithmetic-verified proof (rule 5).")
+        _print_assumptions(scene)
         return 0
 
     try:
@@ -97,6 +118,7 @@ def _cmd_certify(args) -> int:
         return 0
     print(f"certificate written to {out}")
     print(f"verdict: PROOF — {msg}")
+    _print_assumptions(scene)
     return 0
 
 

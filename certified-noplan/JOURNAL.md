@@ -1207,6 +1207,27 @@ V4 acquise sur les figures ; nouvelle exigence à journaliser et appliquer :
   côté supervision ; j'ai livré ma propre version auto-suffisante (zéro dépendance) — à
   aligner sur son prototype si Stéphane préfère (demander la spec).
 
+**Itération V4 (3e retour Stéphane : exigence A25 — limites articulaires explicites)** —
+- **Correction des chiffres** : les valeurs d'exemple de Stéphane (lacet ±62°, roll ±90°,
+  coude 0-110°) ne correspondaient pas à ma boîte (±62° = la valeur de start/goal s0=±0.6,
+  pas la limite). Limites RÉELLES (q=2·atan(s)) : lacet ±70°, tangage ±44°, roll/coude
+  étaient ±70° (s=±0.7). Son indice « coude 0-110° » est juste sur le fond : un coude
+  symétrique ±70° est physiquement faux. Comme **roll et coude sont PASSIFS** (impact nul
+  sur la soundness), je les ai rendus RÉALISTES : **roll s2∈[-1,1]→±90°**, **coude
+  s3∈[0,7/5]→0–109°** (pas d'hyperextension ; start/goal à s3=0). Re-vérifié : PROOF,
+  start/goal libres, **0 libre/150k** dans la dalle, libre des deux côtés.
+- **[A25] Limites explicites PARTOUT** : (a) **encadré « limites articulaires : lacet
+  ±70° · tangage ±44° · roll ±90° · coude 0–109° »** sur chaque figure (sweep, côté,
+  C-space) ; (b) **C-space : « LE CADRE DE CE GRAPHE = LES LIMITES ARTICULAIRES »** +
+  limites dans les labels d'axes (lacet ±70°, tangage ±44°) ; (c) **widget : bandeau de
+  limites + butées des curseurs = limites** (dit explicitement) + **degrés affichés par
+  curseur** (« coude (y) [0…109°] ») ; (d) **verdict CLI rappelle ses hypothèses à chaque
+  PROOF/ENGINE-PROOF** : limites articulaires en degrés + « pas de wrap-around » +
+  obstacles statiques + polytopes + géométrie exacte (`cnp certify` ET `cnp verify`).
+  Helpers `viz.joint_limits_deg` / `viz.limits_caption`. Tests étendus (+ assertions A25).
+- Boîte du widget « contourner » corrigée pour rester dans les limites (s3 ne descend plus
+  sous 0). Limite assumée déjà notée : projection x-z ambiguë (collision calculée en 3D).
+
 **Prochaine étape** : V4, micro-commit de clôture, puis (selon revue) S8 — perf :
 **tâche n°1 dims passives par intervalles** (A18, données S7 : oracle 8→36 feuilles
 sur 0→3 dims passives), highspy direct, sparsité, warnings. NB : la vérification EXACTE

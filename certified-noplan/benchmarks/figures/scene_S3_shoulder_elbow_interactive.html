@@ -10,6 +10,7 @@
  .sld{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:13px}
  .sld label{width:230px} .sld input{flex:1} .sld .val{width:54px;text-align:right;font-variant-numeric:tabular-nums}
  #verdict{font-weight:bold;font-size:15px;margin:8px 0;padding:6px 10px;border-radius:6px;display:inline-block}
+ #limits{font-size:12px;color:#333;background:#fff7e0;border:1px solid #e0c060;border-radius:6px;padding:6px 10px;margin:6px 0;max-width:740px}
  .btns{margin:10px 0;display:flex;gap:8px;flex-wrap:wrap}
  button{font-size:13px;padding:6px 10px;border:1px solid #999;border-radius:6px;background:#f0f0f0;cursor:pointer}
  button:hover{background:#e4e4e4} #attempt{font-size:13px;margin-left:6px}
@@ -33,6 +34,7 @@ outil montre l'INTENTION ; la preuve est le certificat (le moteur, pas l'œil �
 </div>
 <div class="panel">
  <div id="verdict"></div>
+ <div id="limits"></div>
  <div id="sliders"></div>
  <div class="btns">
   <button onclick="play('yaw')">Tentative : passage direct (lacet)</button>
@@ -54,7 +56,7 @@ outil montre l'INTENTION ; la preuve est le certificat (le moteur, pas l'œil �
  </div>
 </div>
 <script>
-const SC = {"joints": [{"offset": [0.0, 0.0, 0.0], "axis": [0.0, 0.0, 1.0]}, {"offset": [0.0, 0.0, 0.0], "axis": [0.0, 1.0, 0.0]}, {"offset": [0.0, 0.0, 0.0], "axis": [1.0, 0.0, 0.0]}, {"offset": [0.4, 0.0, 0.0], "axis": [0.0, 1.0, 0.0]}], "panels": [{"lo": [0.15, -0.06, -0.6], "hi": [0.2, 0.06, 0.6]}], "body_link": 2, "upper_len": 0.4, "start_s": [-0.6, 0.0, 0.0, 0.0], "goal_s": [0.6, 0.0, 0.0, 0.0], "box": [[-0.7, 0.7], [-0.4, 0.4], [-0.7, 0.7], [-0.7, 0.7]], "joint_names": ["lacet (z)", "tangage (y)", "roll (x)", "coude (y)"]};
+const SC = {"joints": [{"offset": [0.0, 0.0, 0.0], "axis": [0.0, 0.0, 1.0]}, {"offset": [0.0, 0.0, 0.0], "axis": [0.0, 1.0, 0.0]}, {"offset": [0.0, 0.0, 0.0], "axis": [1.0, 0.0, 0.0]}, {"offset": [0.4, 0.0, 0.0], "axis": [0.0, 1.0, 0.0]}], "panels": [{"lo": [0.15, -0.06, -0.6], "hi": [0.2, 0.06, 0.6]}], "body_link": 2, "upper_len": 0.4, "start_s": [-0.6, 0.0, 0.0, 0.0], "goal_s": [0.6, 0.0, 0.0, 0.0], "box": [[-0.7, 0.7], [-0.4, 0.4], [-1.0, 1.0], [0.0, 1.4]], "joint_names": ["lacet (z)", "tangage (y)", "roll (x)", "coude (y)"], "limits_deg": [[-69.98404039711733, 69.98404039711733], [-43.60281897270362, 43.60281897270362], [-90.0, 90.0], [0.0, 108.92464441605124]], "limits_caption": "limites articulaires : lacet \u00b170\u00b0 \u00b7 tangage \u00b144\u00b0 \u00b7 roll \u00b190\u00b0 \u00b7 coude 0\u2013109\u00b0"};
 const FORE = 0.3;
 // --- tiny linear algebra (4x4) ---
 function ident(){return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];}
@@ -125,16 +127,21 @@ let cur=SC.start_s.slice();
 function setS(s){cur=s.slice();for(let i=0;i<cur.length;i++){
   document.getElementById("s"+i).value=cur[i];document.getElementById("v"+i).textContent=cur[i].toFixed(2);}redraw();}
 // sliders
+document.getElementById("limits").innerHTML="<b>"+SC.limits_caption+"</b> — les BUTÉES des curseurs ci-dessous SONT ces limites articulaires (A25) ; toutes ⊂ (−180°,180°) ⟹ pas de wrap-around. Le cadre des deux vues = l'espace atteignable dans ces limites.";
 const NAMES=SC.joint_names;let sl=document.getElementById("sliders");
 for(let i=0;i<SC.joints.length;i++){let d=document.createElement("div");d.className="sld";
- d.innerHTML='<label>s'+i+' — '+NAMES[i]+'</label><input id="s'+i+'" type="range" min="'+SC.box[i][0]+'" max="'+SC.box[i][1]+'" step="0.01" value="'+cur[i]+'"><span class="val" id="v'+i+'"></span>';
+ let ld=SC.limits_deg[i];let deg='['+Math.round(ld[0])+'…'+Math.round(ld[1])+'°]';
+ d.innerHTML='<label>s'+i+' — '+NAMES[i]+' '+deg+'</label><input id="s'+i+'" type="range" min="'+SC.box[i][0]+'" max="'+SC.box[i][1]+'" step="0.01" value="'+cur[i]+'"><span class="val" id="v'+i+'"></span>';
  sl.appendChild(d);let inp=d.querySelector("input");
  inp.oninput=()=>{cur[i]=parseFloat(inp.value);document.getElementById("v"+i).textContent=cur[i].toFixed(2);redraw();};}
 // escape attempts: animate a path; report whether ANY pose was free
 function play(kind){let path=[],N=24;
  if(kind==='yaw'){for(let k=0;k<=N;k++){let t=k/N;path.push(SC.start_s.map((v,i)=>v+(SC.goal_s[i]-v)*t));}}
  else if(kind==='pitch'){for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0;s[1]=SC.box[1][0]+(SC.box[1][1]-SC.box[1][0])*t;path.push(s);}}
- else{for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0;if(s.length>2)s[2]=SC.box[2][0]+(SC.box[2][1]-SC.box[2][0])*t;if(s.length>3)s[3]=SC.box[3][1]*Math.sin(6.28*t);path.push(s);}}
+ else{for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0;
+   if(s.length>2)s[2]=SC.box[2][0]+(SC.box[2][1]-SC.box[2][0])*t;                       // roll across its limits
+   if(s.length>3)s[3]=SC.box[3][0]+(SC.box[3][1]-SC.box[3][0])*0.5*(1-Math.cos(6.28*t)); // elbow within its limits
+   path.push(s);}}
  let free=0,i=0;document.getElementById("attempt").textContent="…";
  let iv=setInterval(()=>{if(i>=path.length){clearInterval(iv);
     let nColl=path.length-free;

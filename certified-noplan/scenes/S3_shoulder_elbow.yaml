@@ -59,11 +59,17 @@ obstacles:
 phi: {degree_per_var: 2, coeffs: {"1,0,0,0": "1"}}         # barrier phi = s0 (base yaw)
 delta: "1/10"
 
-# s-box P (one [lo,hi] per UNLOCKED joint). Pitch s1 is bounded to +/-2/5 so the upper
-# arm always reaches the panel's depth at every allowed pitch (a near-vertical arm would
-# fall short — then the band would not be all-collision and the engine would REFUSE, not
-# lie). Passive s2, s3 span the full range: the engine must certify across them too.
-box: [["-7/10", "7/10"], ["-2/5", "2/5"], ["-7/10", "7/10"], ["-7/10", "7/10"]]
+# s-box P (one [lo,hi] per UNLOCKED joint) = the JOINT LIMITS, q = 2*arctan(s):
+#   lacet  s0 in [-7/10, 7/10]  -> q in [-70.0deg, +70.0deg]
+#   tangage s1 in [-2/5, 2/5]   -> q in [-43.6deg, +43.6deg]   (bounded so the upper arm
+#       always reaches the panel depth at every allowed pitch; a near-vertical arm would
+#       fall short -> the band would not be all-collision and the engine would REFUSE)
+#   roll   s2 in [-1, 1]        -> q in [-90.0deg, +90.0deg]   (passive — physically a
+#       shoulder roll; widening it cannot change the body, the engine certifies across it)
+#   coude  s3 in [0, 7/5]       -> q in [0deg, +108.9deg]      (passive — a realistic elbow
+#       range, no hyperextension; start/goal sit at s3=0)
+# All limits are strictly inside (-pi, pi): no wrap-around (SPEC §2 hypothesis).
+box: [["-7/10", "7/10"], ["-2/5", "2/5"], ["-1", "1"], ["0", "7/5"]]
 start_s: ["-3/5", "0", "0", "0"]    # hand swung left  (free)
 goal_s:  ["3/5", "0", "0", "0"]     # hand swung right (free), target in the right bay
 pairs: ["PANEL"]

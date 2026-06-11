@@ -81,6 +81,8 @@ def test_s3_cli_certify_is_engine_proof(capsys):
     assert rc == 0
     assert "ENGINE-PROOF" in out and "NOT" in out              # warning always present
     assert "spatial_revolute" in out and "S9" in out           # honest scope note
+    assert "hypotheses" in out and "wrap-around" in out        # A25: assumptions recalled
+    assert "lacet" in out and "70" in out and "coude" in out   # A25: explicit joint limits
 
 
 # --------------------------------------------------------------------------- #
@@ -130,6 +132,9 @@ def test_interactive_html_is_self_contained_with_baked_scene(tmp_path):
     assert data["start_s"][0] == -0.6 and data["goal_s"][0] == 0.6
     assert data["panels"] and data["panels"][0]["hi"][2] == 0.6     # panel top z=3/5
     assert data["joint_names"][3] == "coude (y)"                    # elbow named
+    assert "limites" in data["limits_caption"] and "coude" in data["limits_caption"]  # A25
+    assert len(data["limits_deg"]) == 4                            # one [lo,hi]° per joint
+    assert round(data["limits_deg"][0][1]) == 70                   # lacet +70°
 
 
 def test_interactive_html_rejects_planar_scene():

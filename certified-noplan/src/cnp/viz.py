@@ -169,7 +169,7 @@ def save_sweep_figure(scene: _cert.Scene, oracle, path, n=9, project=(0, 1),
 
 
 def save_cspace_figure(scene: _cert.Scene, oracle, path, axes=(0, 1), n=140,
-                       fixed=None, title=None, axis_labels=None, paths=None):
+                       fixed=None, title=None, axis_labels=None, paths=None, footer=None):
     """Configuration-space figure (the view that shows 'goal free but UNREACHABLE'):
     a 2-D slice over two s-axes, collision shaded grey, the slab ``{|phi|<=delta}``
     in gold, start (★) and goal (✚) marked. When the slab is a full COLLISION WALL
@@ -225,6 +225,10 @@ def save_cspace_figure(scene: _cert.Scene, oracle, path, axes=(0, 1), n=140,
     ax.set_xlabel(xl)
     ax.set_ylabel(yl)
     ax.legend(loc="upper right", framealpha=0.95, fontsize=8)
+    if footer:                                  # A25: explicit joint-limits encadré
+        ax.text(0.015, 0.015, footer, transform=ax.transAxes, fontsize=7.0,
+                va="bottom", ha="left", zorder=10,
+                bbox=dict(boxstyle="round", fc="#fff7e0", ec="#e0c060"))
     ax.set_title(title or "C-space slice (grey = collision)")
     fig.tight_layout()
     fig.savefig(path, dpi=130)
@@ -244,6 +248,7 @@ _INTERACTIVE_TEMPLATE = r"""<!DOCTYPE html>
  .sld{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:13px}
  .sld label{width:230px} .sld input{flex:1} .sld .val{width:54px;text-align:right;font-variant-numeric:tabular-nums}
  #verdict{font-weight:bold;font-size:15px;margin:8px 0;padding:6px 10px;border-radius:6px;display:inline-block}
+ #limits{font-size:12px;color:#333;background:#fff7e0;border:1px solid #e0c060;border-radius:6px;padding:6px 10px;margin:6px 0;max-width:740px}
  .btns{margin:10px 0;display:flex;gap:8px;flex-wrap:wrap}
  button{font-size:13px;padding:6px 10px;border:1px solid #999;border-radius:6px;background:#f0f0f0;cursor:pointer}
  button:hover{background:#e4e4e4} #attempt{font-size:13px;margin-left:6px}
@@ -267,6 +272,7 @@ outil montre l'INTENTION ; la preuve est le certificat (le moteur, pas l'œil �
 </div>
 <div class="panel">
  <div id="verdict"></div>
+ <div id="limits"></div>
  <div id="sliders"></div>
  <div class="btns">
   <button onclick="play('yaw')">Tentative : passage direct (lacet)</button>
@@ -359,16 +365,21 @@ let cur=SC.start_s.slice();
 function setS(s){cur=s.slice();for(let i=0;i<cur.length;i++){
   document.getElementById("s"+i).value=cur[i];document.getElementById("v"+i).textContent=cur[i].toFixed(2);}redraw();}
 // sliders
+document.getElementById("limits").innerHTML="<b>"+SC.limits_caption+"</b> — les BUTÉES des curseurs ci-dessous SONT ces limites articulaires (A25) ; toutes ⊂ (−180°,180°) ⟹ pas de wrap-around. Le cadre des deux vues = l'espace atteignable dans ces limites.";
 const NAMES=SC.joint_names;let sl=document.getElementById("sliders");
 for(let i=0;i<SC.joints.length;i++){let d=document.createElement("div");d.className="sld";
- d.innerHTML='<label>s'+i+' — '+NAMES[i]+'</label><input id="s'+i+'" type="range" min="'+SC.box[i][0]+'" max="'+SC.box[i][1]+'" step="0.01" value="'+cur[i]+'"><span class="val" id="v'+i+'"></span>';
+ let ld=SC.limits_deg[i];let deg='['+Math.round(ld[0])+'…'+Math.round(ld[1])+'°]';
+ d.innerHTML='<label>s'+i+' — '+NAMES[i]+' '+deg+'</label><input id="s'+i+'" type="range" min="'+SC.box[i][0]+'" max="'+SC.box[i][1]+'" step="0.01" value="'+cur[i]+'"><span class="val" id="v'+i+'"></span>';
  sl.appendChild(d);let inp=d.querySelector("input");
  inp.oninput=()=>{cur[i]=parseFloat(inp.value);document.getElementById("v"+i).textContent=cur[i].toFixed(2);redraw();};}
 // escape attempts: animate a path; report whether ANY pose was free
 function play(kind){let path=[],N=24;
  if(kind==='yaw'){for(let k=0;k<=N;k++){let t=k/N;path.push(SC.start_s.map((v,i)=>v+(SC.goal_s[i]-v)*t));}}
  else if(kind==='pitch'){for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0;s[1]=SC.box[1][0]+(SC.box[1][1]-SC.box[1][0])*t;path.push(s);}}
- else{for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0;if(s.length>2)s[2]=SC.box[2][0]+(SC.box[2][1]-SC.box[2][0])*t;if(s.length>3)s[3]=SC.box[3][1]*Math.sin(6.28*t);path.push(s);}}
+ else{for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0;
+   if(s.length>2)s[2]=SC.box[2][0]+(SC.box[2][1]-SC.box[2][0])*t;                       // roll across its limits
+   if(s.length>3)s[3]=SC.box[3][0]+(SC.box[3][1]-SC.box[3][0])*0.5*(1-Math.cos(6.28*t)); // elbow within its limits
+   path.push(s);}}
  let free=0,i=0;document.getElementById("attempt").textContent="…";
  let iv=setInterval(()=>{if(i>=path.length){clearInterval(iv);
     let nColl=path.length-free;
@@ -388,6 +399,43 @@ function play(kind){let path=[],N=24;
 setS(SC.start_s);
 </script></body></html>
 """
+
+
+def _spatial_joint_names(scene: _cert.Scene):
+    """Physical name per unlocked joint of a spatial builtin (yaw/pitch/roll by axis,
+    the joint just after the body link is the elbow)."""
+    def nm(ax):
+        ax = tuple(round(float(v)) for v in ax)
+        return {(0, 0, 1): "lacet (z)", (0, 1, 0): "tangage (y)",
+                (1, 0, 0): "roll (x)"}.get(ax, "rotation")
+    names = [nm([float(_cert.Q(x)) for x in j["axis"]]) for j in scene.robot.joints]
+    return [n if i != scene.body_link + 1 else "coude (y)" for i, n in enumerate(names)]
+
+
+def joint_limits_deg(scene: _cert.Scene):
+    """``[(name, lo_deg, hi_deg)]`` per unlocked joint. The s-box IS the joint-limit box
+    (SPEC §2, all ⊂ (−π,π)); angles via ``q = 2·arctan(s)``. Makes the limits explicit
+    (A25) on every figure / slider / verdict."""
+    import math
+    if scene.robot.kind == "spatial_revolute":
+        names = _spatial_joint_names(scene)
+    else:
+        names = [f"q{i}" for i in range(scene.robot.n)]
+    return [(names[i], math.degrees(2 * math.atan(float(lo))),
+             math.degrees(2 * math.atan(float(hi))))
+            for i, (lo, hi) in enumerate(scene.box)]
+
+
+def limits_caption(scene: _cert.Scene) -> str:
+    """One-line caption of the joint limits, e.g. ``limites : lacet ±70° · coude 0–109°``."""
+    parts = []
+    for n, lo, hi in joint_limits_deg(scene):
+        nm = n.split(" (")[0]
+        if abs(lo + hi) < 1.0:                                  # symmetric about 0
+            parts.append(f"{nm} ±{round(max(abs(lo), abs(hi)))}°")
+        else:
+            parts.append(f"{nm} {round(lo)}–{round(hi)}°")
+    return "limites articulaires : " + " · ".join(parts)
 
 
 def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float = 0.3,
@@ -417,13 +465,8 @@ def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float
             continue
         panels.append({"lo": [lo for lo, _ in bnds], "hi": [hi for _, hi in bnds]})
 
-    # a readable physical name per joint axis (yaw/pitch/roll about z/y/x)
-    def axis_name(ax):
-        ax = [round(v) for v in ax]
-        return {(0, 0, 1): "lacet (z)", (0, 1, 0): "tangage (y)",
-                (1, 0, 0): "roll (x)"}.get(tuple(ax), "rotation")
-    names = [axis_name(j["axis"]) for j in joints]
-    names = [n if i != scene.body_link + 1 else "coude (y)" for i, n in enumerate(names)]
+    names = _spatial_joint_names(scene)
+    lims = joint_limits_deg(scene)                              # (name, lo_deg, hi_deg)
 
     data = {
         "joints": joints, "panels": panels, "body_link": scene.body_link,
@@ -432,6 +475,8 @@ def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float
         "goal_s": [float(v) for v in scene.goal_s],
         "box": [[float(lo), float(hi)] for lo, hi in scene.box],
         "joint_names": names,
+        "limits_deg": [[lo, hi] for _, lo, hi in lims],        # A25: explicit joint limits
+        "limits_caption": limits_caption(scene),
     }
     html = (_INTERACTIVE_TEMPLATE
             .replace("__SCENE__", json.dumps(data))
