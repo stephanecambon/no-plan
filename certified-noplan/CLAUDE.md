@@ -133,13 +133,13 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   `cnp verify`. Round-trip E3 (46) / E4 (78) reproduisant l'oracle, vérifiés en
   exact ; 26 mutations adversariales toutes rejetées ; SPEC §2/§4/§5 amendée
   (cond. i en espace-s, q* absorbé, schéma finalisé) (117 tests, 0 skip).
-- 🟡 **S5** — pipeline φ (phifit.py) : échantillonnage seedé + fit SVM / moindres
+- ✅ **S5** — pipeline φ (phifit.py) : échantillonnage seedé + fit SVM / moindres
   carrés (oracle de collision générique) + δ auto (quantile de marge ∩ cond. i) +
   boucle de retry ; gardes d'ouverture A12 (q*≠0 refusé sur chemin sympy) et A13
   (arrondi λ adaptatif + boucle de re-résolution sur verify exact). E4-planaire
   certifié+vérifié via le pipeline complet (76 feuilles) ; scène 3-DOF spatiale
   certifiée moteur-PROOF + 0 point libre dans la dalle sur 300k échantillons
-  (130 tests, 0 skip). **Code vert, V2 en attente.**
+  (130 tests, 0 skip). **V2 validée** (figures phi_E4/phi_3dof).
 - ⏳ S6 — prochaine session (scenes.py + YAML + cnp show).
 
 ---

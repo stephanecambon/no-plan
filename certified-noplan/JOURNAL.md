@@ -665,9 +665,11 @@ conforme à la vérité-terrain, raffinement concentré aux frontières/relais).
 **Critères de sortie S5** : E4-planaire reproduit via le pipeline complet
 (generate→verify exact) ✓ ; 3-DOF spatial : φ auto + certifié moteur-PROOF +
 0 point libre / 300k (étiqueté honnêtement, verify exact = S9) ✓ ; gardes A12/A13
-✓ ; SPEC §3 amendée (règle 12) ✓ ; décompte journalisé ✓. **V2 EN ATTENTE** de
-Stéphane (figures phi_E4.png / phi_3dof.png). Code commité « S5 — V2 pending »
-(règle 11 amendée A8).
+✓ ; SPEC §3 amendée (règle 12) ✓ ; décompte journalisé ✓. **V2 VALIDÉE par
+Stéphane (« VALIDÉ S5-V2 »)** sur les trois points (dalle or ⊆ collision sur les
+deux figures et les deux coupes du 3-DOF ; start/goal de part et d'autre dans le
+libre ; bande franche non dégénérée). Code commité « S5 — V2 pending » (b07519c),
+clôture par micro-commit. **S5 vert, tous critères acquis.**
 
 **Prochaine étape** : V2, micro-commit de clôture, puis S6 — scenes.py + parser
 YAML + `cnp show` Meshcat + `cnp certify` bout-en-bout + suite adversariale
