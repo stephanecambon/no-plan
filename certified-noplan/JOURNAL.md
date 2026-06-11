@@ -1169,6 +1169,44 @@ par-dessus ? ». Corrections :
   La paire de figures est désormais un trio : sweep (lacet, dessus) + côté (tangage,
   hauteur) + C-space (mur sur tout le tangage). V4 re-soumise à Stéphane.
 
+**Itération V4 (2e retour Stéphane : VALIDÉ côté figures + exigence nouvelle A24)** —
+V4 acquise sur les figures ; nouvelle exigence à journaliser et appliquer :
+- **[A24] Artefact de validation PRINCIPAL pour toute scène spatiale = interactif ou
+  animé.** Livré : **`cnp show <scene> --interactive OUT.html`** (`viz.export_interactive_html`)
+  → **HTML auto-suffisant, zéro dépendance** : FK recalculée en JS depuis les axes/offsets
+  de la scène, deux projections (DESSUS x-y pour le lacet, CÔTÉ x-z pour le tangage/
+  hauteur), **4 curseurs articulaires** (noms physiques lacet/tangage/roll/coude),
+  **détection de collision visuelle** du bras supérieur (devient ROUGE), **fantômes
+  start/goal étiquetés** sur les deux vues, **boutons rejouant les tentatives
+  d'évasion** (passage direct lacet / passer par-dessus tangage / contourner roll+coude)
+  avec **verdict animé**. Vérifié : la logique JS (FK Rodrigues + collision) reproduit
+  EXACTEMENT l'oracle Python (node : start/goal libres, dalle en collision, corps
+  indépendant de roll/coude) ; verdicts d'évasion corrects (lacet : trajet traverse
+  7/25 en collision = BLOQUÉ ; tangage : 0 libre/25 = BLOQUÉ ; contourner : 0 libre/25
+  = BLOQUÉ). Rendu vérifié au navigateur (Claude Preview) : poses libres en sombre,
+  collision en rouge dans les deux vues, panneau + enveloppe de portée corrects. Le
+  GIF de repli (A24) est inutile (HTML livré). 10 Ko, ouvrable sans serveur.
+  Piège attrapé : 1ʳᵉ version du verdict « passage direct » disait « libre trouvé
+  (18/25) » alors que le MOUVEMENT est bloqué (7 poses du trajet en collision) —
+  corrigé : un TRAJET est bloqué dès qu'UNE pose en route collisionne ; une tentative
+  d'ÉVASION dans la bande interdite est bloquée si 0 pose libre. Limite assumée :
+  projection x-z (côté) ambiguë pour un bras décalé en lacet (peut sembler croiser le
+  panneau sans le toucher) — note ajoutée dans le widget et les figures ; la collision
+  est calculée en 3D.
+- **[A24-a] Fantômes start/goal étiquetés sur TOUTES les vues d'espace de travail**
+  (pas seulement symboles C-space) : ajoutés au sweep (dessus, fantômes gras bleu/vert
+  « start/goal (libre) ») et à la vue de côté (étiquetés lacet ±0.6, libres ; dashés car
+  la projection x-z écrase le lacet). **[A24-b] Chaque vue déclare ce qu'elle montre**
+  (bras complet vs bras supérieur seul) : sous-titres ajoutés (dessus = bras complet,
+  sup. épais = corps ; côté = bras supérieur seul ; widget = idem par vue).
+- **Standard V5/V6** : A24 ajouté aux checklists V5/V6 (artefact interactif/animé
+  obligatoire pour scènes spatiales). Amendement CLAUDE.md (règle 11 + V4-V6), commit
+  doc séparé (A16).
+- Tests : 2 nouveaux (`test_interactive_html_*`) — HTML auto-suffisant + géométrie bakée
+  correcte + refus d'une scène planaire. Note : Claude (claude.ai) a prototypé un widget
+  côté supervision ; j'ai livré ma propre version auto-suffisante (zéro dépendance) — à
+  aligner sur son prototype si Stéphane préfère (demander la spec).
+
 **Prochaine étape** : V4, micro-commit de clôture, puis (selon revue) S8 — perf :
 **tâche n°1 dims passives par intervalles** (A18, données S7 : oracle 8→36 feuilles
 sur 0→3 dims passives), highspy direct, sparsité, warnings. NB : la vérification EXACTE

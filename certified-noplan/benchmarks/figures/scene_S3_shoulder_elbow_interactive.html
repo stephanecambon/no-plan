@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>scene scenes/S3_shoulder_elbow.yaml</title>
+<style>
+ body{font-family:system-ui,Arial,sans-serif;margin:14px;color:#222;background:#fff}
+ h1{font-size:16px;margin:0 0 4px} .sub{color:#555;font-size:12px;margin:0 0 10px}
+ .views{display:flex;gap:18px;flex-wrap:wrap} .view{flex:0 0 auto}
+ .view h2{font-size:13px;margin:0 0 2px} .view .what{font-size:11px;color:#666;margin:0 0 4px}
+ canvas{border:1px solid #ccc;background:#fafafa}
+ .panel{margin-top:12px;max-width:760px}
+ .sld{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:13px}
+ .sld label{width:230px} .sld input{flex:1} .sld .val{width:54px;text-align:right;font-variant-numeric:tabular-nums}
+ #verdict{font-weight:bold;font-size:15px;margin:8px 0;padding:6px 10px;border-radius:6px;display:inline-block}
+ .btns{margin:10px 0;display:flex;gap:8px;flex-wrap:wrap}
+ button{font-size:13px;padding:6px 10px;border:1px solid #999;border-radius:6px;background:#f0f0f0;cursor:pointer}
+ button:hover{background:#e4e4e4} #attempt{font-size:13px;margin-left:6px}
+ .legend{font-size:11px;color:#555;margin-top:8px;line-height:1.5}
+ .sw{display:inline-block;width:22px;height:0;border-top-width:3px;border-top-style:solid;vertical-align:middle;margin-right:4px}
+</style></head><body>
+<h1>scene scenes/S3_shoulder_elbow.yaml</h1>
+<p class="sub">Artefact de validation INTERACTIF (A24). Bougez les curseurs articulaires ;
+le <b>bras supérieur</b> (épais) est le corps certifié, il devient <b>ROUGE</b> en collision.
+Les <b>fantômes</b> start (bleu) / goal (vert) sont les deux poses libres à relier. Cet
+outil montre l'INTENTION ; la preuve est le certificat (le moteur, pas l'œil — règle 9).</p>
+<div class="views">
+ <div class="view"><h2>Vue de DESSUS (lacet)</h2>
+  <p class="what">plan monde x–y · bras COMPLET (sup. épais = corps ; avant-bras fin = affichage)</p>
+  <canvas id="top" width="300" height="420"></canvas></div>
+ <div class="view"><h2>Vue de CÔTÉ (tangage / hauteur)</h2>
+  <p class="what">plan monde x–z · bras SUPÉRIEUR seul (le corps certifié) + portée max ·
+   projection : la collision est calculée en 3D (un bras décalé en lacet peut sembler
+   croiser le panneau sans le toucher)</p>
+  <canvas id="side" width="300" height="420"></canvas></div>
+</div>
+<div class="panel">
+ <div id="verdict"></div>
+ <div id="sliders"></div>
+ <div class="btns">
+  <button onclick="play('yaw')">Tentative : passage direct (lacet)</button>
+  <button onclick="play('pitch')">Tentative : passer par-dessus (tangage)</button>
+  <button onclick="play('around')">Tentative : contourner (roll/coude)</button>
+  <button onclick="setS(SC.start_s)">→ start</button>
+  <button onclick="setS(SC.goal_s)">→ goal</button>
+  <span id="attempt"></span>
+ </div>
+ <div class="legend">
+  <div><span class="sw" style="border-color:#1f77b4"></span>fantôme start &nbsp;
+       <span class="sw" style="border-color:#2ca02c"></span>fantôme goal &nbsp;
+       <span class="sw" style="border-color:#d62728"></span>bras supérieur EN COLLISION &nbsp;
+       <span class="sw" style="border-color:#333"></span>bras supérieur libre &nbsp;
+       <span class="sw" style="border-color:#bbb"></span>avant-bras (affichage seul)</div>
+  <div>Chaque vue déclare ce qu'elle montre (A24). « Par-dessus » échoue par HAUTEUR DU
+  MUR (sommet panneau &gt; portée du bras, visible côté) ; « contourner » échoue car le
+  corps ne dépend pas du roll/coude (passifs).</div>
+ </div>
+</div>
+<script>
+const SC = {"joints": [{"offset": [0.0, 0.0, 0.0], "axis": [0.0, 0.0, 1.0]}, {"offset": [0.0, 0.0, 0.0], "axis": [0.0, 1.0, 0.0]}, {"offset": [0.0, 0.0, 0.0], "axis": [1.0, 0.0, 0.0]}, {"offset": [0.4, 0.0, 0.0], "axis": [0.0, 1.0, 0.0]}], "panels": [{"lo": [0.15, -0.06, -0.6], "hi": [0.2, 0.06, 0.6]}], "body_link": 2, "upper_len": 0.4, "start_s": [-0.6, 0.0, 0.0, 0.0], "goal_s": [0.6, 0.0, 0.0, 0.0], "box": [[-0.7, 0.7], [-0.4, 0.4], [-0.7, 0.7], [-0.7, 0.7]], "joint_names": ["lacet (z)", "tangage (y)", "roll (x)", "coude (y)"]};
+const FORE = 0.3;
+// --- tiny linear algebra (4x4) ---
+function ident(){return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];}
+function mul(A,B){let C=new Array(16).fill(0);for(let i=0;i<4;i++)for(let j=0;j<4;j++)for(let k=0;k<4;k++)C[i*4+j]+=A[i*4+k]*B[k*4+j];return C;}
+function trans(v){let T=ident();T[3]=v[0];T[7]=v[1];T[11]=v[2];return T;}
+function rot(axis,a){ // Rodrigues about unit axis
+ let [x,y,z]=axis,n=Math.hypot(x,y,z);x/=n;y/=n;z/=n;
+ let c=Math.cos(a),s=Math.sin(a),t=1-c;
+ return [t*x*x+c, t*x*y-s*z, t*x*z+s*y,0,
+         t*x*y+s*z, t*y*y+c, t*y*z-s*x,0,
+         t*x*z-s*y, t*y*z+s*x, t*z*z+c,0, 0,0,0,1];}
+function ap(T,p){return [T[0]*p[0]+T[1]*p[1]+T[2]*p[2]+T[3],
+                         T[4]*p[0]+T[5]*p[1]+T[6]*p[2]+T[7],
+                         T[8]*p[0]+T[9]*p[1]+T[10]*p[2]+T[11]];}
+// forward kinematics: q_i = 2*atan(s_i); returns transform AFTER each joint
+function fkChain(s){let T=ident(),out=[];for(let i=0;i<SC.joints.length;i++){
+  T=mul(T,trans(SC.joints[i].offset));
+  T=mul(T,rot(SC.joints[i].axis, 2*Math.atan(s[i])));
+  out.push(T);}return out;}
+function armPts(s){ // {base, elbow, hand, upper:[base,elbow]}
+  let T=fkChain(s); let L=SC.upper_len;
+  let elbow=ap(T[SC.body_link],[L,0,0]);
+  let hand=ap(T[T.length-1],[FORE,0,0]);
+  return {base:[0,0,0], elbow, hand};}
+function collide(s){ // upper arm (base->elbow) vs any panel box
+  let a=armPts(s),N=40;
+  for(let k=0;k<=N;k++){let t=k/N;
+    let p=[a.base[0]+(a.elbow[0]-a.base[0])*t, a.base[1]+(a.elbow[1]-a.base[1])*t, a.base[2]+(a.elbow[2]-a.base[2])*t];
+    for(const b of SC.panels){if(p[0]>=b.lo[0]&&p[0]<=b.hi[0]&&p[1]>=b.lo[1]&&p[1]<=b.hi[1]&&p[2]>=b.lo[2]&&p[2]<=b.hi[2])return true;}}
+  return false;}
+// --- projection: world window x[-0.15,0.85] (across) , v[-0.7,0.7] (up); 1 unit=300px ---
+const XMIN=-0.15, VMIN=-0.7, SCALE=300, W=300, H=420;
+function px(wx){return (wx-XMIN)*SCALE;}
+function py(wv){return H-(wv-VMIN)*SCALE;}
+function drawPanel(ctx,ai,vi){ // ai/vi = world axis index for across/up
+  ctx.fillStyle="rgba(120,120,120,0.55)";ctx.strokeStyle="#555";
+  for(const b of SC.panels){let x0=px(b.lo[ai]),x1=px(b.hi[ai]),y0=py(b.hi[vi]),y1=py(b.lo[vi]);
+    ctx.fillRect(x0,y0,x1-x0,y1-y0);ctx.strokeRect(x0,y0,x1-x0,y1-y0);}}
+function seg(ctx,p,q,ai,vi,col,w){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();
+  ctx.moveTo(px(p[ai]),py(p[vi]));ctx.lineTo(px(q[ai]),py(q[vi]));ctx.stroke();}
+function drawArm(ctx,s,ai,vi,full,ghost){
+  let a=armPts(s),col=collide(s)?"#d62728":(ghost?ghost:"#333");
+  seg(ctx,a.base,a.elbow,ai,vi,col,ghost?3:5);            // UPPER ARM = certified body
+  if(full){seg(ctx,a.elbow,a.hand,ai,vi,ghost?ghost:"#bbb",ghost?2:3);} // forearm display
+}
+function drawView(id,ai,vi,full,reach){
+  let ctx=document.getElementById(id).getContext("2d");ctx.clearRect(0,0,W,H);
+  // axes
+  ctx.strokeStyle="#e3e3e3";ctx.lineWidth=1;ctx.beginPath();
+  ctx.moveTo(px(0),0);ctx.lineTo(px(0),H);ctx.moveTo(0,py(0));ctx.lineTo(W,py(0));ctx.stroke();
+  if(reach){ctx.strokeStyle="#999";ctx.setLineDash([4,4]);ctx.beginPath();
+    ctx.arc(px(0),py(0),SC.upper_len*SCALE,0,2*Math.PI);ctx.stroke();ctx.setLineDash([]);}
+  drawPanel(ctx,ai,vi);
+  drawArm(ctx,SC.start_s,ai,vi,full,"#1f77b4");           // ghosts (labelled below)
+  drawArm(ctx,SC.goal_s,ai,vi,full,"#2ca02c");
+  drawArm(ctx,cur,ai,vi,full,null);                       // live arm
+  ctx.fillStyle="#000";ctx.fillRect(px(0)-4,py(0)-4,8,8); // base
+  // ghost labels
+  ctx.font="11px sans-serif";let gs=armPts(SC.start_s),gg=armPts(SC.goal_s);
+  ctx.fillStyle="#1f77b4";ctx.fillText("start",px(gs.elbow[ai])+3,py(gs.elbow[vi]));
+  ctx.fillStyle="#2ca02c";ctx.fillText("goal",px(gg.elbow[ai])+3,py(gg.elbow[vi]));
+}
+function redraw(){drawView("top",0,1,true,false);drawView("side",0,2,false,true);
+  let c=collide(cur);let v=document.getElementById("verdict");
+  v.textContent=c?"bras supérieur EN COLLISION":"bras supérieur libre";
+  v.style.background=c?"#f6d3d3":"#d6efd6";v.style.color=c?"#7f0000":"#14521a";}
+let cur=SC.start_s.slice();
+function setS(s){cur=s.slice();for(let i=0;i<cur.length;i++){
+  document.getElementById("s"+i).value=cur[i];document.getElementById("v"+i).textContent=cur[i].toFixed(2);}redraw();}
+// sliders
+const NAMES=SC.joint_names;let sl=document.getElementById("sliders");
+for(let i=0;i<SC.joints.length;i++){let d=document.createElement("div");d.className="sld";
+ d.innerHTML='<label>s'+i+' — '+NAMES[i]+'</label><input id="s'+i+'" type="range" min="'+SC.box[i][0]+'" max="'+SC.box[i][1]+'" step="0.01" value="'+cur[i]+'"><span class="val" id="v'+i+'"></span>';
+ sl.appendChild(d);let inp=d.querySelector("input");
+ inp.oninput=()=>{cur[i]=parseFloat(inp.value);document.getElementById("v"+i).textContent=cur[i].toFixed(2);redraw();};}
+// escape attempts: animate a path; report whether ANY pose was free
+function play(kind){let path=[],N=24;
+ if(kind==='yaw'){for(let k=0;k<=N;k++){let t=k/N;path.push(SC.start_s.map((v,i)=>v+(SC.goal_s[i]-v)*t));}}
+ else if(kind==='pitch'){for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0;s[1]=SC.box[1][0]+(SC.box[1][1]-SC.box[1][0])*t;path.push(s);}}
+ else{for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0;if(s.length>2)s[2]=SC.box[2][0]+(SC.box[2][1]-SC.box[2][0])*t;if(s.length>3)s[3]=SC.box[3][1]*Math.sin(6.28*t);path.push(s);}}
+ let free=0,i=0;document.getElementById("attempt").textContent="…";
+ let iv=setInterval(()=>{if(i>=path.length){clearInterval(iv);
+    let nColl=path.length-free;
+    let lbl={yaw:"passage direct (lacet)",pitch:"passer par-dessus (tangage)",around:"contourner (roll/coude)"}[kind];
+    let msg;
+    if(kind==='yaw')   // a PATH: blocked iff any pose en route collides (motion interrupted)
+      msg = nColl>0 ? ("BLOQUÉ ✗ — "+lbl+" : le trajet traverse "+nColl+"/"+path.length+" poses en collision")
+                    : ("libre — trajet sans collision ("+path.length+" poses)");
+    else               // an ESCAPE scan in the forbidden band: blocked iff NO pose is free
+      msg = free===0 ? ("BLOQUÉ ✗ — "+lbl+" : 0 pose libre sur "+path.length+" (aucune échappatoire)")
+                     : ("échappatoire trouvée ("+free+"/"+path.length+" libres)");
+    document.getElementById("attempt").textContent=msg;
+    return;}
+   cur=path[i].slice();if(!collide(cur))free++;
+   for(let j=0;j<cur.length;j++){let e=document.getElementById("s"+j);if(e){e.value=cur[j];document.getElementById("v"+j).textContent=cur[j].toFixed(2);}}
+   redraw();i++;},60);}
+setS(SC.start_s);
+</script></body></html>

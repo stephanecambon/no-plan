@@ -123,15 +123,24 @@ def shoulder_elbow_figures():
         n_coll += colliding
         colour = "#d62728" if colliding else "#2ca02c"
         pts = full_arm(s)
-        ax.plot(pts[:, 0], pts[:, 1], "-", color=colour, lw=2.4, alpha=0.85, zorder=3)
+        ax.plot(pts[:, 0], pts[:, 1], "-", color=colour, lw=2.4, alpha=0.8, zorder=3)
         ax.plot(pts[:, 0], pts[:, 1], "o", color=colour, ms=4, zorder=4)
+    # labelled start/goal GHOSTS (A24-a): the two free poses to connect, on the workspace
+    # view (not just C-space symbols), drawn bold over the fan.
+    for lbl, sv, col in (("start", st, "#1f77b4"), ("goal", go, "#2ca02c")):
+        gp = full_arm(sv)
+        ax.plot(gp[:, 0], gp[:, 1], "-", color=col, lw=3.4, alpha=0.95, zorder=5)
+        ax.annotate(f"{lbl} (libre)", (gp[-1, 0], gp[-1, 1]), color=col, fontsize=10,
+                    weight="bold", zorder=6,
+                    xytext=(4, 4), textcoords="offset points")
     ax.plot(0, 0, "ks", ms=10, zorder=7)
     ax.set_aspect("equal")
     ax.grid(True, ls=":", alpha=0.5)
     ax.set_xlabel("x monde (m)")
     ax.set_ylabel("y monde (m)")
-    ax.set_title(f"S3 epaule-coude 4-DOF : balayage du lacet base ({n_coll}/{n} poses "
-                 "en collision)\nstart/goal libres, le panneau bloque le bras median")
+    ax.set_title(f"S3 epaule-coude 4-DOF (vue DESSUS, plan x-y) : balayage du lacet base "
+                 f"— {n_coll}/{n} poses en collision\nMONTRE : bras COMPLET (sup. epais = "
+                 "corps certifie ; avant-bras fin = affichage) ; fantomes start/goal etiquetes")
     p1 = os.path.join(OUT, "scene_S3_shoulder_elbow_sweep.png")
     fig.tight_layout()
     fig.savefig(p1, dpi=130)
@@ -168,6 +177,15 @@ def shoulder_elbow_figures():
         pts = np.array([[0, 0, 0], elbow])
         ax.plot(pts[:, 0], pts[:, 2], "-", color=colour, lw=2.6, alpha=0.9, zorder=3)
         ax.plot(pts[1, 0], pts[1, 2], "o", color=colour, ms=4, zorder=4)
+    # start/goal GHOSTS (A24-a): at lacet ±0.6 (free), drawn dashed because this x-z
+    # projection collapses the yaw — they sit at z=0, OFF the panel in y (free), shown
+    # here only to locate them; the workspace yaw story is the top view.
+    for lbl, sv, col, ls in (("start (lacet -0.6, libre)", st, "#1f77b4", (0, (5, 2))),
+                             ("goal (lacet +0.6, libre)", go, "#2ca02c", (0, (1, 2)))):
+        ge = fk.body("j2").eval_world_point([L_UP, 0, 0], sv)
+        ax.plot([0, ge[0]], [0, ge[2]], ls=ls, color=col, lw=2.2, alpha=0.9, zorder=2)
+        ax.annotate(lbl, (ge[0], ge[2]), color=col, fontsize=8, zorder=6,
+                    xytext=(5, -10 if "goal" in lbl else 6), textcoords="offset points")
     ax.plot(0, 0, "ks", ms=10, zorder=7)
     ax.set_aspect("equal")
     ax.set_ylim(pzlo - 0.08, pzhi + 0.18)

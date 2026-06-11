@@ -16,7 +16,7 @@ from fractions import Fraction as F
 import numpy as np
 import pytest
 
-from cnp import certificate as cert, engine, scenes, cli
+from cnp import certificate as cert, engine, scenes, cli, viz
 
 SCENES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scenes")
 BENCH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "benchmarks")
@@ -104,6 +104,39 @@ def test_s3_shrunk_panel_opens_path_no_false_certificate():
 # --------------------------------------------------------------------------- #
 # Benchmark harness (smoke): the passive-dimension cost-model sweep
 # --------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------- #
+# Interactive validation widget (A24): self-contained, correct baked geometry
+# --------------------------------------------------------------------------- #
+
+def test_interactive_html_is_self_contained_with_baked_scene(tmp_path):
+    """`cnp show --interactive` exports a self-contained HTML (no external src/http
+    references) whose baked scene matches the YAML: 4 joints, the panel box, start/goal,
+    and the certified upper-arm length."""
+    import json
+    import re
+
+    out = tmp_path / "s3.html"
+    rc = cli.main(["show", os.path.join(SCENES, "S3_shoulder_elbow.yaml"),
+                   "--interactive", str(out)])
+    assert rc == 0
+    h = out.read_text()
+    # self-contained: no external script/style/img sources
+    assert "src=" not in h and "http://" not in h and "https://" not in h
+    assert "<script>" in h and "fkChain(" in h and "collide(" in h
+    data = json.loads(re.search(r"const SC = (\{.*?\});", h).group(1))
+    assert len(data["joints"]) == 4 and data["body_link"] == 2
+    assert abs(data["upper_len"] - 0.4) < 1e-9
+    assert data["start_s"][0] == -0.6 and data["goal_s"][0] == 0.6
+    assert data["panels"] and data["panels"][0]["hi"][2] == 0.6     # panel top z=3/5
+    assert data["joint_names"][3] == "coude (y)"                    # elbow named
+
+
+def test_interactive_html_rejects_planar_scene():
+    scene, _ = scenes.load(os.path.join(SCENES, "S1_relais.yaml"))
+    with pytest.raises(NotImplementedError):
+        viz.export_interactive_html(scene, "/dev/null")
+
 
 @pytest.mark.slow
 def test_benchmark_passive_dim_sweep_margin_flat_oracle_grows():

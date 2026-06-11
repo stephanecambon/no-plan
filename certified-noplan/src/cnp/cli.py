@@ -13,8 +13,11 @@ Three commands, three honest verdicts (CLAUDE.md rules 5/6, annotation A17):
     - **UNDECIDED**   — no certificate at the given budget (NOT a proof of feasibility).
 * ``cnp verify <cert.json> [scene.yaml]`` — run the untrusted exact verifier; if a
   scene file is given, also cross-check that the certificate states the same problem.
-* ``cnp show <scene.yaml> [--config start|goal]`` — minimal Meshcat view of the scene
-  (robot at start/goal, obstacles) for visual design inspection (SPEC §6, V3).
+* ``cnp show <scene.yaml> [--config start|goal|sweep]`` — minimal Meshcat view of the
+  scene (robot at start/goal, obstacles) for visual design inspection (SPEC §6, V3);
+  ``--interactive OUT.html`` exports a self-contained interactive widget for a spatial
+  scene (sliders, live collision, ghosts, escape-attempt buttons — A24); ``--png OUT``
+  saves a 2-D top-down figure for a planar scene.
 """
 from __future__ import annotations
 
@@ -112,6 +115,11 @@ def _cmd_show(args) -> int:
     from . import viz as _viz
 
     scene, _ = _scenes.load(args.scene)
+    if args.interactive is not None:            # self-contained interactive HTML (A24)
+        path = _viz.export_interactive_html(scene, args.interactive,
+                                            title=f"scene {args.scene}")
+        print(f"interactive HTML written to {path} (open it in a browser; no server)")
+        return 0
     if args.png is not None:                    # 2-D top-down figure (planar), no server
         path = _viz.save_planar_figure(scene, args.png,
                                        title=f"scene {args.scene}")
@@ -168,6 +176,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--png", default=None,
                    help="save a 2-D top-down figure to this path (planar scenes) "
                         "instead of launching the Meshcat server")
+    s.add_argument("--interactive", default=None, metavar="OUT.html",
+                   help="export a self-contained interactive HTML (spatial scenes, A24): "
+                        "joint sliders, live collision, start/goal ghosts, escape-attempt "
+                        "buttons — no server, no dependencies")
     s.set_defaults(func=_cmd_show)
     return p
 
