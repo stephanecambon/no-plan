@@ -107,6 +107,63 @@ def save_planar_figure(scene: _cert.Scene, path: str, poses=None, title=None):
     return path
 
 
+def save_cspace_figure(scene: _cert.Scene, oracle, path, axes=(0, 1), n=140,
+                       fixed=None, title=None):
+    """Configuration-space figure (the view that shows 'goal free but UNREACHABLE'):
+    a 2-D slice over two s-axes, collision shaded grey, the slab ``{|phi|<=delta}``
+    in gold, start (★) and goal (✚) marked. When the slab is a full COLLISION WALL
+    spanning the box between start and goal, they sit in different free components —
+    no continuous free path connects them. That separation IS the disconnection the
+    certificate proves; here the eye can see it (the certificate, not the eye, is the
+    proof — CLAUDE.md rule 11).
+
+    ``oracle(s)`` is the collision predicate (e.g. ``scenes.planar_collision_oracle``);
+    ``axes`` picks the two plotted s-variables; ``fixed`` sets the others (default 0)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    i, j = axes
+    fixed = fixed or {}
+    (xlo, xhi) = (float(scene.box[i][0]), float(scene.box[i][1]))
+    (ylo, yhi) = (float(scene.box[j][0]), float(scene.box[j][1]))
+    xs = np.linspace(xlo, xhi, n)
+    ys = np.linspace(ylo, yhi, n)
+    grid = np.zeros((n, n))
+    s = np.zeros(scene.robot.n)
+    for k, v in fixed.items():
+        s[k] = v
+    for a, sx in enumerate(xs):
+        for b, sy in enumerate(ys):
+            s[i], s[j] = sx, sy
+            grid[b, a] = 1.0 if oracle(s) else 0.0
+
+    fig, ax = plt.subplots(figsize=(7.5, 6.5))
+    ax.imshow(grid, origin="lower", extent=[xlo, xhi, ylo, yhi], aspect="auto",
+              cmap="Greys", vmin=0, vmax=1.6, alpha=0.85)        # grey = collision
+
+    # slab |phi| <= delta: when phi = s_i (the relay barrier), it is the vertical
+    # band |s_i| <= delta on this slice — a full-height COLLISION WALL if disconnected.
+    delta = float(scene.delta)
+    phi_is_axis_i = set(scene.phi) == {tuple(1 if t == i else 0 for t in range(scene.robot.n))}
+    if phi_is_axis_i:
+        ax.axvspan(-delta, delta, color="gold", alpha=0.35, zorder=2,
+                   label=f"dalle |phi|<={scene.delta}")
+
+    st = [float(v) for v in scene.start_s]
+    go = [float(v) for v in scene.goal_s]
+    ax.plot(st[i], st[j], "*", color="#1f77b4", ms=20, mec="k", zorder=5, label="start")
+    ax.plot(go[i], go[j], "P", color="#2ca02c", ms=16, mec="k", zorder=5, label="goal")
+    ax.set_xlabel(f"s{i}")
+    ax.set_ylabel(f"s{j}")
+    ax.legend(loc="upper right", framealpha=0.95)
+    ax.set_title(title or "C-space slice (grey = collision)")
+    fig.tight_layout()
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+    return path
+
+
 _CONFIG_COLOUR = {"start": 0x1f77b4, "goal": 0x2ca02c}   # start = blue, goal = green
 
 

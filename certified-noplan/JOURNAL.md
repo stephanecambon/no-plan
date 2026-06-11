@@ -770,10 +770,13 @@ puis scenes.py + YAML + `cnp show` + `cnp certify` + adversarial initial
   Meshcat (bleu/vert) ; URL retournée. + `save_planar_figure` — **figure 2D vue de
   dessus** (dents en rectangles, poses du bras en polylignes épaisses), bien plus
   lisible que la 3D pour une scène planaire ; `cnp show --png` la produit, et
-  `scripts/make_scene_figures.py` (dans `make figures`) génère
-  `benchmarks/figures/scene_S2_peigne.png` avec start/goal libres + 2 poses
-  in-dalle (link médian pris dans MID puis UP — le relais). (viz complet `cnp viz
-  <cert>` = S11.)
+  `scripts/make_scene_figures.py` (dans `make figures`) génère deux figures :
+  `scene_S2_peigne.png` (WORKSPACE — start/goal libres + 2 poses in-dalle, link
+  médian pris dans MID puis UP, le relais) et `scene_S2_peigne_cspace.png`
+  (**C-space (s0,s1), s2 passif** — `save_cspace_figure` : collision en gris, dalle
+  en or, ★ start / ✚ goal ; un **mur de collision plein à s0≈0** sépare start
+  (gauche) de goal (droite) ⟹ la figure « goal libre mais INATTEIGNABLE » que la
+  V3 demandait). (viz complet `cnp viz <cert>` = S11.)
 - **Scènes** : `scenes/S1_relais.yaml` (E3, 46 feuilles, régression rapide),
   `scenes/S2_peigne.yaml` (**peigne 3-DOF planaire**), `scenes/S2b_spatial3.yaml`
   (3-DOF spatiale → ENGINE-PROOF).

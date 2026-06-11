@@ -19,22 +19,35 @@ SCENES = os.path.join(HERE, "..", "scenes")
 OUT = os.path.join(HERE, "..", "benchmarks", "figures")
 
 
-def peigne_figure():
+def peigne_figures():
     scene, _ = scenes.load(os.path.join(SCENES, "S2_peigne.yaml"))
+    os.makedirs(OUT, exist_ok=True)
+
+    # (a) Workspace view: WHY any crossing is blocked (the middle link enters the comb).
     poses = [
         ("start (libre, bras vers le bas)", scene.start_s, "#1f77b4"),
         ("dalle s0=0, s1=0  -> link median pris dans MID", [0.0, 0.0, 0.0], "#d62728"),
         ("dalle s0=0, s1=+0.7 -> pris dans UP (relais)", [0.0, 0.7, 0.0], "#ff7f0e"),
         ("goal (libre, bras vers le haut)", scene.goal_s, "#2ca02c"),
     ]
-    os.makedirs(OUT, exist_ok=True)
-    path = os.path.join(OUT, "scene_S2_peigne.png")
+    p1 = os.path.join(OUT, "scene_S2_peigne.png")
     viz.save_planar_figure(
-        scene, path, poses=poses,
-        title="S2 peigne 3-DOF : start/goal libres ; toute traversee (s0=0) "
-              "prend le link median dans le peigne")
-    print("written", os.path.normpath(path))
+        scene, p1, poses=poses,
+        title="S2 peigne 3-DOF (workspace) : start/goal libres ; toute traversee "
+              "(s0=0) prend le link median dans le peigne")
+    print("written", os.path.normpath(p1))
+
+    # (b) C-space view: THAT goal is free but UNREACHABLE — a solid collision wall at
+    # s0~=0 spanning the box separates start (left) from goal (right). s2 is passive,
+    # so the (s0,s1) slice at s2=0 represents every s2.
+    oracle = scenes.planar_collision_oracle(scene, n_samples=25)
+    p2 = os.path.join(OUT, "scene_S2_peigne_cspace.png")
+    viz.save_cspace_figure(
+        scene, oracle, p2, axes=(0, 1), n=140, fixed={2: 0.0},
+        title="S2 peigne (C-space s0,s1 ; s2 passif) : mur de collision a s0=0 "
+              "-> goal libre mais INATTEIGNABLE depuis start")
+    print("written", os.path.normpath(p2))
 
 
 if __name__ == "__main__":
-    peigne_figure()
+    peigne_figures()
