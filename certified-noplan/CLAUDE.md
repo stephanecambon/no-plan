@@ -23,7 +23,11 @@ S6 actée, **G1' franchie** ; `margin` devient le défaut pour toute scène nouv
 « dims passives par intervalles » devient la tâche n°1 de S8 (A18) ; fit STRUCTURÉ
 des dims passives en S9 (A19) ; critère « apparence faisable » ajouté aux
 checklists V4-V6 (A20) ; vue sweep + nommage physique des axes deviennent des
-composants standard en S11 (D10). Détail : entrées « Revue de supervision » de JOURNAL.md.
+composants standard en S11 (D10). Revue V4 (S7, A21/A23) : checklist V4 amendée — une
+scène de BENCHMARK doit répondre aux objections naturelles (vue de côté + sweeps lacet
+ET tangage, contrainte bloquante explicite) ; « apparence faisable » (A20) réservé aux
+scènes-vitrines V5/V6 (non négociable) ; tableau de correspondance géométrique
+papier↔YAML archivé (A21). Détail : entrées « Revue de supervision » de JOURNAL.md.
 
 ---
 
@@ -283,11 +287,18 @@ plus proche et journaliser.
 - **[V4] Validation visuelle** : image côte-à-côte produite par la session :
   rendu Meshcat de notre scène vs figure du papier (référence de figure et page
   citées).
-  Vérifier : (0) **[A20] la scène a l'air FAISABLE — goal proche/visible dans
-  l'espace de travail, la vue sweep montre pourquoi on croirait passer**
-  (« atteignable en apparence, prouvé inatteignable ») ; (1) même topologie
-  d'obstacles (nombre, agencement relatif) ; (2) même robot / mêmes joints
-  actifs ; (3) start/goal qualitativement conformes au scénario du papier.
+  Vérifier : (0) **[A23] la figure RÉPOND AUX OBJECTIONS NATURELLES du spectateur**
+  (« pourquoi pas par-dessus / autour ? ») — vue de CÔTÉ montrant la hauteur réelle
+  des obstacles vs la portée du bras, ET les sweeps pertinents (lacet ET tangage),
+  en disant EXPLICITEMENT quelle contrainte bloque (hauteur de mur vs limite
+  articulaire). NB A23 : le critère A20 strict « apparence faisable » est réservé aux
+  scènes-VITRINES V5/V6 (non négociable là-bas) ; une scène de BENCHMARK doit avant
+  tout désamorcer les objections, pas forcément « avoir l'air faisable » ; (1) même
+  topologie d'obstacles (nombre, agencement relatif) ; (2) même robot / mêmes joints
+  actifs ; (3) start/goal qualitativement conformes au scénario du papier ;
+  (4) **[A21] tableau de correspondance géométrique papier↔YAML archivé** (longueurs,
+  dimensions d'obstacles, limites articulaires — ce qui est fidèle vs choisi par nous,
+  les chiffres du papier n'étant pas publiés) dans benchmarks/.
 - Sortie : **G3'** — S3 certifiée + vérifiée, tableau dans benchmarks/results/,
   écarts commentés honnêtement dans JOURNAL.md (y compris si on est plus lents à
   4-DOF : le titre se joue à 5+) ; **V4 validée**.
@@ -334,7 +345,8 @@ plus proche et journaliser.
   `cnp show scenes/S4_bac.yaml` + coupes 2D du C-space échantillonné (paires de
   joints les plus actives) + vue sweep (A20).
   Vérifier : (0) **[A20] la scène a l'air FAISABLE — goal proche/visible, la vue
-  sweep montre pourquoi on croirait passer** ; (1) le bac enferme réellement
+  sweep montre pourquoi on croirait passer** (scène-VITRINE, NON NÉGOCIABLE — A23) ;
+  (1) le bac enferme réellement
   l'objet cible et la caisse avant bloque l'accès frontal — c'est bien le
   scénario « inatteignable sans retirer la caisse » qu'on veut PROUVER ;
   (2) start (home) et goal (prise) visuellement sans collision ; (3) sur les
@@ -354,7 +366,8 @@ plus proche et journaliser.
 - **[V6] Validation visuelle + go/no-go** : `cnp show scenes/S5_iiwa_shelf.yaml`
   + budget estimé (temps, feuilles, RAM) + vue sweep (A20).
   Vérifier : (0) **[A20] la scène a l'air FAISABLE — goal proche/visible, la vue
-  sweep montre pourquoi on croirait passer** ; (1) étagère + panneau obstruant
+  sweep montre pourquoi on croirait passer** (scène-VITRINE, NON NÉGOCIABLE — A23) ;
+  (1) étagère + panneau obstruant
   conformes au scénario « case haute inatteignable depuis home » ; (2) home et
   goal sans collision visuelle ; (3) budget acceptable pour la machine (sinon :
   décision cloud avec Stéphane). « VALIDÉ S10-V6 » = autorisation du run flagship.
