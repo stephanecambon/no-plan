@@ -87,6 +87,7 @@ def _random_chain(rng, nq=3):
 # 1. FK numeric vs tensors — 1000 random iiwa configs, error < 1e-9
 # --------------------------------------------------------------------------- #
 
+@pytest.mark.slow
 def test_fk_numeric_vs_tensors_iiwa(iiwa):
     fk = ratfk.DrakeRatFK(iiwa)
     ctx = iiwa.CreateDefaultContext()
@@ -115,6 +116,7 @@ def test_fk_numeric_vs_tensors_iiwa(iiwa):
 # 2. Locked joints
 # --------------------------------------------------------------------------- #
 
+@pytest.mark.slow
 def test_locked_joints_iiwa(iiwa):
     locked = {1: 0.35, 4: -0.6}  # position indices held fixed
     fk = ratfk.DrakeRatFK(iiwa, locked=locked)
@@ -146,6 +148,7 @@ def test_locked_joints_iiwa(iiwa):
 # 3. Degree <= 2 per variable per joint
 # --------------------------------------------------------------------------- #
 
+@pytest.mark.slow
 def test_degree_le_2_per_var_iiwa(iiwa):
     fk = ratfk.DrakeRatFK(iiwa)
     for name in _IIWA_LINKS:
@@ -162,6 +165,7 @@ def test_degree_le_2_per_var_iiwa(iiwa):
             assert bfk.D[tuple(e)] == 1.0
 
 
+@pytest.mark.slow
 def test_chain_grows_along_iiwa(iiwa):
     fk = ratfk.DrakeRatFK(iiwa)
     # link_k depends on joints 0..k-1 (the EE depends on all 7).

@@ -223,3 +223,197 @@ le moteur E3 à n dims, heuristique d'axe (frontière de dalle puis pire marge L
 checkpoint/resume disque, parallélisme multiprocessing sur les feuilles, budget +
 verdict UNDECIDED propre. Entrée : `cnp.witness.certify_cell_pair`. Le scaffold b&b
 de `test_witness.py` documente le flot de référence (axe + test outside) à généraliser.
+
+---
+
+## 2026-06-10 — Revue de supervision S0-S2 (claude.ai) — **plan révisé v1.1**
+
+**Verdict** : les trois sessions sont validées. Qualité au-dessus de l'attendu sur
+quatre points : (1) test_putinar_sign démontre le faux certificat du mauvais signe
+sur une instance à prémisse *réellement* fausse — c'est un test de soundness en
+acte, pas un test de non-régression ; (2) la parité E3 est à valeurs égales
+(t* < 1e-7 par cellule), pas seulement à verdict égal ; (3) l'isolation back-end
+de S2 (WitnessLP + cross-check scipy/HiGHS < 1e-6) dérisque par anticipation la
+partie conception de S8 ; (4) le choix S1 de la substitution demi-angle « maison »
+(approche C) plutôt que le dénominateur Drake est exactement le bon arbitrage pour
+l'auditabilité de verify.py — les dénominateurs réduits distincts de Drake auraient
+rendu la vérification indépendante pénible.
+
+**Points relevés (annotations, actions injectées dans le plan v1.1)** :
+- [A1 → S4] **q_star** : l'implémentation est s = tan((q − q*)/2), la SPEC dit
+  tan(θ/2). Divergence légitime (et plus générale) mais elle touche l'énoncé du
+  théorème (wrap-around : |q_i − q*_i| < π), le schéma de certificat et verify.py.
+  SPEC §2/§4 à amender en S4 ; q_star et les valeurs exactes des joints verrouillés
+  entrent dans le certificat. Nouvelle règle 12 (anti-dérive de spec) pour que ce
+  cas reste l'exception traitée, pas le précédent silencieux.
+- [A2 → S3] **Garde Mosek automatisée** : le wheel Drake l'embarque en transitif ;
+  « aucun import dans le cœur » doit être un test (sys.modules après import cnp +
+  un solve), pas une vigilance humaine.
+- [A3 → S3] **Temps de suite** : 63 → 77 → 100 s en trois sessions. `make test-fast`
+  (< 30 s) pour le quotidien, `make test` complet requis aux sorties de session.
+- [A4 → règle 13] **Skips réseau** : légitimes au quotidien, interdits sur les tests
+  requis aux sorties de session (décompte exact passed/skipped/warnings au journal).
+  Pré-télécharger les modèles Drake avant S9-S10.
+- [A5 → S8] Les 5 warnings Clarabel « non supprimés par honnêteté » : bon réflexe ;
+  l'élucidation (résoudre ou expliquer structurellement) devient une tâche S8.
+- [A6, sans action] L'embarquement 3D de l'exit #1 (faces z esclaves) est un test de
+  parité, pas un test de 3D-ité — c'est l'exit #2 (3-DOF spatial, 1e5 échantillons,
+  0 violation du témoin) qui porte la validation spatiale. Couverture jugée
+  suffisante pour S2.
+- [A7, demande produit] **Validation visuelle humaine** : à la demande de Stéphane,
+  protocole formalisé (règle 11, points [V1]-[V7] dans le plan) — la session
+  s'arrête, donne la commande exacte, la checklist de ce qu'il faut regarder et le
+  critère binaire, puis attend « VALIDÉ S<X>-V<k> ». Portée explicite : intention
+  et conception seulement ; jamais la soundness (l'œil rate les micro-canaux,
+  leçon E3). `cnp show` avancé de S11 à S6 pour servir ces validations.
+
+**Prochaine étape** : S3 — moteur b&b n-dim, selon CLAUDE.md v1.1 (tâches 1-6,
+validation V1 incluse).
+
+---
+
+## 2026-06-11 — S3 (Claude Code) — Moteur b&b n-dim (**code vert, V1 en attente**)
+
+**Fait** :
+- S2 re-vérifié vert avant démarrage (65 passed, 100 s).
+- `src/cnp/engine.py` : branch-and-bound **n-dim** générique. `Problem` (box, phi,
+  delta, `Pair`s, lam_degree, tol, max_depth), `Budget`, `EngineResult`
+  (verdict PROOF/UNDECIDED, leaves, failed exportées, stats). Test outside par
+  Bernstein de φ (`cell_outside_slab`, ré-exprimé via `cnp.polylin`, identique à
+  l'oracle). Verdict **UNDECIDED** propre (jamais « infaisable ») sur budget
+  (temps/feuilles) ou profondeur épuisée, cellules ouvertes exportées.
+- **Heuristiques d'axe** : dalle-d'abord (split qui pousse un enfant hors dalle),
+  puis fallback `axis="oracle"` (axe le plus large = choix de l'oracle ⇒ partition
+  E3/E4 identique) ou `axis="margin"` (pire marge LP).
+- **Parallélisme = work-queue dynamique** (défaut `n_workers>1`) : les workers
+  partagent une file ; quand une cellule se découpe, ses **deux enfants repartent
+  dans la file**, donc même un sous-arbre lourd s'étale sur tous les cœurs. L'arbre
+  exploré est l'arbre déterministe du serial ⇒ **certificat octet-identique au
+  serial, zéro inflation** (`test_workqueue_matches_serial`).
+- **Checkpoint/resume** : chemin *frontier* (pré-découpe uniforme déterministe en
+  2^d sous-cellules, chaque sous-arbre écrit atomiquement `done/<i>.json` via
+  tmp+`os.replace`+fsync). `meta.json` à empreinte SHA : reprise refusée si le
+  problème diffère (soundness). `test_resume_after_kill_same_certificate` lance un
+  fils, le **SIGKILL en cours de run**, reprend, et obtient le même certificat.
+- **Backend HiGHS par défaut** (`witness.HighsBackend`, scipy.linprog) : reproduit
+  E3=46/E4=78 **exactement** (t* = CLARABEL < 1e-6, aucun flip à tol=1e-6), plus
+  rapide (pas de compile cvxpy), et **mosek-free** (voir piège). cvxpy reste dispo
+  en `backend=` pour cross-check.
+- **Garde Mosek** (`tests/test_mosek_guard.py`, 3 tests, en **sous-process frais**) :
+  import du cœur sans mosek/cvxpy ; solve par défaut (HiGHS) sans mosek ; + 1 test
+  qui **documente** que le backend cvxpy, lui, réveille mosek.
+- **Figures** : `scripts/make_figures.py` + `make figures` → `benchmarks/figures/
+  partition_{E3,E4}.png` (panneau vérité-terrain + partition certifiée colorée par
+  paire). Adaptateur de scènes DRY `tests/eng_scenes.py` (l'oracle `regref` reste
+  intact).
+- **Makefile** : `make test-fast` (`-m "not slow"`, **33 passed en 4.95 s**),
+  `make test-slow`, `make figures`. Marqueurs `slow` posés sur les rejouages lourds
+  (exp12 SOS 28 s, exp34 34 s, ratfk iiwa ~14 s, contrôle négatif témoin 37 s).
+- `make test` complet : **82 passed, 0 skipped, 25 warnings, 130 s**
+  (65 régression + 14 engine + 3 garde Mosek).
+
+**Décisions** :
+- **Work-queue plutôt que frontier statique pour le parallélisme.** Une pré-découpe
+  statique de la dalle (fine) ne donne qu'une poignée de cellules *lourdes* → un
+  worker hérite d'un gros sous-arbre, speedup plafonné ~2×. Mesuré honnêtement :
+  round-robin ~1.4-1.9×, découpe tangente-à-la-dalle 0.16× (re-isole la dalle dans
+  chaque colonne → explosion à 154 feuilles), gradient-d'abord 1.1× (explosion à
+  1042 feuilles). Le work-queue **3.56× (dup=20) / 3.68× (dup=30)** sur 8 workers,
+  10 cœurs, sans inflation. Le chemin frontier est **conservé** mais réservé au
+  checkpoint/resume (déterministe, reprenable).
+- **`start_method="fork"` pour le work-queue.** Sûr ici car **le parent ne résout
+  aucun LP** (les workers possèdent tout le calcul cvxpy/BLAS) ⇒ aucun thread de lib
+  vivant au fork ; et fork évite le ré-import cvxpy par worker qui écrase « spawn »
+  à ~1.4-1.7×. Surchargeable (`start_method="spawn"`).
+- **HiGHS = défaut du moteur** (pas cvxpy). Triple gain : mosek-free (règle 3),
+  rapide, workers fork instantanés. L'isolation back-end de S2 (WitnessLP
+  solveur-agnostique) rend ça gratuit ; c'est aussi la direction S8 (highspy direct),
+  avancée ici par nécessité règle 3. cvxpy/CLARABEL reste le solveur de l'oracle
+  `regref` (la reproduction 46/78 est vérifiée contre lui).
+- **`axis="oracle"` reste le défaut** (reproduction exacte = critère de sortie). La
+  margin est l'enhancement S3, journalisée comme « écart » (voir ci-dessous).
+
+**Pièges rencontrés** :
+- **cvxpy réveille mosek à l'import.** `import cvxpy` énumère tous les solveurs
+  installés, dont le mosek transitif du wheel Drake — alors qu'on ne résout qu'en
+  CLARABEL. Donc la garantie règle 3 (« aucun Mosek dans le chemin critique »)
+  **impose d'éviter cvxpy** sur le chemin critique : d'où HiGHS par défaut. Le cœur
+  (`import cnp.engine/witness`) n'importe PAS cvxpy (lazy dans le backend) ⇒ import
+  cœur mosek-free. Garde automatisée à 3 volets, en sous-process frais (la pollution
+  inter-tests masquait la régression sinon).
+- **Heuristique margin = piège de coût, pas de soundness.** Premières variantes
+  désastreuses : worst-margin par point de contrôle Bernstein et minimax 1-pas →
+  **E4 UNDECIDED (263 FAIL), boucle ~10 min**. La bonne formulation est le lookahead
+  **relais** (max de la marge du meilleur enfant : carve une cellule certifiable,
+  récurse le reste) → certifie E3 (54 feuilles) **et** E4 (56 feuilles, < oracle 78).
+  Écart journalisé : margin ≠ oracle en nombre de feuilles, jamais en soundness
+  (rule 9). `axis="oracle"` reproduit 46/78 à l'identique.
+- **`multiprocessing` exige un guard `__main__`.** Mes scripts de mesure appelaient
+  `solve(n_workers>1)` au niveau module sans guard → sous spawn chaque worker
+  re-exécute le script → explosion récursive de process / deadlock (10 min muets).
+  Bug de script, pas du moteur (cibles du pool au niveau module = picklables).
+- **`fork()` multi-threaded** : 20 `DeprecationWarning` macOS « use of fork() may
+  lead to deadlocks ». Non observé (suite complète verte, work-queue déterministe,
+  resume OK) ; **non supprimé** par honnêteté (comme les 5 Clarabel). Mitigation
+  dispo : `start_method="spawn"` (sûr, ~1.5×). À reconsidérer en S8 (highspy direct
+  ⇒ workers mono-thread, fork sûr).
+- **Mesures de speedup faussées par la charge** : machine de bureau partagée
+  (windowserver, VM, 9 users) + mes process résiduels → une mesure serial à 982 s
+  (contention). Toujours mesurer process unique, foreground. Test durci (meilleur
+  de 2 runs parallèles) contre les à-coups du scheduler.
+
+**Décompte exact (sortie de session)** : `make test` = **82 passed, 0 skipped,
+25 warnings, 130 s** (20 fork-deprecation + 5 Clarabel, tous documentés).
+`make test-fast` = 33 passed, 49 deselected, 4.95 s.
+
+**Critères de sortie S3** : E3/E4 via le moteur = oracle (46/78, mode oracle) ✓ ;
+resume kill-9 même certificat ✓ ; speedup 8 cœurs **3.56×** ✓ ; garde Mosek verte ✓ ;
+décompte exact journalisé ✓ ; **V1 VALIDÉE par Stéphane (« VALIDÉ S3-V1 »)** ✓.
+**S3 vert, tous critères acquis.**
+
+- [A11 → S11] **Annotation produit (Stéphane, à la validation V1)** : sur le panneau
+  partition (b), **rogner/hachurer les feuilles slab-aware hors-dalle** (une feuille
+  certifiée n'est en collision que sur sa portion ∩ dalle, pas sur toute la cellule)
+  et **tracer la frontière de dalle** {|φ|=δ}. À faire dans `viz.py`/`make_figures`
+  en S11 (figures prêt-papier, [V7]). Ne change rien à la soundness — lisibilité.
+
+**Prochaine étape** : S4 — certificat JSON + verify.py exact (amender SPEC §2/§4 :
+q_star, D par link, p=1 ; substitution demi-angle maison ré-implémentée). NB pour S4 :
+le moteur émet déjà `partition_records()` (cell/status/pair/margin) — base du champ
+`leaves` du certificat. NB pour S8 : HiGHS est déjà le défaut du moteur (avance la
+tâche back-end direct ; reste highspy sans scipy + warnings Clarabel à élucider).
+
+## 2026-06-11 — Revue de supervision S3 (claude.ai) — **CLAUDE.md v1.2**
+
+**Verdict** : S3 validée sur le fond ; V1 en attente côté Stéphane (figures
+prêtes). Trois points au-dessus de l'attendu : (1) work-queue parallèle à
+certificat octet-identique au serial, avec mesure honnête des alternatives
+écartées (round-robin 1.4-1.9×, tangente 0.16× + explosion, gradient 1.1×) —
+3.56×/8 workers sans inflation ; (2) découverte que `import cvxpy` réveille le
+mosek transitif du wheel Drake ⟹ HiGHS par défaut, garde 3 volets en
+sous-process frais (la pollution inter-tests masquait la régression) ;
+(3) resume à empreinte SHA qui refuse la reprise si le problème diffère.
+
+**Annotations (intégrées à CLAUDE.md v1.2)** :
+- [A8 → règle 11] La validation visuelle ne bloque jamais le commit du code :
+  commit immédiat « S<X> — V<k> pending », validation = micro-commit de
+  clôture. Une V en attente bloque la session suivante, pas la sauvegarde.
+- [A9 → S8] Re-scope : défaut HiGHS déjà acté (S3, scipy.linprog) ; S8 =
+  highspy direct + warm starts, sparsité, dims passives, degré adaptatif,
+  fork/spawn à ré-évaluer workers mono-thread, solder 20 warnings fork +
+  5 Clarabel.
+- [A10 → S9] Heuristique d'axe à trancher sur données : margin-relais bat
+  l'oracle sur E4 (56 vs 78 feuilles), perd sur E3 (54 vs 46) — levier
+  anti-explosion n°1 pour G2'. Micro-tâche ajoutée : mesurer feuilles(n) à
+  n = 3,4,5,6 joints sur la même scène (exposant empirique du modèle de coût).
+
+**V1 — instructions transmises à Stéphane** : `make figures`, ouvrir
+`benchmarks/figures/partition_E3.png` et `partition_E4.png` ; vérifier
+(1) bande dalle continue ★→✚ sans cellule FAIL noire, (2) relais des trois
+couleurs de paires cohérent avec la vérité-terrain, (3) raffinement concentré
+aux frontières de dalle et zones de relais. Répondre « VALIDÉ S3-V1 » à Code,
+qui committe (rule 11 amendée) et ouvre S4.
+
+**Prochaine étape** : V1, micro-commit, puis S4 — certificat JSON + verify.py
+exact (le schéma §4 est pré-amendé dans SPEC v1.1, S4 le finalise).
+

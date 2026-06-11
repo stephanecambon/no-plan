@@ -164,6 +164,7 @@ def test_witness_sign_is_frozen():
     assert t_unsound > 0        # g + mu*T would falsely certify it
 
 
+@pytest.mark.slow
 def test_e3_negative_control_refuses_3d():
     """Soundness: obstacles shrunk 30% open free samples in the slab; the witness-
     driven b&b must NOT certify (some FAIL leaf)."""

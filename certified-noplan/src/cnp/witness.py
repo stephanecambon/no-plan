@@ -118,6 +118,8 @@ class WitnessLP:
     basis: tuple
     K: int
     dim: int
+    n_faces: int = 0   # #obstacle faces backing ``face_*`` (rows stacked per face)
+    grid_dim: int = 0  # Bernstein grid extent per axis = DPAD+1 (face-row layout)
 
 
 @dataclass
@@ -180,6 +182,46 @@ class CvxpyBackend(LPBackend):
             K=lp.K,
             dim=lp.dim,
         )
+
+
+class HighsBackend(LPBackend):
+    """Direct LP back-end via ``scipy.optimize.linprog(method="highs")`` over the
+    SAME solver-agnostic :class:`WitnessLP`. Two reasons it is the engine default
+    (S3): (1) it is **Mosek-free** — unlike importing cvxpy, which probes every
+    installed solver and so transitively wakes the Drake-bundled mosek (CLAUDE.md
+    rule 3; see tests/test_mosek_guard.py); (2) no per-solve compile / no cvxpy
+    import, so it is faster and lets forked workers start instantly. S8 will swap
+    scipy for highspy directly; the WitnessLP stays identical (the S2 isolation
+    design). t* agrees with CLARABEL to < 1e-6 (proved in tests/test_witness.py)."""
+
+    name = "highs"
+
+    def solve(self, lp: WitnessLP) -> LPResult:
+        from scipy.optimize import linprog
+
+        nz, nmu = lp.nz, lp.nmu
+        nv = nz + nmu + 1                 # z (free), mu (>=0), t (free, the objective)
+        c = np.zeros(nv); c[-1] = -1.0    # maximize t  <=>  minimize -t
+        A_eq = np.hstack([lp.eq_A, np.zeros((lp.eq_A.shape[0], nmu + 1))])
+        b_eq = lp.eq_b
+        ub_rows = [np.hstack([-lp.lam_A, np.zeros((lp.lam_A.shape[0], nmu + 1))])]
+        ub_b = [lp.lam_b]                 # lambda >= 0  <=>  -lam_A z <= lam_b
+        face = np.hstack([lp.face_Az, lp.face_Amu,
+                          -np.ones((lp.face_Az.shape[0], 1))])
+        ub_rows.append(-face)            # g(-muT) - t >= -face_b  <=>  -(...) <= face_b
+        ub_b.append(lp.face_b)
+        bounds = [(None, None)] * nz + [(0, None)] * nmu + [(None, None)]
+        try:
+            r = linprog(c, A_ub=np.vstack(ub_rows), b_ub=np.concatenate(ub_b),
+                        A_eq=A_eq, b_eq=b_eq, bounds=bounds, method="highs")
+        except Exception:  # noqa: BLE001 - any solver failure is UNDECIDED, not a crash
+            return LPResult(None, "error", basis=lp.basis, K=lp.K, dim=lp.dim)
+        if not r.success or r.x is None:
+            return LPResult(None, r.message, basis=lp.basis, K=lp.K, dim=lp.dim)
+        x = np.asarray(r.x, dtype=float)
+        return LPResult(float(-r.fun), "optimal",
+                        z=x[:nz], mu=(x[nz:nz + nmu] if nmu else None),
+                        basis=lp.basis, K=lp.K, dim=lp.dim)
 
 
 DEFAULT_BACKEND = CvxpyBackend()
@@ -320,7 +362,8 @@ def build_witness_lp(cell, verts_num, D, obstacle: Polytope,
     return WitnessLP(nz=nz, nmu=nmu, eq_A=eq_A, eq_b=eq_b,
                      lam_A=lam_A, lam_b=lam_b, face_Az=face_Az,
                      face_Amu=face_Amu, face_b=face_b,
-                     basis=basis, K=K, dim=dim)
+                     basis=basis, K=K, dim=dim,
+                     n_faces=obstacle.n_faces, grid_dim=DPAD + 1)
 
 
 def certify_cell_pair(cell, verts_num, D, obstacle: Polytope,

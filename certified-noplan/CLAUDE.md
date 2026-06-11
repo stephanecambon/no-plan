@@ -1,7 +1,16 @@
 # CLAUDE.md — certified-noplan
 
+Version 1.2 — 11 juin 2026 (révision post-S3 ; v1.0/v1.1 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
+
+Changements v1.0 → v1.1 : S0-S2 actées ; protocole de **validation visuelle
+humaine** (règle 11) ; anti-dérive de SPEC (règle 12) ; anti-skip silencieux
+(règle 13). Changements v1.1 → v1.2 (revue S3, annotations A8-A10) : règle 11
+amendée — la validation ne bloque jamais le commit du code ; S3 actée ; S8
+re-scopé (cvxpy réveille mosek à l'import ⟹ HiGHS déjà défaut depuis S3) ;
+note heuristique d'axe en S9. Détail : entrées « Revue de supervision » de
+JOURNAL.md.
 
 ---
 
@@ -9,19 +18,23 @@ sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
 1. **Soundness avant tout.** On ne « fait jamais passer un test » en affaiblissant
    un certificat. Tout changement dans witness.py / engine.py / verify.py exige de
-   relancer la suite adversariale (`pytest tests/test_adversarial.py`). Si un
+   relancer la suite adversariale (`pytest tests/test_adversarial.py` dès qu'elle
+   existe — S6 ; d'ici là, les contrôles négatifs de test_witness/test_exp34). Si un
    certificat passe sur une prémisse fausse : STOP, bug bloquant, rien d'autre
    n'avance.
-2. **Le signe de Putinar est g − μT ≥ t** (g + μT est unsound — bug historique
-   documenté, voir CAMPAGNE-E1-E4-RESULTATS.md §Leçons). Un test unitaire fige ce
-   signe ; interdiction de le modifier.
-3. **Aucun SDP, aucun Mosek dans le chemin critique.** Bernstein-LP uniquement
-   (HiGHS/Clarabel). Les variantes SOS vivent dans `experimental/`, jamais
-   importées par le cœur.
+2. **Le signe de Putinar est g − μT ≥ t** (g + μT est unsound — démontré par
+   tests/test_putinar_sign.py et test_witness_sign_is_frozen sur instances à
+   prémisse réellement fausse). Le paramètre `_putinar_sign` n'existe que pour ces
+   tests ; interdiction de l'utiliser ailleurs ou de changer le défaut.
+3. **Aucun SDP, aucun Mosek dans le chemin critique.** Bernstein-LP uniquement.
+   Le SOS de cross-check vit dans tests/regref.py, jamais importé par src/cnp.
+   Attention : le wheel Drake tire mosek en transitif — un test-garde (S3) vérifie
+   qu'aucun import du cœur ne le réveille.
 4. **verify.py est sacré** : < 500 lignes, `fractions.Fraction` seulement,
-   recalcul indépendant de la FK symbolique, aucune importation depuis le
-   générateur (sauf rien). Toute feature du générateur doit être vérifiable par
-   verify.py AVANT d'être mergée.
+   FK rationnelle recalculée indépendamment (même substitution demi-angle « maison »
+   que ratfk, ré-implémentée — c'est le but de l'approche C choisie en S1), aucune
+   importation depuis le générateur. Toute feature du générateur doit être
+   vérifiable par verify.py AVANT d'être mergée.
 5. **Tout résultat affiché = vérifié.** Un run n'est « certifié » que si
    `cnp verify` retourne OK en arithmétique exacte. Sinon le verdict affiché est
    UNDECIDED, même si le générateur dit avoir réussi.
@@ -32,159 +45,277 @@ sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
    commit hash.
 8. **Discipline de session** : une session = un objectif de la liste ci-dessous.
    On n'attaque pas la session N+1 si les critères de sortie de N ne sont pas
-   verts. Fin de session : mise à jour de JOURNAL.md (fait / décisions / pièges /
-   prochaine étape), commit.
-9. **Pièges connus à ne pas redécouvrir** (issus des campagnes E1-E4) :
-   les coupes dyadiques n'atteignent jamais une frontière de dalle non dyadique
-   (d'où le multiplicateur slab-aware, obligatoire) ; valider une scène par grille
-   d'échantillonnage peut rater des micro-canaux (le certificateur fait foi, pas
-   la grille) ; profondeur de branch-and-bound = paramètre de coût, pas de
-   faisabilité (marges −0.002 ⟹ une bissection de plus).
-10. **macOS arm64** : Python Homebrew 3.12 (PAS le Python système, PAS Anaconda),
-    venv dédié, `pip install drake` (wheel officiel).
+   verts. Fin de session : mise à jour de JOURNAL.md (Fait / Décisions / Pièges /
+   Prochaine étape), commit.
+9. **Pièges connus à ne pas redécouvrir** : signe de Putinar (règle 2) ; coupes
+   dyadiques vs frontières de dalle non dyadiques (⟹ certificat slab-aware
+   obligatoire) ; **la grille d'échantillonnage ne fait pas foi** (micro-canal raté
+   par 41 points, attrapé par le certificateur) ; profondeur de b&b = paramètre de
+   coût, pas de faisabilité ; coin (3,3) des homogènes = den, pas 1 (bug S1) ;
+   padder D et φ² au degré de travail DPAD avant Bernstein (piège S2).
+10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
+    (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
+    (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
+
+11. **Validation visuelle humaine (NOUVEAU).** À chaque point marqué **[V*]** dans
+    le plan, la session DOIT s'arrêter et demander une validation à Stéphane avant
+    de continuer, au format exact suivant :
+
+    ```
+    === DEMANDE DE VALIDATION VISUELLE (S<X>-V<k>) ===
+    Commande à lancer : <commande exacte, copiable>
+    Ouvrir            : <fichier PNG / URL Meshcat http://localhost:PORT>
+    Vérifier          :
+      1. <point de contrôle concret et observable>
+      2. <...>
+      3. <...>
+    Critère de réussite : <phrase unique, binaire>
+    Réponse attendue  : « VALIDÉ S<X>-V<k> » ou description de l'anomalie.
+    ```
+
+    La session ATTEND la réponse (fin de tour) ; les critères de sortie de la
+    session incluent la validation obtenue. COMMIT [A8, v1.2] : le code de la
+    session est commité IMMÉDIATEMENT en fin de travaux (message
+    « S<X> — V<k> pending ») ; la validation obtenue fait l'objet d'un
+    micro-commit de clôture consigné au journal. Une validation en attente
+    bloque le passage à la session suivante, jamais la sauvegarde du travail.
+    PORTÉE : la validation visuelle vérifie
+    **l'intention et la conception** (la scène est bien celle qu'on veut prouver,
+    la figure raconte la bonne histoire). Elle ne vérifie JAMAIS la soundness —
+    l'œil humain rate les micro-canaux aussi ; seul le certificat + verify fait
+    foi sur la vérité mathématique. Ne jamais présenter une validation visuelle
+    comme une preuve.
+
+12. **Anti-dérive de spec (NOUVEAU).** Si l'implémentation diverge délibérément de
+    SPEC.md (exemples actés en S1-S2 : s = tan((q−q*)/2) avec q* de référence au
+    lieu de tan(θ/2) ; dénominateur commun PAR LINK ; exposant p=1 suffisant), la
+    session qui acte la divergence AMENDE SPEC.md dans le même commit, avec mention
+    « amendé en S<X> ». Une spec fausse est pire que pas de spec. Amendements en
+    attente : voir S4.
+
+13. **Aucun skip silencieux aux sorties de session (NOUVEAU).** `make test` peut
+    skipper des tests réseau au quotidien, mais les critères de sortie d'une
+    session listent explicitement les tests REQUIS, et un skip sur un test requis
+    = sortie rouge. La sortie de session colle le décompte exact
+    (passed/skipped/warnings) dans JOURNAL.md.
 
 ## Definition of Done (rappel global)
 
 Démonstrateur : `cnp certify scenes/S5_iiwa_shelf.yaml` produit un certificat
 7-DOF vérifié en arithmétique exacte + visualisation Meshcat + tables de
-benchmark vs Li-Dantam (4-DOF) — voir portes G0'-G4' dans SPEC.md §8.
+benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
 
 ---
 
-## Plan de développement (sessions Opus)
+## État d'avancement
 
-Chaque session : **Entrée** (préconditions), **Tâches**, **Sortie** (critères
-vérifiables). Budget indicatif : une session = un contexte Opus focalisé ;
-si une session déborde, on coupe au critère de sortie partiel le plus proche et
-on journalise.
+- ✅ **S0** — environnement, squelette, régression E1-E4 (**G0' vert**, 43 tests).
+- ✅ **S1** — FK rationnelle 3D, Drake + repli sympy, parité < 1e-9 (51 tests).
+- ✅ **S2** — témoin 3D slab-aware n-dim, parité E3 < 1e-7, exit 3-DOF 1e5
+  échantillons / 0 violation, isolation back-end prouvée (HiGHS cross-check)
+  (65 tests).
+- ✅ **S3** — moteur b&b n-dim : work-queue parallèle à certificat
+  octet-identique (3.56× / 8 workers), checkpoint/resume kill-9 avec empreinte
+  SHA, HiGHS par défaut (mosek-free), garde Mosek 3 volets, make test-fast,
+  figures (82 tests, 0 skip). **V1 validée** (annotation A11 → S11, voir JOURNAL.md).
+- ⏳ S4 — prochaine session.
 
-### S0 — Environnement, squelette, portage régression
-- Entrée : repo vide, ce fichier + SPEC.md + les 4 scripts du bac à sable
-  (polylin.py, exp12_ladder.py, exp34_multipair.py, make_figure.py).
-- Tâches : venv + deps ; arborescence SPEC §3 ; porter polylin dans src/cnp/ ;
-  transformer E1-E4 en tests pytest (les scènes planaires deviennent des
-  fixtures) ; CI locale (make test).
-- Sortie : **G0'** — pytest vert, t* identiques au bac à sable à 1e-6 près ;
-  JOURNAL.md initialisé.
+---
 
-### S1 — FK rationnelle 3D (ratfk.py)
-- Entrée : S0 vert. Drake importable.
-- Tâches : wrapper RationalForwardKinematics → tenseurs numérateurs (X,Y,Z) par
-  sommet d'enveloppe convexe de chaque link, dénominateur commun ; gestion des
-  joints verrouillés ; REPLI si friction Drake : FK symbolique sympy (chaîne
-  révolute générique), même interface.
-- Sortie : test « FK numérique vs tenseurs » : 1000 configurations aléatoires
-  iiwa, erreur < 1e-9 ; test joints verrouillés ; test degré ≤2/var par joint.
+## Plan de développement (sessions Opus) — révisé v1.1
 
-### S2 — Témoin 3D (witness.py)
-- Entrée : S1 vert.
-- Tâches : LP témoin slab-aware générique n-dim, corps convexe mobile vs polytope
-  statique (H-rep) ; degré de λ paramétrable (constant/affine/quadratique) ;
-  back-end cvxpy d'abord, interface back-end isolée.
-- Sortie : sur S1-planaire embarquée en 3D : mêmes certificats qu'E3 ; sur un
-  3-DOF spatial minimal : accord témoin vs vérité-terrain échantillonnée
-  (certifie ⟹ aucun point libre trouvé sur 10⁵ échantillons de la cellule).
+Chaque session : **Entrée** / **Tâches** / **Sortie** (critères vérifiables).
+Une session = un contexte Opus ; si débordement, couper au critère partiel le
+plus proche et journaliser.
 
 ### S3 — Moteur branch-and-bound n-dim (engine.py)
-- Entrée : S2 vert.
-- Tâches : généraliser le moteur E3 à n dims ; heuristique d'axe (frontière de
-  dalle d'abord, puis marge LP la pire) ; checkpoint/resume sur disque ;
-  parallélisme multiprocessing sur les feuilles ; budget (temps, profondeur,
-  feuilles) avec verdict UNDECIDED propre.
-- Sortie : S1 et S2-planaire certifiées via le nouveau moteur ; test resume
-  (kill -9 en cours de run, reprise, même certificat) ; speedup parallèle ≥ 3×
-  sur 8 cœurs.
+- Entrée : S2 vert (re-vérifier : `make test`, 65 passed attendus).
+- Tâches :
+  1. Généraliser à n dims le flot de référence documenté dans le scaffold b&b de
+     tests/test_witness.py (test outside par Bernstein de φ, heuristique d'axe :
+     frontière de dalle d'abord, puis pire marge LP des échecs) ;
+  2. checkpoint/resume sur disque ; parallélisme multiprocessing sur les
+     feuilles ; budgets (temps, profondeur, feuilles) avec verdict UNDECIDED
+     propre et diagnostic (cellules en échec exportées) ;
+  3. le moteur émet les données de partition (cellules, statuts, paires, marges)
+     dans un format consommable par les figures ;
+  4. `make figures` : figures de partition pour les scènes de régression E3/E4
+     (généralisation de sandbox_reference/make_figure.py) ;
+  5. **test-garde Mosek** : après import de cnp + un solve témoin, asserter que
+     `mosek` ∉ sys.modules (règle 3) ;
+  6. `make test-fast` (sous-ensemble < 30 s, sans les rejouages E1/E2 SOS) vs
+     `make test` complet (requis en sortie de session).
+- **[V1] Validation visuelle** : figures de partition E3 et E4.
+  Vérifier : (1) bande dalle (or) continue entre start et goal, aucune cellule
+  FAIL (noir) ; (2) relais des trois couleurs de paires (UP/DOWN/MID) cohérent
+  avec le panneau vérité-terrain ; (3) raffinement des cellules concentré près
+  des frontières de dalle et des zones de relais, pas uniforme.
+- Sortie : E3/E4 certifiées via le nouveau moteur (mêmes feuilles/statuts que
+  l'oracle à heuristique égale, ou écarts journalisés) ; test resume (kill -9 en
+  cours de run, reprise, même certificat) ; speedup parallèle ≥ 3× sur 8 cœurs ;
+  garde Mosek verte ; **V1 validée** ; décompte exact des tests dans le journal.
 
 ### S4 — Certificat + vérificateur exact (certificate.py, verify.py)
 - Entrée : S3 vert.
-- Tâches : format JSON SPEC §4 (rationnels exacts, arrondi vers l'intérieur avec
-  re-résolution si la marge ne couvre pas) ; verify.py from scratch en Fraction,
-  FK symbolique indépendante ; CLI `cnp verify`.
-- Sortie : round-trip generate→verify OK sur toutes les scènes existantes ;
-  test de mutation : 20 certificats corrompus aléatoirement (coeff, coupe,
-  paire) ⟹ 20 rejets ; règle 4 respectée (audit imports).
+- Tâches :
+  1. Format JSON SPEC §4 ÉTENDU et amendé (règle 12) : ajouter **q_star**, joints
+     verrouillés (valeurs cos/sin exactes utilisées), définition explicite de la
+     substitution demi-angle « maison » (approche C de S1) et du dénominateur
+     commun par link — tout ce que verify recalcule doit être défini dans le
+     certificat ou la scène, pas dans le code du générateur ;
+  2. rationnels exacts, arrondi vers l'intérieur avec re-résolution si la marge
+     ne couvre pas ;
+  3. verify.py from scratch : Fraction uniquement, substitution demi-angle
+     ré-implémentée indépendamment, vérification de l'arbre (partition exacte),
+     des feuilles outside (Bernstein φ) et collision (Σλ≡1, λ≥0, g − μT ≥ 0) ;
+  4. CLI `cnp verify` ; **amender SPEC §2 et §4** (q_star, D par link, p=1).
+- Sortie : round-trip generate→verify OK sur toutes les scènes de régression ;
+  test de mutation : ≥ 20 certificats corrompus (coeff λ, μ, coupe, paire,
+  q_star) ⟹ tous rejetés ; audit imports de verify (règle 4) ; SPEC amendée.
 
 ### S5 — Pipeline φ (phifit.py)
 - Entrée : S4 vert.
 - Tâches : échantillonnage C_free/C_obs (collision checker Drake, seedé) ; fit
-  SVM (sklearn) + approximation polynomiale deg ≤2/var ; sélection δ
-  automatique (quantiles de marge + condition (i)) ; boucle de retry (si
-  UNDECIDED : re-fit avec pénalité sur les cellules en échec).
-- Sortie : E4-planaire reproduit via le pipeline complet ; sur S2 (3-DOF) :
-  φ trouvé automatiquement et certifié sans hint manuel.
+  SVM + approximation polynomiale deg ≤2/var ; sélection δ automatique
+  (quantiles de marge + condition (i)) ; boucle de retry (si UNDECIDED : re-fit
+  pénalisant les cellules en échec).
+- **[V2] Validation visuelle** : pour E4-planaire puis pour le 3-DOF, figure
+  « C-space échantillonné + lignes de niveau de φ + dalle ».
+  Vérifier : (1) la bande {|φ|≤δ} est entièrement dans la zone collision
+  échantillonnée (rappel : l'échantillon ne prouve pas — on vérifie l'INTENTION,
+  le certificat tranchera) ; (2) start (★) et goal (✚) de part et d'autre avec
+  marge visible ; (3) δ pas dégénéré (bande visible, pas un trait).
+- Sortie : E4-planaire reproduit via le pipeline complet ; sur la scène 3-DOF de
+  S2 : φ trouvé automatiquement et certifié sans hint manuel ; **V2 validée**.
 
-### S6 — Scènes et CLI (scenes.py + S1/S2 YAML)
+### S6 — Scènes, CLI et visualisation minimale (scenes.py + YAML + cnp show)
 - Entrée : S5 vert.
-- Tâches : parser YAML SPEC §6 ; scènes S1 (régression) et S2 (peigne 3-DOF)
-  finalisées ; CLI `cnp certify <scene>` bout-en-bout ; suite adversariale
-  initiale (obstacles rétrécis, micro-canal inséré).
-- Sortie : **G1'** — S2 certifiée end-to-end + zéro faux certificat sur
-  l'adversarial ; demo console propre (verdict, stats, chemin du certificat).
+- Tâches :
+  1. Parser YAML SPEC §6 (sommets/coupes rationnels) ; extraction des enveloppes
+     convexes des links depuis la géométrie de collision (branchement sur
+     `vertex_numerators` de S1) ;
+  2. scènes S1 (régression) et S2 « peigne 3-DOF » finalisées ;
+  3. **`cnp show scene.yaml`** : visualisation Meshcat minimale (robot aux configs
+     start/goal commutables, obstacles, repères) — avancé depuis S11, car
+     l'inspection visuelle de la géométrie AVANT certification fait partie de la
+     conception de scène ;
+  4. CLI `cnp certify <scene>` bout-en-bout ;
+  5. suite adversariale initiale tests/test_adversarial.py (obstacles rétrécis,
+     micro-canal inséré exprès).
+- **[V3] Validation visuelle** : `cnp show scenes/S2_peigne.yaml`, ouvrir l'URL
+  Meshcat affichée (typiquement http://localhost:7000).
+  Vérifier : (1) le bras 3-DOF est dessiné aux configs start puis goal (bascule
+  indiquée par la session) et n'intersecte visiblement aucun obstacle dans ces
+  deux poses ; (2) le peigne a le bon nombre de dents, aux positions du YAML,
+  échelle plausible (~mètres) ; (3) les enveloppes convexes des links recouvrent
+  bien le maillage visuel du robot (pas de link « nu »).
+- Sortie : **G1'** — S2-peigne certifiée end-to-end (`cnp certify` → `cnp verify`
+  OK) + zéro faux certificat sur l'adversarial ; **V3 validée** ; demo console
+  propre.
 
 ### S7 — Ancrage Li-Dantam (scène S3, 4-DOF)
 - Entrée : G1'.
 - Tâches : retrouver scènes/code Li-Dantam (web autorisé) ; reproduire la scène
-  bookshelf 4-DOF (sinon ré-implémentation documentée depuis les papiers) ;
-  harness benchmarks/ ; premier tableau comparatif (leurs temps publiés vs
-  nôtres).
-- Sortie : **G3'** (peut arriver avant G2', ordre assumé) — S3 certifiée,
-  tableau écrit dans benchmarks/results/, écarts commentés honnêtement dans
-  JOURNAL.md (y compris si on est plus lents à 4-DOF : le titre se joue à 5+).
+  bookshelf 4-DOF (sinon ré-implémentation documentée depuis arXiv 2406.04795 /
+  2501.11434) ; harness benchmarks/ ; premier tableau comparatif (leurs temps
+  publiés vs nôtres).
+- **[V4] Validation visuelle** : image côte-à-côte produite par la session :
+  rendu Meshcat de notre scène vs figure du papier (référence de figure et page
+  citées).
+  Vérifier : (1) même topologie d'obstacles (nombre, agencement relatif) ;
+  (2) même robot / mêmes joints actifs ; (3) start/goal qualitativement
+  conformes au scénario du papier.
+- Sortie : **G3'** — S3 certifiée + vérifiée, tableau dans benchmarks/results/,
+  écarts commentés honnêtement dans JOURNAL.md (y compris si on est plus lents à
+  4-DOF : le titre se joue à 5+) ; **V4 validée**.
 
-### S8 — Performance (back-end HiGHS, profiling)
-- Entrée : S7 vert.
-- Tâches : back-end LP direct highspy (sans cvxpy) ; exploitation sparsité des
-  tenseurs ; dimensions passives par intervalles (lignes (d+1)^k) ; profiling
-  (py-spy) ; degré de témoin adaptatif par feuille.
-- Sortie : sur S3 : ≥ 10× plus rapide que le back-end cvxpy ; mémoire bornée ;
-  aucun changement de verdict sur la suite complète (soundness re-validée).
+### S8 — Performance (back-end HiGHS direct, profiling)
+- Entrée : S7 vert. NOTE v1.2 [A9] : le défaut HiGHS est DÉJÀ acté (S3, via
+  scipy.linprog), conséquence de la découverte « import cvxpy réveille mosek » ;
+  et l'isolation back-end était acquise dès S2. Cette session = optimisation
+  pure.
+- Tâches : highspy direct sur WitnessLP (API bas niveau, warm starts entre
+  cellules sœurs) ; exploitation de la sparsité des tenseurs FK ; dimensions
+  passives par intervalles (lignes (d+1)^k au lieu de (d+1)^n) ; degré de
+  témoin adaptatif par feuille ; profiling (py-spy) ; ré-évaluer fork vs spawn
+  une fois les workers mono-thread (solder les 20 DeprecationWarning fork) ;
+  **élucider les 5 warnings Clarabel** journalisés depuis S0 (résoudre ou
+  documenter pourquoi structurellement bénins).
+- Sortie : sur la scène S3 : ≥ 10× plus rapide que cvxpy ; mémoire bornée ;
+  aucun changement de verdict sur la suite complète + adversarial (soundness
+  re-validée) ; warnings traités.
 
 ### S9 — Scène S4 (bac profond, 5-6 DOF)
-- Entrée : S8 vert.
+- Entrée : S8 vert. Pré-télécharger les modèles Drake (hors-ligne interdit ici :
+  les tests iiwa sont REQUIS, règle 13).
 - Tâches : iiwa joints verrouillés (7→5 puis 6) ; conception géométrique de la
-  scène bac (vérité-terrain par échantillonnage dense AVANT certification —
-  leçon du micro-canal) ; tuning heuristiques.
-- Sortie : **G2'** — S4 certifiée < 1 h, < 10⁴ feuilles, verify OK. SI ROUGE :
-  session(s) supplémentaire(s) sur les mitigations SPEC §9.1 avant S10 — c'est
-  le point de pivot du projet, le journaliser comme tel.
+  scène bac ; vérité-terrain par échantillonnage dense AVANT certification
+  (intention seulement — leçon du micro-canal) ; tuning heuristiques d'axe —
+  NOTE v1.2 [A10] : trancher SUR DONNÉES oracle vs margin-relais (S3 : le
+  margin-relais bat l'oracle sur E4, 56 vs 78 feuilles, perd sur E3, 54 vs 46 ;
+  c'est le levier anti-explosion n°1 pour G2'). Micro-tâche : mesurer
+  feuilles(n) sur la même scène à n = 3,4,5,6 joints débloqués pour ajuster
+  l'exposant empirique du modèle de coût.
+- **[V5] Validation visuelle — OBLIGATOIRE AVANT TOUT RUN LONG** :
+  `cnp show scenes/S4_bac.yaml` + coupes 2D du C-space échantillonné (paires de
+  joints les plus actives).
+  Vérifier : (1) le bac enferme réellement l'objet cible et la caisse avant
+  bloque l'accès frontal — c'est bien le scénario « inatteignable sans retirer
+  la caisse » qu'on veut PROUVER ; (2) start (home) et goal (prise) visuellement
+  sans collision ; (3) sur les coupes C-space, la zone collision sépare
+  plausiblement start de goal. Réponse « VALIDÉ S9-V5 » = autorisation de lancer
+  les runs longs.
+- Sortie : **G2'** — S4 certifiée < 1 h, < 10⁴ feuilles, verify OK ; **V5
+  validée**. SI ROUGE : session(s) mitigations SPEC §9.1 avant S10 — point de
+  pivot du projet, le journaliser comme tel ; la décision de re-scope se prend
+  avec Stéphane, pas dans Claude Code.
 
 ### S10 — Flagship 7-DOF (scène S5)
 - Entrée : G2'.
-- Tâches : scène étagère iiwa complète ; runs longs avec checkpoints ; si φ
-  deg ≤2 insuffisant : φ par morceaux (théorème composé, documenter dans SPEC).
-- Sortie : **G4'** — certificat 7-DOF vérifié exact. C'est le résultat-titre ;
-  archiver certificat + scène + commit en l'état.
+- Tâches : scène étagère iiwa complète ; extrapolation de budget depuis S9
+  (feuilles, temps) présentée AVANT de lancer ; runs longs avec checkpoints ;
+  si φ deg ≤2 insuffisant : φ par morceaux (théorème composé, amender SPEC).
+- **[V6] Validation visuelle + go/no-go** : `cnp show scenes/S5_iiwa_shelf.yaml`
+  + budget estimé (temps, feuilles, RAM).
+  Vérifier : (1) étagère + panneau obstruant conformes au scénario « case haute
+  inatteignable depuis home » ; (2) home et goal sans collision visuelle ;
+  (3) budget acceptable pour la machine (sinon : décision cloud avec Stéphane).
+  « VALIDÉ S10-V6 » = autorisation du run flagship.
+- Sortie : **G4'** — certificat 7-DOF vérifié exact ; **V6 validée** ; archiver
+  certificat + scène + commit en l'état.
 
-### S11 — Visualisation et assets (viz.py)
+### S11 — Visualisation complète et assets (viz.py)
 - Entrée : G4' (ou en parallèle après G2' si S10 traîne).
-- Tâches : Meshcat (scène 3D, configs start/goal, animation de la dalle
-  projetée) ; figures C-space/partition style make_figure.py généralisé ;
-  tables/courbes de benchmark auto-générées.
-- Sortie : `cnp viz <cert>` fonctionne ; pack de figures prêt-papier dans
-  benchmarks/figures/.
+- Tâches : `cnp viz <cert>` complet (Meshcat : scène, configs, animation de la
+  dalle projetée, feuilles en échec si UNDECIDED) ; figures C-space/partition
+  généralisées (coupes pour n>2) ; tables/courbes de benchmark auto-générées.
+- **[V7] Validation visuelle** : pack de figures prêt-papier.
+  Vérifier : (1) chaque figure raconte une histoire lisible sans légende orale ;
+  (2) les chiffres des tables correspondent aux JSON de benchmarks/results/ ;
+  (3) la figure flagship (7-DOF) est compréhensible par un non-spécialiste.
+- Sortie : `cnp viz` fonctionne ; pack dans benchmarks/figures/ ; **V7 validée**.
 
 ### S12 — Durcissement
 - Entrée : S11.
-- Tâches : élargir la suite adversariale (fuzzing de scènes à prémisse fausse,
-  micro-canaux générés aléatoirement, limites articulaires frôlant ±π →
-  doit refuser proprement) ; messages d'erreur ; README honnête (verdicts,
-  hypothèses, limites).
-- Sortie : CI complète verte ; zéro faux certificat sur ≥ 200 scènes
-  adversariales générées.
+- Tâches : élargir l'adversarial (fuzzing de scènes à prémisse fausse,
+  micro-canaux générés aléatoirement, limites frôlant ±π → refus propre) ;
+  messages d'erreur ; README honnête (verdicts, hypothèses, limites).
+- Sortie : CI complète verte, zéro skip requis ; zéro faux certificat sur ≥ 200
+  scènes adversariales générées.
 
 ### S13 — Reproductibilité et buffer
 - Entrée : S12.
-- Tâches : script de reproduction one-shot (toutes scènes + benchmarks +
-  figures) ; gel des versions ; rattrapage du retard éventuel ; revue finale
-  JOURNAL → matière à papier (liste des claims soutenus par les artefacts).
+- Tâches : `make reproduce` one-shot (toutes scènes + benchmarks + figures) ;
+  gel des versions ; rattrapage ; revue finale JOURNAL → liste des claims
+  soutenus par artefacts (matière à papier).
 - Sortie : `make reproduce` regénère tout sur machine vierge ; tag v1.0.
 
 ---
 
-## Estimation honnête
+## Estimation honnête (inchangée sur le fond)
 
-13 sessions nominales + 2-4 de contingence (S9/S10 sont les plus risquées —
-explosion de feuilles ou degré de φ). Le calendrier réel est gouverné par le
-risque de recherche résiduel (SPEC §9.1), pas par l'effort : si G2' est rouge
-après mitigations, on re-scope (résultat-titre à 5-6 DOF, toujours > état de
-l'art rigoureux à 4) plutôt que de forcer.
+S0-S2 ont tenu en 3 sessions nominales, ce qui est encourageant mais ne prédit
+pas S9-S10 (les sessions à risque de recherche : explosion de feuilles, degré de
+φ). 13 sessions nominales + 2-4 de contingence. Si G2' est rouge après
+mitigations : re-scope avec Stéphane (résultat-titre à 5-6 DOF, toujours
+au-delà de l'état de l'art rigoureux à 4) plutôt que forcer.

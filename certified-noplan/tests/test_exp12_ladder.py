@@ -13,6 +13,10 @@ import pytest
 
 from regref import scene_tensors, solve_bernstein, solve_sos
 
+# E1/E2 SOS-SDP cross-check replays: excluded from `make test-fast` (CLAUDE.md S3
+# task 6 / A3). Always run by the full `make test` required at session exit.
+pytestmark = pytest.mark.slow
+
 # a_tot per scene tag (gamma fixed at 0.04 in the sandbox).
 _A_TOT = {"collision": 0.44, "NEGATIVE": 0.85}
 

@@ -11,7 +11,7 @@ VENV_PY := $(VENV)/bin/python
 PYTEST  := $(VENV)/bin/pytest
 STAMP   := $(VENV)/.installed
 
-.PHONY: setup test clean
+.PHONY: setup test test-fast test-slow figures clean
 
 # Idempotent: re-running `make setup` does nothing unless pyproject.toml changed.
 setup: $(STAMP)
@@ -28,6 +28,20 @@ $(STAMP): pyproject.toml
 
 test: setup
 	$(PYTEST)
+
+# Fast daily subset (< 30 s, CLAUDE.md S3 task 6): skips the slow regression replays
+# (E1/E2 SOS-SDP cross-check, the full E3/E4 b&b reproductions, parallel/resume).
+# The FULL `make test` is the one required at every session exit (rule 13).
+test-fast: setup
+	$(PYTEST) -m "not slow" -q
+
+# The slow replays on their own (handy when iterating on the engine).
+test-slow: setup
+	$(PYTEST) -m slow -q
+
+# Certified-partition figures for the regression scenes (S3 task 4 / V1 validation).
+figures: setup
+	$(VENV_PY) scripts/make_figures.py
 
 clean:
 	rm -rf $(VENV) .pytest_cache

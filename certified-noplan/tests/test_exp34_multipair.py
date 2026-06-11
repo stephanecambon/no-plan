@@ -8,8 +8,13 @@ RESULTATS.md and the live sandbox run.
   E4: certified=True, 78 leaves (76 collision).
 """
 import numpy as np
+import pytest
 
 from regref import certify_slab, in_collision, teval
+
+# Full E3/E4 b&b replays (oracle): excluded from `make test-fast` (CLAUDE.md S3 task
+# 6). The engine's own E3/E4 reproduction lives in test_engine.py (also @slow).
+pytestmark = pytest.mark.slow
 
 
 def _counts(leaves):

@@ -1,7 +1,643 @@
-"""engine — n-dim branch-and-bound over the joint-limit box.
+"""engine — n-dimensional branch-and-bound over the joint-limit box (session S3).
 
-STUB. Implemented in session S3 (CLAUDE.md). Axis heuristics (slab boundary first,
-then worst LP margin), checkpoint/resume, multiprocessing over leaves, clean
-UNDECIDED verdict on budget exhaustion.
+The per-leaf, per-pair certifier is :mod:`cnp.witness` (S2); this module is the
+branch-and-bound that drives it over a binary partition of the s-box ``P`` and
+assembles the global disconnection certificate of SPEC §2.
+
+Reference flow (CLAUDE.md S3, task 1). The control flow generalises, to ``n``
+dimensions and to a *list of (link, obstacle) pairs*, the frozen 2-D flow of the
+regression oracle (``tests/regref.certify_slab``) that the S2 scaffold
+(``tests/test_witness._bb_witness``) already reproduces leaf-for-leaf:
+
+* a cell is a leaf ``outside`` when the slab ``T = delta^2 - phi^2`` cannot be
+  positive on it (Bernstein bound of ``phi``: ``min >= delta`` or ``max <= -delta``);
+* otherwise every pair is certified by the witness LP; the cell is a ``collision``
+  leaf if the best margin ``t* > tol``;
+* otherwise the cell is split on one axis and recursed; depth exhaustion is a
+  ``FAIL`` leaf, budget exhaustion an ``undecided`` leaf.  Either ⇒ verdict
+  ``UNDECIDED`` (never "infeasible": SPEC §1, CLAUDE.md rule 6).
+
+Axis heuristic (CLAUDE.md S3): **slab boundary first** — if splitting some axis
+puts a whole child outside the slab, take it (this is what makes the relay cheap and
+reproduces the oracle).  Fallback: ``axis="oracle"`` takes the widest axis (the
+oracle's choice, ⇒ identical E3/E4 partition); ``axis="margin"`` takes the
+**worst LP-margin axis** of the failing cell (the axis on which the most-binding
+Bernstein control point of the best pair sits furthest from centre — splitting
+there tightens that bound the most).  The heuristic only ever changes *cost*, never
+soundness (CLAUDE.md rule 9: depth = a cost parameter, not a feasibility one).
+
+Parallelism (multiprocessing over leaves), checkpoint/resume on disk and budgets
+are layered on top of the same recursion without changing the partition: the top of
+the tree is expanded serially down to a *frontier* of still-undecided cells, and
+each frontier subtree is solved independently (in a worker, and/or restored from a
+checkpoint).  Same heuristic above and below the frontier ⇒ the parallel/resumed
+certificate is identical to the serial one.
+
+Soundness (CLAUDE.md rule 1): nothing here can turn a refusal into a proof — the LP
+sign is frozen in :mod:`cnp.witness`; the engine only *partitions*.  The shared
+kernel with the rest of cnp is :mod:`cnp.polylin` (Bernstein) and :mod:`cnp.witness`.
 """
-raise NotImplementedError("engine: implemented in session S3")
+from __future__ import annotations
+
+import json
+import os
+import time
+from dataclasses import dataclass, field, asdict
+from multiprocessing import get_context
+
+import numpy as np
+
+from .polylin import bernstein_coeffs
+from .witness import (Polytope, LPBackend, HighsBackend,  # noqa: F401
+                      build_witness_lp)
+
+# The engine's default LP back-end is HiGHS (scipy.linprog), NOT cvxpy: it is
+# Mosek-free (CLAUDE.md rule 3 — importing cvxpy transitively wakes the Drake-bundled
+# mosek), faster (no per-solve compile), and reproduces the E3/E4 oracle exactly
+# (t* == CLARABEL to < 1e-6, and no leaf flips at tol). Pass ``backend=`` to override
+# (e.g. CvxpyBackend for a cross-check).
+ENGINE_BACKEND = HighsBackend()
+
+Cell = tuple  # tuple of (lo, hi) pairs, one per s-variable
+
+
+# --------------------------------------------------------------------------- #
+# Problem / budget / result data
+# --------------------------------------------------------------------------- #
+
+@dataclass
+class Pair:
+    """A candidate colliding pair: a moving convex body (rational-FK vertex
+    numerators ``verts_num`` over the common denominator ``D``) against a static
+    obstacle ``Polytope`` (H-rep).  ``name`` labels the leaf in the certificate."""
+
+    name: str
+    verts_num: list
+    D: np.ndarray
+    obstacle: Polytope
+
+
+@dataclass
+class Problem:
+    """A disconnection sub-problem over the s-box ``box``.
+
+    ``phi``/``delta`` define the slab; ``pairs`` are the (link, obstacle) candidates
+    relayed across it; ``lam_degree`` is the witness multiplier degree (SPEC §2)."""
+
+    box: list
+    phi: np.ndarray
+    delta: float
+    pairs: list
+    lam_degree: str = "affine"
+    tol: float = 1e-6
+    max_depth: int = 16
+
+    @property
+    def n(self) -> int:
+        return len(self.box)
+
+
+@dataclass
+class Budget:
+    """Stop refining when any limit is hit ⇒ the run is ``UNDECIDED`` with the
+    still-open cells exported for diagnosis.  ``None`` = unlimited."""
+
+    max_leaves: int | None = None
+    max_time_s: float | None = None
+
+
+@dataclass
+class Leaf:
+    cell: list
+    status: str               # 'outside' | 'collision' | 'FAIL' | 'undecided'
+    pair: str | None = None
+    margin: float | None = None
+
+
+@dataclass
+class EngineResult:
+    verdict: str              # 'PROOF' | 'UNDECIDED'
+    leaves: list
+    failed: list              # cells left undecided (FAIL or budget) — diagnostics
+    stats: dict = field(default_factory=dict)
+
+    @property
+    def ok(self) -> bool:
+        return self.verdict == "PROOF"
+
+    def counts(self) -> dict:
+        """Per-status and per-pair leaf counts (figure / journal friendly)."""
+        by_status, by_pair = {}, {}
+        for lf in self.leaves:
+            by_status[lf.status] = by_status.get(lf.status, 0) + 1
+            if lf.status == "collision":
+                by_pair[lf.pair] = by_pair.get(lf.pair, 0) + 1
+        return {"status": by_status, "pair": by_pair, "n_leaves": len(self.leaves)}
+
+
+# --------------------------------------------------------------------------- #
+# Geometry helpers
+# --------------------------------------------------------------------------- #
+
+def cell_outside_slab(cell, phi, delta) -> bool:
+    """``True`` when the slab ``|phi| <= delta`` cannot meet ``cell`` (Bernstein
+    bound of ``phi`` over the cell is entirely above ``+delta`` or below ``-delta``).
+    Identical test to the frozen oracle, re-expressed via :mod:`cnp.polylin`."""
+    bc = bernstein_coeffs(phi, [tuple(c) for c in cell])
+    return bool(bc.min() >= delta or bc.max() <= -delta)
+
+
+def _widths(cell):
+    return [hi - lo for (lo, hi) in cell]
+
+
+def _split(cell, axis):
+    """Bisect ``cell`` on ``axis`` at its midpoint → (lower, upper) children."""
+    mid = 0.5 * (cell[axis][0] + cell[axis][1])
+    c1 = [list(c) for c in cell]
+    c2 = [list(c) for c in cell]
+    c1[axis][1] = mid
+    c2[axis][0] = mid
+    return tuple(tuple(c) for c in c1), tuple(tuple(c) for c in c2)
+
+
+# --------------------------------------------------------------------------- #
+# Per-cell certification (outside test + best pair)
+# --------------------------------------------------------------------------- #
+
+@dataclass
+class _CellVerdict:
+    status: str                         # 'outside' | 'collision' | 'undecided'
+    pair: str | None = None
+    margin: float | None = None
+
+
+def _best_pair_margin(cell, problem: Problem, backend: LPBackend):
+    """Best (largest) witness margin over all pairs on ``cell``; ``+inf`` if the cell
+    is outside the slab (trivially certified), ``-inf`` if no pair returns a value."""
+    if cell_outside_slab(cell, problem.phi, problem.delta):
+        return float("inf"), None
+    best_t, best_name = None, None
+    for pr in problem.pairs:
+        t = certify_cell_pair_margin(cell, pr, problem, backend)
+        if t is not None and (best_t is None or t > best_t):
+            best_t, best_name = t, pr.name
+    return (best_t if best_t is not None else float("-inf")), best_name
+
+
+def certify_cell_pair_margin(cell, pr: Pair, problem: Problem, backend: LPBackend):
+    """Witness margin ``t*`` of one (cell, pair); ``None`` if the LP failed."""
+    lp = build_witness_lp(cell, pr.verts_num, pr.D, pr.obstacle,
+                          phi=problem.phi, delta=problem.delta,
+                          lam_degree=problem.lam_degree)
+    return backend.solve(lp).t
+
+
+def _certify_cell(cell, problem: Problem, backend: LPBackend) -> _CellVerdict:
+    """Decide one cell: outside / collision (best pair) / undecided."""
+    best_t, best_name = _best_pair_margin(cell, problem, backend)
+    if best_t == float("inf"):
+        return _CellVerdict("outside")
+    if best_t == float("-inf"):
+        return _CellVerdict("undecided")
+    status = "collision" if best_t > problem.tol else "undecided"
+    return _CellVerdict(status, best_name, best_t)
+
+
+# --------------------------------------------------------------------------- #
+# Axis heuristics
+# --------------------------------------------------------------------------- #
+
+def _slab_boundary_axis(cell, problem: Problem):
+    """If splitting some axis makes a whole child fall outside the slab, return that
+    axis (lowest such), else ``None``.  Same probe order as the frozen oracle."""
+    for ax in range(problem.n):
+        for child in _split(cell, ax):
+            if cell_outside_slab(child, problem.phi, problem.delta):
+                return ax
+    return None
+
+
+def _margin_axis(cell, problem: Problem, backend: LPBackend) -> int:
+    """Worst-LP-margin axis of a failing cell: one-step lookahead toward the *relay*
+    structure. For each axis, bisect and score the cut by the *best* child's best-pair
+    margin; take the axis that maximises it — i.e. the cut that carves off one
+    immediately-certifiable child (one obstacle of the relay) and leaves the rest to
+    recurse. Bounded by construction (a productive cut, never a runaway), and it
+    certifies E3/E4 with no FAIL leaf (journalled leaf counts may differ from the
+    widest-axis oracle: that is the allowed deviation). Ties → widest axis, then
+    lowest index."""
+    widths = _widths(cell)
+    scores = []
+    for ax in range(problem.n):
+        c1, c2 = _split(cell, ax)
+        m1, _ = _best_pair_margin(c1, problem, backend)
+        m2, _ = _best_pair_margin(c2, problem, backend)
+        scores.append(max(m1, m2))
+    return max(range(problem.n), key=lambda i: (scores[i], widths[i], -i))
+
+
+def _choose_axis(cell, problem: Problem, axis_mode: str,
+                 backend: LPBackend) -> int:
+    """Slab-boundary first; else the mode's fallback (widest / worst-margin)."""
+    ax = _slab_boundary_axis(cell, problem)
+    if ax is not None:
+        return ax
+    if axis_mode == "margin":
+        return _margin_axis(cell, problem, backend)
+    return int(np.argmax(_widths(cell)))   # "oracle": widest axis (numpy → lowest on tie)
+
+
+# --------------------------------------------------------------------------- #
+# Serial recursion
+# --------------------------------------------------------------------------- #
+
+class _Ctx:
+    """Mutable run state shared across the recursion (counters, deadline)."""
+
+    def __init__(self, problem, budget, axis_mode, backend, start_depth):
+        self.problem = problem
+        self.budget = budget or Budget()
+        self.axis_mode = axis_mode
+        self.backend = backend
+        self.start_depth = start_depth
+        self.leaves: list[Leaf] = []
+        self.failed: list = []
+        self.deadline = (None if self.budget.max_time_s is None
+                         else time.monotonic() + self.budget.max_time_s)
+        self.n_lp = 0
+
+    def budget_hit(self) -> bool:
+        if self.budget.max_leaves is not None and len(self.leaves) >= self.budget.max_leaves:
+            return True
+        if self.deadline is not None and time.monotonic() >= self.deadline:
+            return True
+        return False
+
+
+def _recurse(ctx: _Ctx, cell, depth):
+    """Process ``cell`` at ``depth``; append leaves. Returns ``True`` iff the whole
+    subtree is certified (outside/collision everywhere)."""
+    if ctx.budget_hit():
+        ctx.failed.append(cell)
+        ctx.leaves.append(Leaf(cell, "undecided"))
+        return False
+    v = _certify_cell(cell, ctx.problem, ctx.backend)
+    ctx.n_lp += 0 if v.status == "outside" else len(ctx.problem.pairs)
+    if v.status == "outside":
+        ctx.leaves.append(Leaf(cell, "outside"))
+        return True
+    if v.status == "collision":
+        ctx.leaves.append(Leaf(cell, "collision", v.pair, v.margin))
+        return True
+    if depth >= ctx.problem.max_depth:
+        ctx.failed.append(cell)
+        ctx.leaves.append(Leaf(cell, "FAIL", None, v.margin))
+        return False
+    axis = _choose_axis(cell, ctx.problem, ctx.axis_mode, ctx.backend)
+    c1, c2 = _split(cell, axis)
+    ok1 = _recurse(ctx, c1, depth + 1)
+    ok2 = _recurse(ctx, c2, depth + 1)
+    return ok1 and ok2
+
+
+def _verdict(failed) -> str:
+    return "UNDECIDED" if failed else "PROOF"
+
+
+# --------------------------------------------------------------------------- #
+# Frontier expansion (shared by parallel + checkpoint)
+# --------------------------------------------------------------------------- #
+
+def _uniform_frontier(box, depth, n):
+    """Bisect ``box`` to ``depth`` (round-robin over axes) into ``2**depth``
+    independent subcells — the parallel/checkpoint *frontier*.
+
+    Unlike a heuristic cutoff, the parent does NO LP work here: every subcell is a
+    self-contained sub-problem a worker certifies from scratch (outside regions
+    collapse to a coarse leaf; collision/straddling cells recurse with the real
+    heuristic from ``depth``). The union is a sound partition of ``box``. The forced
+    top splits aren't heuristic-optimal, so the parallel partition has >= as many
+    leaves as the serial one (a cost, never a soundness, difference); the exact 46/78
+    oracle reproduction is the job of the serial ``axis="oracle"`` path. The frontier
+    is deterministic ⇒ a resumed run reproduces the parallel certificate. (Round-robin
+    beat a slab-tangent split, which re-isolated the slab in every column — wasteful.)"""
+    cells = [tuple(tuple(c) for c in box)]
+    for d in range(depth):
+        ax = d % n
+        nxt = []
+        for cell in cells:
+            nxt.extend(_split(cell, ax))
+        cells = nxt
+    return cells
+
+
+def _solve_one(problem, axis_mode, start_depth, cell, budget, deadline):
+    """Certify one frontier cell's whole subtree from ``start_depth``."""
+    ctx = _Ctx(problem, budget, axis_mode, ENGINE_BACKEND, start_depth)
+    if deadline is not None:
+        ctx.deadline = deadline
+    _recurse(ctx, tuple(tuple(c) for c in cell), start_depth)
+    return ([asdict(lf) for lf in ctx.leaves],
+            [list(c) for c in ctx.failed], ctx.n_lp)
+
+
+def _solve_subtree(args):
+    """Single-process worker entry (serial frontier / checkpoint): full picklable
+    ``args`` carry the Problem (plain numpy / dataclasses)."""
+    cell, problem, axis_mode, start_depth, budget, deadline = args
+    return _solve_one(problem, axis_mode, start_depth, cell, budget, deadline)
+
+
+# Pool path: the (large) Problem is shipped ONCE per worker via the initializer,
+# not once per task — so per-frontier-item pickling stays tiny (just the cell).
+_POOL_STATE: dict = {}
+
+
+def _pool_init(problem, axis_mode, start_depth):
+    _POOL_STATE["problem"] = problem
+    _POOL_STATE["axis"] = axis_mode
+    _POOL_STATE["start_depth"] = start_depth
+
+
+def _solve_subtree_pooled(args):
+    cell, budget, deadline = args
+    return _solve_one(_POOL_STATE["problem"], _POOL_STATE["axis"],
+                      _POOL_STATE["start_depth"], cell, budget, deadline)
+
+
+# --------------------------------------------------------------------------- #
+# Dynamic work-queue parallelism (default for n_workers > 1)
+# --------------------------------------------------------------------------- #
+#
+# Why a work-queue and not a static frontier: the disconnection partition is thin
+# (the slab is a measure-zero-ish sheet), so a static pre-split has only a handful of
+# *heavy* cells — one worker ends up owning a big subtree and the speedup stalls
+# (~2x). A shared queue fixes this: a worker that splits a cell pushes BOTH children
+# back to the queue, so even a heavy subtree is spread across all workers as it
+# expands. The processed tree is the deterministic heuristic tree, so the leaf SET is
+# byte-identical to serial (no work inflation) regardless of who processed what.
+#
+# Start method: "fork" (default) is safe HERE because the parent never solves an LP —
+# the workers own all cvxpy/BLAS work, so no library thread is live at fork time —
+# and it avoids re-importing cvxpy per worker (which crushes "spawn" to ~1.5x). The
+# method is overridable for portability.
+
+def _wq_worker(problem, axis_mode, pending, results, active, lock, deadline):
+    """Pull cells off ``pending``; emit leaves to ``results``; push children back.
+    ``active`` (guarded by ``lock``) counts cells anywhere in flight — when it hits 0
+    the tree is fully partitioned and the worker exits with a ``None`` sentinel."""
+    from queue import Empty
+    backend = ENGINE_BACKEND
+    while True:
+        with lock:
+            if active.value == 0:
+                break
+        try:
+            cell, depth = pending.get(timeout=0.05)
+        except Empty:
+            continue
+        over_budget = deadline is not None and time.monotonic() >= deadline
+        v = _certify_cell(cell, problem, backend) if not over_budget else _CellVerdict("undecided")
+        if v.status == "outside":
+            results.put((cell, "outside", None, None))
+            with lock:
+                active.value -= 1
+        elif v.status == "collision":
+            results.put((cell, "collision", v.pair, v.margin))
+            with lock:
+                active.value -= 1
+        elif over_budget:
+            results.put((cell, "undecided", None, None))
+            with lock:
+                active.value -= 1
+        elif depth >= problem.max_depth:
+            results.put((cell, "FAIL", None, v.margin))
+            with lock:
+                active.value -= 1
+        else:
+            ax = _choose_axis(cell, problem, axis_mode, backend)
+            c1, c2 = _split(cell, ax)
+            with lock:
+                active.value += 1        # 2 children replace 1 ⇒ net +1
+            pending.put((c1, depth + 1))
+            pending.put((c2, depth + 1))
+    results.put(None)
+
+
+def _solve_workqueue(problem, budget, axis_mode, n_workers, start_method, t0):
+    ctx = get_context(start_method)
+    pending, results = ctx.Queue(), ctx.Queue()
+    active, lock = ctx.Value("i", 1), ctx.Lock()
+    deadline = (None if budget.max_time_s is None
+                else time.monotonic() + budget.max_time_s)
+    pending.put((tuple(tuple(c) for c in problem.box), 0))
+    procs = [ctx.Process(target=_wq_worker,
+                         args=(problem, axis_mode, pending, results, active, lock,
+                               deadline))
+             for _ in range(n_workers)]
+    for p in procs:
+        p.start()
+
+    leaves, failed, sentinels = [], [], 0
+    while sentinels < n_workers:
+        item = results.get()
+        if item is None:
+            sentinels += 1
+            continue
+        cell, status, pair, margin = item
+        leaves.append(Leaf([list(c) for c in cell], status, pair, margin))
+        if status in ("FAIL", "undecided"):
+            failed.append([list(c) for c in cell])
+    for p in procs:
+        p.join()
+
+    n_lp = sum(1 for lf in leaves if lf.status != "outside") * len(problem.pairs)
+    stats = _stats(leaves, n_lp, time.monotonic() - t0, problem, n_workers,
+                   parallel="work-queue", start_method=start_method)
+    return EngineResult(_verdict(failed), leaves, failed, stats)
+
+
+def _auto_frontier_depth(n_workers, n) -> int:
+    """Smallest uniform-split depth giving ~4 subcells per worker (so the pool stays
+    busy and load-balances over cells of uneven cost), capped to keep 2**depth sane."""
+    target = max(4 * n_workers, 8)
+    d = 1
+    while (2 ** d) < target and d < 10:
+        d += 1
+    return d
+
+
+# --------------------------------------------------------------------------- #
+# Checkpoint (atomic per-frontier-item)
+# --------------------------------------------------------------------------- #
+
+def _fingerprint(problem: Problem, axis_mode, frontier) -> str:
+    """A cheap stable fingerprint of the run so a checkpoint cannot be resumed
+    against a different problem/frontier (which would corrupt the certificate)."""
+    import hashlib
+    h = hashlib.sha256()
+    h.update(repr((problem.delta, problem.lam_degree, problem.tol, problem.max_depth,
+                   axis_mode, problem.phi.tolist(),
+                   [p.name for p in problem.pairs],
+                   [(p.obstacle.A.tolist(), p.obstacle.b.tolist()) for p in problem.pairs],
+                   [[float(x) for c in cell for x in c] for cell in frontier])).encode())
+    return h.hexdigest()[:16]
+
+
+class _Checkpoint:
+    """Directory-backed checkpoint: ``meta.json`` + ``done/<idx>.json`` per solved
+    frontier item, each written atomically (temp + os.replace) so a SIGKILL mid-write
+    never leaves a half file. Resume = load ``done/*`` and only solve the rest."""
+
+    def __init__(self, path, fingerprint, n_items):
+        self.path = path
+        self.done_dir = os.path.join(path, "done")
+        self.fingerprint = fingerprint
+        self.n_items = n_items
+
+    def init(self):
+        os.makedirs(self.done_dir, exist_ok=True)
+        meta = os.path.join(self.path, "meta.json")
+        if os.path.exists(meta):
+            with open(meta) as f:
+                old = json.load(f)
+            if old.get("fingerprint") != self.fingerprint:
+                raise ValueError("checkpoint fingerprint mismatch: refusing to "
+                                 "resume a different problem (soundness)")
+        else:
+            self._atomic(meta, {"fingerprint": self.fingerprint,
+                                "n_items": self.n_items})
+
+    def _atomic(self, path, obj):
+        tmp = path + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(obj, f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+
+    def has(self, idx) -> bool:
+        return os.path.exists(os.path.join(self.done_dir, f"{idx}.json"))
+
+    def load(self, idx):
+        with open(os.path.join(self.done_dir, f"{idx}.json")) as f:
+            return json.load(f)
+
+    def save(self, idx, payload):
+        self._atomic(os.path.join(self.done_dir, f"{idx}.json"), payload)
+
+
+# --------------------------------------------------------------------------- #
+# Public driver
+# --------------------------------------------------------------------------- #
+
+def solve(problem: Problem, budget: Budget | None = None, axis: str = "oracle",
+          n_workers: int = 1, checkpoint_dir: str | None = None,
+          frontier_depth: int | None = None, start_method: str = "fork",
+          backend: LPBackend | None = None) -> EngineResult:
+    """Certify (or refuse) the disconnection over ``problem.box``.
+
+    ``axis``: ``"oracle"`` (widest-axis fallback ⇒ reproduces the E3/E4 oracle
+    partition) or ``"margin"`` (worst-LP-margin fallback).
+
+    Execution mode (all sound; they only change *how* the same tree is explored):
+      * default (``n_workers<=1``, no checkpoint): serial recursion;
+      * ``n_workers>1`` (no checkpoint): the **dynamic work-queue** — workers share a
+        queue and push split children back, so the partition is byte-identical to
+        serial (no inflation) and load-balances dynamically (>= 3x on 8 cores);
+      * ``checkpoint_dir`` set: the resumable **frontier** path (uniform pre-split,
+        each subtree checkpointed atomically) — a kill-9 then resume yields the same
+        certificate. ``checkpoint_dir`` takes precedence over the work-queue.
+    """
+    if axis not in ("oracle", "margin"):
+        raise ValueError(f"unknown axis heuristic: {axis!r}")
+    backend = backend or ENGINE_BACKEND
+    t0 = time.monotonic()
+
+    if checkpoint_dir is None and n_workers > 1:
+        return _solve_workqueue(problem, budget or Budget(), axis, n_workers,
+                                start_method, t0)
+
+    if n_workers <= 1 and checkpoint_dir is None:
+        ctx = _Ctx(problem, budget, axis, backend, 0)
+        _recurse(ctx, tuple(tuple(c) for c in problem.box), 0)
+        stats = _stats(ctx.leaves, ctx.n_lp, time.monotonic() - t0, problem, n_workers)
+        return EngineResult(_verdict(ctx.failed), ctx.leaves, ctx.failed, stats)
+
+    # --- frontier-based path (parallel and/or checkpointed) ---
+    if frontier_depth is None:
+        frontier_depth = _auto_frontier_depth(max(n_workers, 1), problem.n)
+    frontier = _uniform_frontier(problem.box, frontier_depth, problem.n)
+
+    budget = budget or Budget()
+    deadline = None if budget.max_time_s is None else time.monotonic() + budget.max_time_s
+    per_item_budget = Budget(max_leaves=budget.max_leaves, max_time_s=None)
+
+    ckpt = None
+    if checkpoint_dir is not None:
+        ckpt = _Checkpoint(checkpoint_dir, _fingerprint(problem, axis, frontier),
+                           len(frontier))
+        ckpt.init()
+
+    results = [None] * len(frontier)
+    pending = []
+    for idx in range(len(frontier)):
+        if ckpt is not None and ckpt.has(idx):
+            results[idx] = ckpt.load(idx)
+        else:
+            pending.append(idx)
+
+    if pending:
+        if n_workers > 1:
+            ctxmp = get_context("spawn")
+            pooled = [(list(frontier[i]), per_item_budget, deadline) for i in pending]
+            with ctxmp.Pool(processes=n_workers, initializer=_pool_init,
+                            initargs=(problem, axis, frontier_depth)) as pool:
+                for idx, payload in zip(pending,
+                                        pool.map(_solve_subtree_pooled, pooled)):
+                    if ckpt is not None:
+                        ckpt.save(idx, payload)
+                    results[idx] = payload
+        else:
+            for idx in pending:
+                payload = _solve_subtree((list(frontier[idx]), problem, axis,
+                                          frontier_depth, per_item_budget, deadline))
+                if ckpt is not None:
+                    ckpt.save(idx, payload)
+                results[idx] = payload
+
+    leaves: list = []
+    failed: list = []
+    n_lp = 0
+    for payload in results:
+        leaf_dicts, fail_cells, sub_lp = payload
+        for d in leaf_dicts:
+            leaves.append(Leaf(d["cell"], d["status"], d.get("pair"), d.get("margin")))
+        failed.extend(fail_cells)
+        n_lp += sub_lp
+
+    stats = _stats(leaves, n_lp, time.monotonic() - t0, problem, n_workers,
+                   n_frontier=len(frontier), frontier_depth=frontier_depth)
+    return EngineResult(_verdict(failed), leaves, failed, stats)
+
+
+def _stats(leaves, n_lp, dt, problem, n_workers, **extra):
+    by_status = {}
+    for lf in leaves:
+        by_status[lf.status] = by_status.get(lf.status, 0) + 1
+    s = {"n_leaves": len(leaves), "n_lp_solves": n_lp, "time_s": dt,
+         "n_workers": n_workers, "axis_n": problem.n, "by_status": by_status}
+    s.update(extra)
+    return s
+
+
+# --------------------------------------------------------------------------- #
+# Partition export (figure-friendly, CLAUDE.md S3 task 3)
+# --------------------------------------------------------------------------- #
+
+def partition_records(result: EngineResult) -> list:
+    """Flatten leaves into plain dict records ``{cell, status, pair, margin}`` for
+    the figure layer (``scripts/make_figures.py``) and the certificate (S4)."""
+    return [{"cell": [list(c) for c in lf.cell], "status": lf.status,
+             "pair": lf.pair, "margin": lf.margin} for lf in result.leaves]
