@@ -249,7 +249,12 @@ def _export_multipliers(res, lp, max_den: int):
     face_margin = float((face0 + lp.face_b).min())
     mu_src = res.mu if res.mu is not None else np.zeros(0)
 
-    for alpha in (min(1e-2, 0.2 * face_margin), 1e-3, 1e-4, 1e-5):
+    # A13 (CLAUDE.md): alpha is a FRACTION of this leaf's measured face margin, not a
+    # hardcoded constant calibrated on E3. The blend lifts structural-zero lambda
+    # control points to alpha/K (so they survive rounding) while shrinking the faces
+    # by at most ~alpha; keeping alpha proportional to the margin makes both hold at
+    # the fine margins (~1e-3) expected at higher DOF.
+    for alpha in (f * face_margin for f in (0.2, 0.05, 0.01, 0.002)):
         if alpha <= 0:
             continue
         for md in (max_den, max_den * 100, max_den * 10000):
@@ -289,15 +294,41 @@ def _collision_leaf(scene: Scene, lf, verts, D, backend, max_den: int) -> dict:
 # Certificate assembly
 # --------------------------------------------------------------------------- #
 
-def make_certificate(scene: Scene, result: engine.EngineResult,
-                     backend=None, max_den: int = DEFAULT_MAX_DEN) -> dict:
+def make_certificate(scene: Scene, result: engine.EngineResult, backend=None,
+                     max_den: int = DEFAULT_MAX_DEN, verify_loop: bool = True) -> dict:
     """Assemble the exact-rational JSON certificate from a PROOF engine result.
 
-    Raises if the result is not a PROOF (UNDECIDED is not certifiable, SPEC §1)."""
+    Raises if the result is not a PROOF (UNDECIDED is not certifiable, SPEC §1).
+
+    A13 (CLAUDE.md / SPEC §4 "inward rounding with re-solve"): when ``verify_loop``,
+    the assembled certificate is handed to the INDEPENDENT exact verifier; if it is
+    rejected (a rounded multiplier that passed the float guard but fails in exact
+    arithmetic), ``max_den`` is escalated and the certificate rebuilt, until the exact
+    verifier accepts or the escalation cap is reached (then we raise honestly)."""
     if result.verdict != "PROOF":
         raise ValueError("cannot certify a non-PROOF result (verdict="
                          f"{result.verdict}); this is UNDECIDED, not a proof")
     backend = backend or engine.ENGINE_BACKEND
+
+    cert = _assemble_certificate(scene, result, backend, max_den)
+    if not verify_loop:
+        return cert
+    from . import verify as _verify  # exact arbiter (stdlib-only, no generator imports)
+    ok, reason = _verify.verify(cert)
+    md = max_den
+    while not ok and md < max_den * 10 ** 6:
+        md *= 100
+        cert = _assemble_certificate(scene, result, backend, md)
+        ok, reason = _verify.verify(cert)
+    if not ok:
+        raise ValueError("certificate failed exact verification after max_den "
+                         f"escalation to {md}: {reason}")
+    return cert
+
+
+def _assemble_certificate(scene: Scene, result: engine.EngineResult,
+                          backend, max_den: int) -> dict:
+    """Build the JSON certificate dict at a fixed rounding denominator ``max_den``."""
     verts, D = _body_numerators(scene)
 
     leaves = []

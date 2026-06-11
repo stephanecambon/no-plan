@@ -47,6 +47,38 @@ def test_e4_roundtrip_78_leaves():
 
 
 # --------------------------------------------------------------------------- #
+# A13 (CLAUDE.md, ouverture S5): adaptive lambda rounding + verify re-solve loop
+# --------------------------------------------------------------------------- #
+
+def test_a13_fine_margin_roundtrip():
+    """At a thicker slab (delta = 3/40) the smallest witness margins fall to ~2e-3
+    (vs ~6e-3 for the E3 default). The barycenter blend alpha, being a FRACTION of
+    each leaf's margin, must still export a certificate the exact verifier accepts —
+    the regime A13 targets for higher-DOF scenes."""
+    scene = cert_scenes.e3_scene()
+    scene.delta = Fraction(3, 40)
+    result, c = cert.certify(scene, axis="oracle")
+    assert result.verdict == "PROOF"
+    margins = [Fraction(lf["margin"]) for lf in c["leaves"]
+               if lf["status"] == "collision"]
+    assert min(margins) < Fraction(1, 500)  # genuinely fine-margin leaves are present
+    ok, msg = verify.verify(c)
+    assert ok, msg
+
+
+def test_a13_verify_loop_escalates_max_den():
+    """A13 / SPEC §4: make_certificate hands the assembled cert to the INDEPENDENT
+    exact verifier and escalates max_den until it accepts. Starting from a coarse
+    max_den, the returned certificate still verifies in exact arithmetic."""
+    from cnp import engine
+    scene = cert_scenes.e3_scene()
+    result = engine.solve(cert.scene_to_problem(scene), axis="oracle")
+    c = cert.make_certificate(scene, result, max_den=500, verify_loop=True)
+    ok, msg = verify.verify(c)
+    assert ok, msg
+
+
+# --------------------------------------------------------------------------- #
 # The certificate is pure exact rationals (SPEC §4)
 # --------------------------------------------------------------------------- #
 

@@ -287,6 +287,18 @@ class SympyRatFK:
         self.q_star = np.zeros(nq) if q_star is None else np.asarray(q_star, dtype=float)
         self.locked = {int(k): float(v) for k, v in (locked or {}).items()}
         self.unlocked = [i for i in range(nq) if i not in self.locked]
+        # A12 (CLAUDE.md): this back-end folds delta_i = q_i - q*_i into
+        # s_i = tan(delta_i/2) but does NOT apply the constant pre-rotation
+        # Rot(axis, q*_i) for unlocked joints, so a nonzero q* there would be
+        # SILENTLY ignored. Refuse it loudly rather than return a wrong FK; only
+        # q*=0 is sound on the sympy path (use the Drake back-end for q*!=0).
+        bad = {p: self.q_star[p] for p in self.unlocked if self.q_star[p] != 0.0}
+        if bad:
+            raise ValueError(
+                "SympyRatFK ignores q_star on unlocked joints (no Rot(axis,q*) "
+                f"pre-rotation): joints {bad} have a nonzero q*. Only q*=0 is "
+                "supported on the sympy path (CLAUDE.md A12); use DrakeRatFK for "
+                "q*!=0.")
         self.n = len(self.unlocked)
         self._s_of_pos = {p: k for k, p in enumerate(self.unlocked)}
         self._s = sp.symbols(f"s0:{self.n}") if self.n else ()

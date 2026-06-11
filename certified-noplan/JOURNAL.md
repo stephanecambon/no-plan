@@ -564,3 +564,113 @@ conforme à la vérité-terrain, raffinement concentré aux frontières/relais).
 φ (échantillonnage seedé, fit SVM, approximation polynomiale RATIONALISÉE,
 δ auto avec s_start/s_goal rationnels, boucle de retry). V2 en fin de session.
 
+---
+
+## 2026-06-11 — S5 (Claude Code) — Pipeline φ (**code vert, V2 en attente**)
+
+**Fait** :
+- S4 re-vérifié vert avant démarrage (117 passed, 0 skip, 135 s) ; au passage,
+  réconciliation des docs de la revue S4 (CLAUDE.md v1.3 incohérent : le bloc
+  A14/contrat était ajouté mais l'« État d'avancement » avait été reverté en
+  pré-S4 ; header v1.2→v1.3 ; commit doc séparé avant S5).
+- **Gardes d'ouverture** :
+  - **A12** — `SympyRatFK` lève désormais `ValueError` si q*≠0 sur un joint
+    **débloqué** (il ne pose pas la pré-rotation Rot(axe, q*) ⟹ q* serait ignoré
+    en silence, FK fausse). Joints **verrouillés** : q* replié dans cos/sin
+    numériques, q*≠0 toléré (testé). Drake gère q*≠0 nativement (inchangé).
+  - **A13** — l'arrondi λ mélange-au-barycentre devient **adaptatif** : α =
+    fraction de la marge de face MESURÉE par feuille (`(0.2,0.05,0.01,0.002)·marge`
+    au lieu de constantes calibrées sur E3). `make_certificate` exécute le
+    **vérificateur exact** et **escalade max_den** jusqu'à acceptation (promesse
+    SPEC §4 « re-résolution »), sinon lève honnêtement. Test à marge fine
+    (δ=3/40 ⟹ min marge ~1.9e-3) round-trip OK.
+- **`src/cnp/phifit.py`** (pipeline φ) : échantillonnage seedé de la s-boîte +
+  étiquetage par un **oracle de collision GÉNÉRIQUE passé en argument** (robot-
+  agnostique : le checker Drake est branché aux scènes Drake en S9+) ; deux fits
+  sur la base monomiale deg ≤2/var — **SVM linéaire** (`LinearSVC` sur les points
+  LIBRES étiquetés par côté start/goal ⟹ la fonction de décision est une barrière
+  dont le zéro traverse l'obstacle) et **moindres carrés** à cible signée (recette
+  E4 généralisée n-dim) ; **δ auto** = fraction (`safety`) d'un bas quantile de
+  |φ| sur les libres (marge du libre le plus proche), plafonnée par ½·borne de
+  condition (i) — δ PETIT (dalle fine ⊆ collision) ; **rationalisation** exacte +
+  ré-assertion de (i) en Fraction ; **boucle propose→certifie→raffine** : sur
+  UNDECIDED, on pénalise (×8) les échantillons libres tombant dans les cellules en
+  échec exportées par le moteur ET on amincit la dalle (safety/2), refit.
+- **E4-planaire via le pipeline complet** : φ trouvé automatiquement (sans hint),
+  certifié end-to-end et **vérifié en exact** (lstsq : 76 feuilles, δ≈0.264 ;
+  svm : 76 feuilles, δ≈0.505 ; oracle hand-tuné = 78). Les deux passent
+  `verify.verify`.
+- **Scène 3-DOF spatiale** (chaîne 3R sympy axes z,y,y, la « scène de S2 ») :
+  mur frontal **piégeant le point PROXIMAL du segment** (j2-origine, fonction de
+  s0,s1 seulement) sur une bande de lacet de base ⟹ tout chemin franchissant s0=0
+  est en collision pour TOUT tangage = **vraie déconnexion**. Le pipeline trouve
+  φ≈s0 automatiquement → **moteur-PROOF** (lstsq 9 feuilles après 1 retry ;
+  svm 8) ; **cond. (i) exacte** OK ; **0 point libre dans la dalle sur 300k
+  échantillons** (contrôle vérité-terrain, style S2 exit #2). Le vérificateur
+  exact reste planaire jusqu'à S9 (décision actée avec Stéphane : fidélité au
+  calendrier ; le 3-DOF est étiqueté « moteur-PROOF + échantillonnage », PAS
+  « certifié » au sens règle 5).
+- **Contrôle négatif (soundness)** : mur rétréci ×0.4 ⟹ chemin libre autour ⟹ le
+  pipeline ne renvoie **jamais PROOF** (UNDECIDED sur budget).
+- **Figures V2** (`scripts/make_figures.py` étendu, `phi_scenes.py` DRY) :
+  `benchmarks/figures/phi_E4.png` et `phi_3dof.png` — C-space échantillonné
+  (gris=collision) + lignes de niveau de φ (bleu) + dalle {|φ|≤δ} (or) +
+  start (★) / goal (✚).
+- `make test` : **130 passed, 0 skipped, 25 warnings, 195 s** (117 + 2 A12 +
+  2 A13 + 9 phifit). `make test-fast` = **76 passed, 54 deselected, 17.4 s**.
+
+**Décisions** :
+- **Oracle de collision en argument, pas Drake en dur** (amendé SPEC §3, règle 12).
+  Garde phifit robot-agnostique et sans réseau (chemin planaire = regref, chemin
+  3-DOF = sympy 3R), cohérent avec la décision S2. Drake = scènes S9+.
+- **δ petit = bon** : la dalle fine ⊆ collision est plus facile à certifier (et
+  moins de feuilles) ; le piège initial était δ=0.5·borne (≈0.6 sur E4) qui
+  avalait du libre → UNDECIDED à >1000 feuilles. La sélection finale prend une
+  fraction de la marge du libre le plus proche (quantile), pas 0.5·borne.
+- **SVM sur les LIBRES étiquetés par côté** (pas free/collision) : un SVM
+  free/collision donnerait la frontière de l'obstacle, pas une barrière le
+  traversant. Étiqueter les libres start-côté/goal-côté met le séparateur DANS le
+  gap de collision. Les deux fits livrés (svm + lstsq) ; lstsq reproduit la
+  recette E4.
+- **Disconnexion 3-DOF par piégeage proximal** : le point proximal du segment ne
+  dépend pas de s2 ⟹ une bande pleine sur (s1,s2) est garantie, donc une vraie
+  déconnexion topologique (vs un mur frontal que le bras contourne en tangage —
+  testé, échoue : 64/225 libres à s0=0).
+- **`make_certificate(verify_loop=True)` par défaut** : le générateur s'auto-
+  vérifie à l'exact et escalade max_den (A13). Coût doublé par cert, accepté
+  (c'est la garantie SPEC §4).
+
+**Pièges rencontrés** :
+- **δ=0.5·borne est le mauvais réflexe** (hérité de E4 où la borne était évaluée à
+  ±0.577 ; ici start/goal à ±0.9 ⟹ borne ~1.1, δ~0.55 trop épais). Diagnostic par
+  balayage de δ : 0.03–0.3 PROOF (14–76 feuilles), 0.5 UNDECIDED (549 feuilles).
+- **Mur frontal contournable** : un bras 3R à joint distal libre se rétracte/tangue
+  pour éviter un obstacle frontal (même haut). Il faut piéger une partie **proximale**
+  (indépendante du joint distal) pour garantir une bande pleine. Plusieurs géométries
+  écartées avant le piège proximal (collision frac 0.07→0.23→0.37).
+- **Overflow Fraction × numpy.int64** dans un script de debug : `tuple(e)` issu de
+  `np.argwhere` donne des exposants numpy ⟹ `Fraction ** np.int64` déclenche un
+  overflow scalaire silencieux. Le pipeline convertit en `int` natif (`tuple(int(x)
+  for x in e)`) — pas affecté ; piège de debug seulement.
+- **Colormap inversée** dans la figure V2 (Greys : 0=blanc) : première version avait
+  gris=libre alors que le titre disait gris=collision. Corrigé (collision→0.55).
+- **test-fast trop lent** (52 s) : le contrôle négatif 3-DOF (moteur jusqu'à 400
+  feuilles sur dalle libre) coûtait 41 s. Budget réduit à 80 feuilles + 1 retry
+  (UNDECIDED atteint vite de toute façon) ⟹ test-fast 17.4 s.
+
+**Décompte exact (sortie de session)** : `make test` = **130 passed, 0 skipped,
+25 warnings, 195 s** (mêmes 20 fork-deprecation + 5 Clarabel, documentés S0/S3).
+`make test-fast` = 76 passed, 54 deselected, 17.4 s.
+
+**Critères de sortie S5** : E4-planaire reproduit via le pipeline complet
+(generate→verify exact) ✓ ; 3-DOF spatial : φ auto + certifié moteur-PROOF +
+0 point libre / 300k (étiqueté honnêtement, verify exact = S9) ✓ ; gardes A12/A13
+✓ ; SPEC §3 amendée (règle 12) ✓ ; décompte journalisé ✓. **V2 EN ATTENTE** de
+Stéphane (figures phi_E4.png / phi_3dof.png). Code commité « S5 — V2 pending »
+(règle 11 amendée A8).
+
+**Prochaine étape** : V2, micro-commit de clôture, puis S6 — scenes.py + parser
+YAML + `cnp show` Meshcat + `cnp certify` bout-en-bout + suite adversariale
+initiale (porte G1'). NB S6 : `phi_scenes.py` (oracle + build_problem) est la base
+du branchement scène→pipeline ; le 3-DOF spatial attend `spatial_revolute` dans
+certificate+verify (S9) pour une certification exacte.

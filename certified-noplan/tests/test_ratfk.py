@@ -279,3 +279,26 @@ def test_drake_sympy_parity():
             truth = _numeric_chain_fk(joints, q, {}, k)[:3, 3]
             max_err = max(max_err, float(np.max(np.abs(fk_d.body(joints[k].name).eval_world_point([0, 0, 0], s) - truth))))
     assert max_err < 1e-9
+
+
+# --------------------------------------------------------------------------- #
+# A12 (CLAUDE.md, ouverture S5): SympyRatFK refuses a nonzero q* on UNLOCKED
+# joints (it does not apply the Rot(axis, q*) pre-rotation, so it would silently
+# return a wrong FK). Locked joints carry q* correctly and stay allowed.
+# --------------------------------------------------------------------------- #
+
+def test_sympy_ratfk_refuses_nonzero_qstar_on_unlocked():
+    joints = [RevoluteJoint("link0", np.eye(4), np.array([0, 0, 1.0])),
+              RevoluteJoint("link1", np.eye(4), np.array([0, 0, 1.0]))]
+    SympyRatFK(joints, q_star=[0.0, 0.0])  # q*=0 is fine
+    with pytest.raises(ValueError, match="q_star"):
+        SympyRatFK(joints, q_star=[0.3, 0.0])
+
+
+def test_sympy_ratfk_allows_qstar_on_locked_joint():
+    """A locked joint folds q* into its fixed cos/sin numerically (no s-variable), so
+    a nonzero q* there is sound and must NOT trip the A12 guard."""
+    joints = [RevoluteJoint("link0", np.eye(4), np.array([0, 0, 1.0])),
+              RevoluteJoint("link1", np.eye(4), np.array([0, 0, 1.0]))]
+    fk = SympyRatFK(joints, locked={0: 0.5}, q_star=[0.5, 0.0])
+    assert fk.n == 1

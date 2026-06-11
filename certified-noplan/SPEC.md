@@ -8,7 +8,13 @@ témoin à K sommets ; joints verrouillés ; deps. Amendements v1.2 (actés en S
 schéma de certificat §4 FINALISÉ ; condition (i) vérifiée en espace-s sur des images
 rationnelles de start/goal ; q* absorbé dans s pour les joints débloqués (le
 vérificateur exact planaire n'admet que q*=0) ; certificat auto-suffisant en S4 (la
-scène YAML croisée arrive en S6). Marqués « [amendé S<X>] ».
+scène YAML croisée arrive en S6). Amendements (actés en S5) : phifit prend un
+**oracle de collision générique** en argument (le checker Drake est branché aux
+scènes Drake, S9+) — chemin planaire = oracle regref, chemin 3-DOF spatial = chaîne
+3R sympy, tout sans réseau (cohérent avec S2) ; la scène 3-DOF spatiale est certifiée
+**moteur-PROOF + échantillonnage dense** (le vérificateur exact reste planaire
+jusqu'à S9, kind `spatial_revolute` du schéma §4 = S9+) — portée honnête, pas un
+affaiblissement. Marqués « [amendé S<X>] ».
 
 ---
 
@@ -100,8 +106,9 @@ certified-noplan/
 │   ├── witness.py             # construction LP du certificat-témoin slab-aware
 │   ├── engine.py              # branch-and-bound n-dim, heuristiques d'axe,
 │   │                          # parallélisme, checkpoint/resume
-│   ├── phifit.py              # échantillonnage (collision checker Drake),
-│   │                          # fit SVM/moindres carrés, approx polynomiale, δ auto
+│   ├── phifit.py              # échantillonnage (oracle de collision générique en
+│   │                          # arg ; Drake branché S9+ [amendé S5]), fit SVM/
+│   │                          # moindres carrés, approx polynomiale, δ auto, retry
 │   ├── certificate.py         # format JSON, sérialisation, statistiques
 │   ├── verify.py              # VÉRIFICATEUR INDÉPENDANT (voir §5)
 │   ├── scenes.py              # parser YAML scène → modèle Drake + H-rep obstacles
