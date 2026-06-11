@@ -1,10 +1,14 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
-Version 1.1 — 10 juin 2026 (amendée post-S2, revue de supervision ; v1.0 dans git).
+Version 1.2 — 11 juin 2026 (amendée post-S4 ; v1.0/v1.1 dans git).
 Projet : « certified-noplan ». Contexte : campagnes E1-E4 (CAMPAGNE-E1-E4-RESULTATS.md).
 Amendements v1.1 (actés en S0/S1/S2, règle 12 de CLAUDE.md) : paramétrisation autour
 d'une configuration de référence q* ; dénominateur commun PAR LINK ; exposant p=1 ;
-témoin à K sommets ; joints verrouillés ; deps. Marqués « [amendé S<X>] ».
+témoin à K sommets ; joints verrouillés ; deps. Amendements v1.2 (actés en S4) :
+schéma de certificat §4 FINALISÉ ; condition (i) vérifiée en espace-s sur des images
+rationnelles de start/goal ; q* absorbé dans s pour les joints débloqués (le
+vérificateur exact planaire n'admet que q*=0) ; certificat auto-suffisant en S4 (la
+scène YAML croisée arrive en S6). Marqués « [amendé S<X>] ».
 
 ---
 
@@ -63,6 +67,20 @@ dans le chemin critique.
 - obstacles statiques, corps robot = enveloppes convexes (polytopes) ;
 - géométrie de scène = données exactes (rationnels) du fichier scène.
 
+**Condition (i) en espace-s [amendé S4].** start/goal entrent dans le certificat
+comme **images rationnelles exactes** s_start, s_goal (et non comme q : tan(θ/2) des
+angles de démo est irrationnel, invérifiable en exact). Le vérificateur teste
+φ(s_start) < −δ et φ(s_goal) > +δ en arithmétique exacte ; il certifie donc la
+déconnexion entre deux **configurations réelles** q = q* + 2·arctan(s) d'images
+rationnelles. C'est une restriction de portée honnête (règle 6), pas un affaiblissement.
+
+**Absorption de q* [amendé S4].** Pour les joints **débloqués**, q* est absorbé dans
+s_i = tan((q_i − q*_i)/2) : les numérateurs FK en fonction de s ne dépendent PAS de q*.
+Ré-injecter un q* ≠ 0 exigerait la pré-rotation constante Rot(q*_i), donc cos/sin(q*_i)
+rationnels (irrationnels en général). Le vérificateur exact planaire (S4) n'admet donc
+que **q* = 0** et **refuse** un q* ≠ 0 plutôt que de le « croire » (règle 5) ; les
+scènes Drake à q* ≠ 0 (S9+) porteront les cos/sin verrouillés en rationnels.
+
 ## 3. Architecture
 
 ```
@@ -98,43 +116,57 @@ accepté pour le prototypage. Parallélisme : multiprocessing sur les feuilles.
 
 ## 4. Format de certificat (JSON)
 
-[amendé S1, schéma finalisé en S4]
+[schéma FINALISÉ S4] Tous les nombres sont des **chaînes rationnelles exactes**
+("num/den"). Le certificat est **auto-suffisant** en S4 (il embarque la scène exacte
+que verify recalcule ; le croisement avec un YAML externe arrive en S6).
 ```json
 {
-  "spec_version": "1.1",
+  "spec_version": "1.2",
   "theorem": "disconnection",
-  "robot": {"urdf": "...", "joint_limits_rad": [...],
-            "q_star": ["...rationnels..."],
-            "locked_joints": {"idx": {"cos": "...", "sin": "..."}}},
+  "robot": {"kind": "planar_revolute",          // S4 ; "spatial_revolute" en S9+
+            "link_lengths": ["1", "1"], "q_star": ["0", "0"],
+            "locked_joints": {"idx": {"cos": "...", "sin": "..."}},  // {} en S4
+            "n": 2},                              // nb de joints débloqués (= #vars s)
   "kinematics": {"substitution": "half_angle_homemade_v1",
                  "denominator": "per_link_prod_1_plus_s2"},
   "assumptions": ["no_wraparound_rel_qstar", "static_obstacles", "polytope_geometry"],
-  "phi": {"degree_per_var": 2, "coeffs": {...}},   // tenseur sparse {expo: rationnel}
-  "delta": "7/200",                                 // rationnels en chaînes
-  "start_q": [...], "goal_q": [...],
-  "checks": {"phi_start": "...", "phi_goal": "..."},
-  "tree": {...},          // arbre binaire de découpes (axe, point de coupe rationnel)
+  "body": {"link": 1, "hull_vertices": [["0","0","0"], ["1","0","0"]]},  // frame-corps
+  "obstacles": {"UP": {"A": [["1","0","0"], ...], "b": ["13/10", ...]}, ...},  // H-rep
+  "phi": {"degree_per_var": 2, "n": 2, "coeffs": {"1,0": "1"}},  // tenseur sparse
+  "delta": "1/20",
+  "box": [["-1","1"], ["-1","1"]],               // boîte P en espace-s (rationnelle)
+  "start_s": ["-9/10","0"], "goal_s": ["9/10","0"],  // images rationnelles (cond. i)
+  "checks": {"phi_start": "-9/10", "phi_goal": "9/10"},
+  "lam_degree": "affine",
+  "pairs": ["UP", "DOWN", "MID"],                // obstacles relayés
   "leaves": [
     {"cell": [["lo","hi"],...], "status": "outside"},
-    {"cell": [...], "status": "collision", "pair": ["link_6", "shelf_top"],
-     "lambda_degree": "affine", "lambda_coeffs": {...}, "mu": ["...", ...],
-     "margin": "..."}
+    {"cell": [...], "status": "collision", "obstacle": "MID",
+     "lambda": [{"0,0":"1/2", ...}, ...],        // K tenseurs ; Σλ_k ≡ 1 (exact)
+     "mu": ["...", ...], "margin": "..."}         // μ par face ; marge LP (info)
   ],
-  "stats": {"n_leaves": 0, "time_s": 0, "lp_rows_max": 0}
+  "stats": {"n_leaves": 46, "n_collision": 38, "n_outside": 8}
 }
 ```
-Tous les nombres du certificat sont des **rationnels exacts** (coupes dyadiques,
-coefficients arrondis vers l'intérieur de la zone faisable avant export — la marge
-absorbe l'arrondi ; si la marge ne l'absorbe pas, la feuille est re-résolue).
+Tous les nombres du certificat sont des **rationnels exacts** (coupes dyadiques ;
+coefficients arrondis vers l'intérieur avant export). **Arrondi des multiplicateurs
+[S4]** : λ est mélangé vers le barycentre du corps (les zéros structurels de Bernstein
+remontent à α/K > 0 et survivent à l'arrondi ; le barycentre somme à 1, donc Σλ_k ≡ 1
+reste exact, le dernier sommet étant DÉRIVÉ par soustraction), puis arrondi à
+`max_den` ; μ arrondi inférieurement ≥ 0. Re-vérification flottante à marge stricte,
+escalade (α, max_den) si besoin (SPEC §5 « re-résolution »). Le vérificateur exact
+(§5) est l'arbitre final ; le test round-trip generate→verify est la garantie.
 
 ## 5. Vérificateur indépendant (clé de crédibilité)
 
 `cnp verify cert.json scene.yaml` — script volontairement minimal (< 500 lignes,
 numpy interdit dans le chemin de preuve, `fractions.Fraction` uniquement) qui :
-1. revalide les hypothèses (limites ⊂ (−π,π), obstacles du fichier scène = H-rep du certificat) ;
-2. vérifie φ(s_start) ≤ −δ, φ(s_goal) ≥ +δ (arithmétique exacte) ;
-3. vérifie que l'arbre partitionne exactement P (couverture par construction :
-   chaque nœud = union disjointe de ses deux enfants) et que toute feuille est décidée ;
+1. revalide les hypothèses (δ>0, boîte bien formée, dim obstacle ; refuse q*≠0 en S4,
+   cf. §2 ; en S6+, obstacles du fichier scène = H-rep du certificat) ;
+2. vérifie φ(s_start) < −δ et φ(s_goal) > +δ (STRICT, arithmétique exacte ; §2 cond. i) ;
+3. vérifie que les feuilles **pavent exactement** P (cover disjoint reconstruit par
+   récursion sur les bissections au milieu — l'arbre n'est pas stocké, il est
+   re-dérivé) et que toute feuille est décidée (outside/collision) ;
 4. pour chaque feuille « outside » : coefficients de Bernstein de φ−δ ou −φ−δ tous ≥ 0 ;
 5. pour chaque feuille « collision » : reconstruit g à partir de la FK rationnelle
    SYMBOLIQUE (recalculée indépendamment, pas reprise du certificat), injecte λ, μ

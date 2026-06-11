@@ -417,3 +417,110 @@ qui committe (rule 11 amendée) et ouvre S4.
 **Prochaine étape** : V1, micro-commit, puis S4 — certificat JSON + verify.py
 exact (le schéma §4 est pré-amendé dans SPEC v1.1, S4 le finalise).
 
+---
+
+## 2026-06-11 — S4 (Claude Code) — Certificat exact + vérificateur indépendant
+
+**Fait** :
+- S3 re-vérifié vert avant démarrage (82 passed, 0 skip, 130 s).
+- `src/cnp/certificate.py` (GÉNÉRATEUR) : modèle `Scene` exact-rationnel (robot
+  révolute, obstacles H-rep, φ, δ, boîte P, start/goal en espace-s), `scene_to_problem`
+  (construit le `engine.Problem` flottant via `cnp.ratfk.SympyRatFK`), `make_certificate`
+  (sérialise un JSON 100 % rationnels exacts), `certify`, `save/load`. Schéma SPEC §4
+  finalisé.
+- `src/cnp/verify.py` (VÉRIFICATEUR, **SACRÉ**) : **498 lignes**, `fractions.Fraction`
+  uniquement, **zéro import** du générateur (audit AST en test). Ré-implémente
+  *from scratch* : algèbre tensorielle creuse + transformée de Bernstein exacte ; FK
+  demi-angle révolute indépendante (accumulation de transfos homogènes 4×4 en
+  tenseurs Fraction) ; les 5 contrôles SPEC §2 — (0) hypothèses, (i) φ(s_start)<−δ ∧
+  φ(s_goal)>+δ STRICT, (ii) pavage exact de P (cover disjoint re-dérivé par récursion
+  sur les bissections au milieu — l'arbre n'est pas stocké), (iii) feuilles outside
+  (Bernstein φ±δ ≥ 0), (iv) feuilles collision (Σλ_k ≡ 1 exact, Bernstein(λ_k) ≥ 0,
+  μ_j ≥ 0, Bernstein(g_j − μ_j·T) ≥ 0). **Le vérificateur FORME lui-même g − μT** ⟹ un
+  certificat ne peut pas y glisser le signe unsound g + μT (règle 2).
+- `src/cnp/cli.py` + `__main__.py` + `[project.scripts] cnp = cnp.cli:main` :
+  `cnp verify cert.json` (et `python -m cnp verify`) → PROOF (exit 0) / UNDECIDED
+  (exit 1), verdict honnête (règles 5/6). `scene` en argument optionnel (S6).
+- `tests/cert_scenes.py` : builders `Scene` E3/E4 (pendant S4 de `eng_scenes.py`).
+- `tests/test_certificate.py` (7 tests) : round-trip E3 (**46 feuilles** 38c/8o,
+  test-fast ~0.7 s) et E4 (**78 feuilles** 76c, @slow) reproduisant l'oracle, tous deux
+  vérifiés exactement ; certificat 100 % rationnels (pas de float qui fuit) ; save/load ;
+  refus d'un résultat UNDECIDED ; **audit verify** : < 500 lignes + imports stdlib only.
+- `tests/test_verify.py` (28 tests) : **26 mutations adversariales** (μ<0, μ énorme, Σλ≠1,
+  λ mis à l'échelle/négatif, coupe décalée, feuille manquante=trou, feuille dupliquée=
+  recouvrement, q*≠0, δ×20, δ<0, start/goal du mauvais côté, signe φ, b/A d'obstacle,
+  sommet de coque, longueur de link, body_link, collision↔outside relabellisées,
+  obstacle permuté, theorem/substitution corrompus, boîte rétrécie, cellule hors-boîte)
+  **toutes rejetées** ; le vérificateur ne lève jamais sur entrée corrompue (renvoie
+  `(False, raison)`).
+- `make test` complet : **117 passed, 0 skipped, 25 warnings, 135 s** (82 + 35 S4).
+  `make test-fast` = **67 passed, 50 deselected, 7.77 s**. Garde Mosek verte (3/3).
+
+**Décisions** :
+- **FK générateur via `SympyRatFK`, FK vérificateur ré-implémentée en Fraction.**
+  Vérifié : le bras planaire 2R exprimé en chaîne révolute z-axe reproduit EXACTEMENT
+  (diff 0.0) les tenseurs `regref.fk_tensors()`, donc le moteur via le modèle `Scene`
+  redonne 46/78. La duplication générateur↔vérificateur est le but (SPEC §5), pas un
+  défaut : deux chemins de code indépendants qui doivent CONCORDER.
+- **Pavage prouvé sans stocker l'arbre.** Le moteur n'émet qu'une liste plate de
+  feuilles ; plutôt que modifier `engine.py` (⟹ re-run adversarial, règle 1), verify
+  RECONSTRUIT le pavage par récursion sur les bissections au milieu (le moteur ne coupe
+  qu'au milieu ⟹ exact). Prouve trou ET recouvrement (mutations dédiées le confirment).
+- **Arrondi des multiplicateurs = mélange-au-barycentre + `limit_denominator`.** Le
+  min des points de contrôle Bernstein de λ est un **zéro STRUCTUREL** (le témoin est
+  sur un sommet du corps) ; l'arrondi indépendant des coeffs le rendait légèrement
+  négatif. Fix : λ ← (1−α)λ + α·barycentre (le barycentre somme à 1 ⟹ Σλ≡1 préservé ;
+  les zéros remontent à α/K>0), α ≪ marge de face (0.0063 sur E3) ⟹ faces restent > 0.
+  Dernier sommet DÉRIVÉ par soustraction ⟹ Σλ≡1 exact par construction. max_den=1e6 :
+  la poussière numérique (~1e-13) tombe sur 0, les marges (~1e-2) survivent.
+- **Condition (i) en espace-s.** tan(θ/2) des angles de démo est irrationnel ⟹
+  invérifiable en exact. On certifie entre deux configs RÉELLES d'images s_start,
+  s_goal RATIONNELLES (q = q*+2·arctan(s)), test STRICT. Restriction de portée
+  honnête (règle 6), SPEC §2 amendée.
+- **Certificat auto-suffisant en S4** : il embarque la scène exacte (robot+obstacles)
+  que verify recalcule ; le croisement avec un YAML externe est S6. Faire confiance à
+  l'ÉNONCÉ du problème (géométrie, q*) ≠ faire confiance à la PREUVE (numérateurs, λ,
+  μ, partition) — seule la preuve est recalculée/contrôlée.
+- **`cnp verify` n'utilise pas cvxpy** (verify = stdlib pur) ; `make_certificate`
+  re-résout via le backend HiGHS du moteur (mosek-free). La garde Mosek reste verte.
+
+**Pièges rencontrés** :
+- **q* est absorbé dans s pour les joints débloqués.** Changer q* dans le cert ne
+  changeait RIEN au verdict (les numérateurs FK en s n'en dépendent pas). Ré-injecter
+  q*≠0 exige Rot(q*_i) ⟹ cos/sin(q*_i) rationnels (irrationnels en général). Choix
+  honnête : le vérificateur exact planaire n'admet que **q*=0** et REFUSE q*≠0 (règle 5 :
+  ne jamais « vérifier » ce qu'on ne peut pas recalculer). C'est ce refus qui rend la
+  mutation q* rejetable. q*≠0 viendra avec Drake (S9+, cos/sin verrouillés rationnels).
+  NB : `SympyRatFK` ignore aussi le q* des joints débloqués — latent, sans effet à
+  q*=0 (S4), à traiter pour le chemin sympy si q*≠0 un jour ; Drake le gère déjà.
+- **`link_lengths[1]` n'entre PAS dans la FK de `body_link=1`** : seule
+  `link_lengths[0]` (offset du joint 1) compte ; la longueur du link distal est portée
+  par `hull_vertices`. Première mutation « link_length » (indice 1) passait à tort ;
+  corrigée à l'indice 0.
+- **Bernstein au MÊME degré que le générateur** (DPAD = max(d_λ+2, 2·d_φ) = 4 en
+  affine) : un degré plus bas donnerait une borne plus lâche ⟹ FAUX rejet d'un cert
+  valide (la soundness, elle, tiendrait). verify calcule au degré du générateur ⟹
+  décision d'acceptation identique.
+- **Audit d'imports par regex piégeux** : `^\s*from` matchait « from scratch » en
+  prose. Remplacé par un parcours **AST** (Import/ImportFrom) — robuste.
+- **verify.py a frôlé 500 lignes** (516 → 498) : suppression des helpers Bernstein
+  min/max inutilisés et condensation des commentaires. La limite « < 500 » (règle 4)
+  est testée (`test_verify_under_500_lines`).
+
+**Décompte exact (sortie de session)** : `make test` = **117 passed, 0 skipped,
+25 warnings, 135 s** (mêmes 20 fork-deprecation + 5 Clarabel, documentés S0/S3).
+`make test-fast` = 67 passed, 50 deselected, 7.77 s.
+
+**Critères de sortie S4** : round-trip generate→verify OK sur E3 et E4 ✓ ;
+≥ 20 certificats corrompus rejetés (**26**) ✓ ; audit imports de verify (stdlib only,
+< 500 lignes) ✓ ; SPEC §2/§4/§5 amendée (règle 12) ✓ ; décompte exact journalisé ✓.
+Pas de point [V*] en S4 (la prochaine validation visuelle est V2 en S5). **S4 vert.**
+
+**Prochaine étape** : S5 — pipeline φ (`phifit.py`) : échantillonnage C_free/C_obs
+(collision checker Drake, seedé), fit SVM + approx polynomiale deg ≤2/var, sélection δ
+auto, boucle de retry. **[V2]** : figure « C-space + lignes de niveau φ + dalle » pour
+E4-planaire puis 3-DOF. NB S5 : `certificate.Scene` + `verify` attendent un φ rationnel
+et des obstacles H-rep exacts ; phifit devra rationaliser son φ appris (cf. `e4_scene`
+qui rationalise à 1e-6). NB S6 : brancher `cnp verify cert scene.yaml` (croisement scène
+externe), et `cnp certify`.
+

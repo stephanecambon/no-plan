@@ -118,7 +118,12 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   octet-identique (3.56× / 8 workers), checkpoint/resume kill-9 avec empreinte
   SHA, HiGHS par défaut (mosek-free), garde Mosek 3 volets, make test-fast,
   figures (82 tests, 0 skip). **V1 validée** (annotation A11 → S11, voir JOURNAL.md).
-- ⏳ S4 — prochaine session.
+- ✅ **S4** — certificat JSON exact (certificate.py) + vérificateur indépendant
+  exact (verify.py, 498 lignes, Fraction-only, zéro import du générateur) + CLI
+  `cnp verify`. Round-trip E3 (46) / E4 (78) reproduisant l'oracle, vérifiés en
+  exact ; 26 mutations adversariales toutes rejetées ; SPEC §2/§4/§5 amendée
+  (cond. i en espace-s, q* absorbé, schéma finalisé) (117 tests, 0 skip).
+- ⏳ S5 — prochaine session (pipeline φ, phifit.py).
 
 ---
 

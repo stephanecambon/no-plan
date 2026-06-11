@@ -24,6 +24,9 @@ dependencies = [
     "meshcat>=0.3",        # 3D viz (S11)
 ]
 
+[project.scripts]
+cnp = "cnp.cli:main"       # `cnp verify <cert.json>` (S4); certify/show in S6
+
 [project.optional-dependencies]
 drake = ["drake>=1.30"]    # RationalForwardKinematics wrapper (S1)
 dev = ["pytest>=8.0"]
