@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.4 — 11 juin 2026 (révision post-S5 ; v1.0/v1.1/v1.2/v1.3 dans git).
+Version 1.5 — 11 juin 2026 (révision post-S6 ; v1.0..v1.4 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -17,7 +17,13 @@ S11). Changements v1.3 → v1.4 (revue S5, annotations A15-A17) : S5 actée ;
 gouvernance CLAUDE.md (règle 14) ; circuit doc par diffs journalisés (les revues
 ne livrent plus de fichiers entiers — le repo est l'unique source de vérité) ;
 verdicts à trois statuts PROOF / ENGINE-PROOF / UNDECIDED (S6) ; résidus v1.3
-appliqués (A11 → S11). Détail : entrées « Revue de supervision » de JOURNAL.md.
+appliqués (A11 → S11). Changements v1.4 → v1.5 (revue S6, annotations A18-A20) :
+S6 actée, **G1' franchie** ; `margin` devient le défaut pour toute scène nouvelle
+(A10 tranché par les faits : peigne 3-DOF 736 FAIL oracle vs 54 feuilles margin) ;
+« dims passives par intervalles » devient la tâche n°1 de S8 (A18) ; fit STRUCTURÉ
+des dims passives en S9 (A19) ; critère « apparence faisable » ajouté aux
+checklists V4-V6 (A20) ; vue sweep + nommage physique des axes deviennent des
+composants standard en S11 (D10). Détail : entrées « Revue de supervision » de JOURNAL.md.
 
 ---
 
@@ -163,7 +169,7 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   tests/test_adversarial.py (micro-canal : grille grossière 0-libre mais moteur
   refuse) zéro faux certificat ; SPEC §6 amendée (149 tests, 0 skip). **V3 validée**
   (figures workspace/C-space/sweep du peigne + 3R spatial).
-- ⏳ S7 — prochaine session (ancrage Li-Dantam 4-DOF, porte G3').
+- 🚧 S7 — en cours (ancrage Li-Dantam 4-DOF, porte G3', validation V4).
 
 ---
 
@@ -267,13 +273,17 @@ plus proche et journaliser.
 - Tâches : retrouver scènes/code Li-Dantam (web autorisé) ; reproduire la scène
   bookshelf 4-DOF (sinon ré-implémentation documentée depuis arXiv 2406.04795 /
   2501.11434) ; harness benchmarks/ ; premier tableau comparatif (leurs temps
-  publiés vs nôtres).
+  publiés vs nôtres) ; **produire la vue sweep de la scène (A20)** (éventail des
+  poses start→goal, collisions en rouge — montre pourquoi le chemin a l'air
+  faisable).
 - **[V4] Validation visuelle** : image côte-à-côte produite par la session :
   rendu Meshcat de notre scène vs figure du papier (référence de figure et page
   citées).
-  Vérifier : (1) même topologie d'obstacles (nombre, agencement relatif) ;
-  (2) même robot / mêmes joints actifs ; (3) start/goal qualitativement
-  conformes au scénario du papier.
+  Vérifier : (0) **[A20] la scène a l'air FAISABLE — goal proche/visible dans
+  l'espace de travail, la vue sweep montre pourquoi on croirait passer**
+  (« atteignable en apparence, prouvé inatteignable ») ; (1) même topologie
+  d'obstacles (nombre, agencement relatif) ; (2) même robot / mêmes joints
+  actifs ; (3) start/goal qualitativement conformes au scénario du papier.
 - Sortie : **G3'** — S3 certifiée + vérifiée, tableau dans benchmarks/results/,
   écarts commentés honnêtement dans JOURNAL.md (y compris si on est plus lents à
   4-DOF : le titre se joue à 5+) ; **V4 validée**.
@@ -283,37 +293,49 @@ plus proche et journaliser.
   scipy.linprog), conséquence de la découverte « import cvxpy réveille mosek » ;
   et l'isolation back-end était acquise dès S2. Cette session = optimisation
   pure.
-- Tâches : highspy direct sur WitnessLP (API bas niveau, warm starts entre
-  cellules sœurs) ; exploitation de la sparsité des tenseurs FK ; dimensions
-  passives par intervalles (lignes (d+1)^k au lieu de (d+1)^n) ; degré de
-  témoin adaptatif par feuille ; profiling (py-spy) ; ré-évaluer fork vs spawn
-  une fois les workers mono-thread (solder les 20 DeprecationWarning fork) ;
-  **élucider les 5 warnings Clarabel** journalisés depuis S0 (résoudre ou
-  documenter pourquoi structurellement bénins).
+- Tâches :
+  1. **[A18, TÂCHE N°1] dimensions passives par intervalles** (lignes (d+1)^k au
+     lieu de (d+1)^n) : le risque n°1 s'est matérialisé dès n=3 (S6, peigne :
+     UNE dim passive s2 ⟹ axe `oracle` gaspille la profondeur, 736 feuilles /
+     256 FAIL / UNDECIDED, là où `margin` certifie en 54). Mitigation prioritaire
+     car c'est le levier de G2' (S9 5-6 DOF) ;
+  2. highspy direct sur WitnessLP (API bas niveau, warm starts entre cellules
+     sœurs) ; exploitation de la sparsité des tenseurs FK ; degré de témoin
+     adaptatif par feuille ; profiling (py-spy) ; ré-évaluer fork vs spawn une
+     fois les workers mono-thread (solder les 20 DeprecationWarning fork) ;
+     **élucider les 5 warnings Clarabel** journalisés depuis S0 (résoudre ou
+     documenter pourquoi structurellement bénins).
 - Sortie : sur la scène S3 : ≥ 10× plus rapide que cvxpy ; mémoire bornée ;
-  aucun changement de verdict sur la suite complète + adversarial (soundness
-  re-validée) ; warnings traités.
+  **le peigne 3-DOF certifie avec `axis=oracle` après mitigation (la profondeur
+  n'est plus gaspillée dans la dim passive)** ; aucun changement de verdict sur
+  la suite complète + adversarial (soundness re-validée) ; warnings traités.
 
 ### S9 — Scène S4 (bac profond, 5-6 DOF)
 - Entrée : S8 vert. Pré-télécharger les modèles Drake (hors-ligne interdit ici :
   les tests iiwa sont REQUIS, règle 13).
 - Tâches : iiwa joints verrouillés (7→5 puis 6) ; conception géométrique de la
-  scène bac ; vérité-terrain par échantillonnage dense AVANT certification
-  (intention seulement — leçon du micro-canal) ; tuning heuristiques d'axe —
-  NOTE v1.2 [A10] : trancher SUR DONNÉES oracle vs margin-relais (S3 : le
-  margin-relais bat l'oracle sur E4, 56 vs 78 feuilles, perd sur E3, 54 vs 46 ;
-  c'est le levier anti-explosion n°1 pour G2'). Micro-tâche : mesurer
-  feuilles(n) sur la même scène à n = 3,4,5,6 joints débloqués pour ajuster
-  l'exposant empirique du modèle de coût.
+  scène bac ; **vue sweep de la scène (A20)** ; vérité-terrain par échantillonnage
+  dense AVANT certification (intention seulement — leçon du micro-canal) ; tuning
+  heuristiques d'axe —
+  NOTE [A10, TRANCHÉ (S6)] : `margin` = défaut pour toute scène nouvelle ;
+  `oracle` = parité de régression uniquement (données : peigne 3-DOF, 736 FAIL
+  oracle vs 54 feuilles margin ; S3 : margin bat l'oracle sur E4, 56 vs 78,
+  perd sur E3, 54 vs 46) — levier anti-explosion n°1 pour G2'. **Fit STRUCTURÉ
+  [A19]** : pénaliser/zéroter les coeffs des dims passives détectées (par
+  sensibilité) au fit φ — leçon S6 : lstsq surajuste un degré-2 parasite sur la
+  dim passive s2 ⟹ φ tordu ⟹ UNDECIDED. Micro-tâche : mesurer feuilles(n) sur la
+  même scène à n = 3,4,5,6 joints débloqués (distinguer dims actives/passives)
+  pour ajuster l'exposant empirique du modèle de coût.
 - **[V5] Validation visuelle — OBLIGATOIRE AVANT TOUT RUN LONG** :
   `cnp show scenes/S4_bac.yaml` + coupes 2D du C-space échantillonné (paires de
-  joints les plus actives).
-  Vérifier : (1) le bac enferme réellement l'objet cible et la caisse avant
-  bloque l'accès frontal — c'est bien le scénario « inatteignable sans retirer
-  la caisse » qu'on veut PROUVER ; (2) start (home) et goal (prise) visuellement
-  sans collision ; (3) sur les coupes C-space, la zone collision sépare
-  plausiblement start de goal. Réponse « VALIDÉ S9-V5 » = autorisation de lancer
-  les runs longs.
+  joints les plus actives) + vue sweep (A20).
+  Vérifier : (0) **[A20] la scène a l'air FAISABLE — goal proche/visible, la vue
+  sweep montre pourquoi on croirait passer** ; (1) le bac enferme réellement
+  l'objet cible et la caisse avant bloque l'accès frontal — c'est bien le
+  scénario « inatteignable sans retirer la caisse » qu'on veut PROUVER ;
+  (2) start (home) et goal (prise) visuellement sans collision ; (3) sur les
+  coupes C-space, la zone collision sépare plausiblement start de goal. Réponse
+  « VALIDÉ S9-V5 » = autorisation de lancer les runs longs.
 - Sortie : **G2'** — S4 certifiée < 1 h, < 10⁴ feuilles, verify OK ; **V5
   validée**. SI ROUGE : session(s) mitigations SPEC §9.1 avant S10 — point de
   pivot du projet, le journaliser comme tel ; la décision de re-scope se prend
@@ -321,15 +343,17 @@ plus proche et journaliser.
 
 ### S10 — Flagship 7-DOF (scène S5)
 - Entrée : G2'.
-- Tâches : scène étagère iiwa complète ; extrapolation de budget depuis S9
-  (feuilles, temps) présentée AVANT de lancer ; runs longs avec checkpoints ;
-  si φ deg ≤2 insuffisant : φ par morceaux (théorème composé, amender SPEC).
+- Tâches : scène étagère iiwa complète ; **vue sweep de la scène (A20)** ;
+  extrapolation de budget depuis S9 (feuilles, temps) présentée AVANT de lancer ;
+  runs longs avec checkpoints ; si φ deg ≤2 insuffisant : φ par morceaux
+  (théorème composé, amender SPEC).
 - **[V6] Validation visuelle + go/no-go** : `cnp show scenes/S5_iiwa_shelf.yaml`
-  + budget estimé (temps, feuilles, RAM).
-  Vérifier : (1) étagère + panneau obstruant conformes au scénario « case haute
-  inatteignable depuis home » ; (2) home et goal sans collision visuelle ;
-  (3) budget acceptable pour la machine (sinon : décision cloud avec Stéphane).
-  « VALIDÉ S10-V6 » = autorisation du run flagship.
+  + budget estimé (temps, feuilles, RAM) + vue sweep (A20).
+  Vérifier : (0) **[A20] la scène a l'air FAISABLE — goal proche/visible, la vue
+  sweep montre pourquoi on croirait passer** ; (1) étagère + panneau obstruant
+  conformes au scénario « case haute inatteignable depuis home » ; (2) home et
+  goal sans collision visuelle ; (3) budget acceptable pour la machine (sinon :
+  décision cloud avec Stéphane). « VALIDÉ S10-V6 » = autorisation du run flagship.
 - Sortie : **G4'** — certificat 7-DOF vérifié exact ; **V6 validée** ; archiver
   certificat + scène + commit en l'état.
 
@@ -341,6 +365,11 @@ plus proche et journaliser.
   **[A11, V1]** : rogner ou hachurer la partie hors-dalle des feuilles
   slab-aware et tracer la frontière de dalle {|φ|=δ} sur le panneau partition
   (sans quoi un lecteur croit qu'on certifie de la collision en zone libre).
+  **[D10, V3]** : la **vue sweep** (éventail des poses start→goal, collisions en
+  rouge) et le **nommage physique des axes** (type d'articulation rotoïde/rotule,
+  axes du C-space par leur sens — lacet/tangage) deviennent des composants
+  STANDARD de `cnp viz` et des figures (leçon V3 : 5 itérations pour rendre la
+  déconnexion lisible).
 - **[V7] Validation visuelle** : pack de figures prêt-papier.
   Vérifier : (1) chaque figure raconte une histoire lisible sans légende orale ;
   (2) les chiffres des tables correspondent aux JSON de benchmarks/results/ ;

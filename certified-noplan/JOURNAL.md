@@ -901,3 +901,79 @@ sans retirer la caisse), S10 (étagère 7-DOF, case haute inatteignable depuis h
 builtin `spatial_revolute` du parser est prêt côté moteur ; la certification EXACTE
 des scènes spatiales (kind `spatial_revolute` dans verify.py) reste S9.
 
+## 2026-06-11 — Revue de supervision S6 (claude.ai) — **G1' actée, annotations A18-A20**
+
+**Verdict** : S6 validée, porte **G1' franchie** (peigne 3-DOF certifié
+end-to-end certify→verify + cross-check scène + zéro faux certificat sur
+l'adversarial). Le circuit A16 (diffs appliqués par Code en ouverture, commit
+doc séparé) a fonctionné du premier coup.
+
+**Signal majeur — le risque n°1 s'est matérialisé à n=3** : UNE dimension
+passive (s2) suffit à faire échouer l'axe `oracle` (736 feuilles, 256 FAIL,
+UNDECIDED) là où le lookahead-relais `margin` certifie en 54 feuilles. Données
+précieuses obtenues deux sessions avant G2', à coût nul. Conséquences :
+(a) le débat A10 est tranché par les faits — `margin` devient le défaut pour
+toute scène nouvelle (l'oracle ne sert plus qu'à la parité de régression) ;
+(b) la mitigation propre « dims passives par intervalles » monte en tâche n°1
+de S8 ; (c) le modèle de coût (feuilles vs DOF) doit distinguer dims actives et
+passives.
+
+**Autres points au-dessus de l'attendu** : le micro-canal institutionnalisé en
+test adversarial (la grille 11³ dupée, le moteur refuse — règle 9 prouvée à
+chaque CI) ; verdicts à trois statuts réels et testés (ENGINE-PROOF n'est pas
+du code mort) ; verify.py intouché, cross-check scène séparé côté générateur
+(bonne frontière) ; `cnp certify` déterministe (φ baké, fit hors-ligne).
+
+**Leçons V3 (5 itérations, capitalisées pour S11 et le papier)** : Meshcat 3D
+illisible pour du planaire → vue 2D top-down ; deux poses figées ne montrent
+pas l'inatteignable → C-space ; « je ne vois pas ce qui bloque » → vue SWEEP
+(éventail interpolé, collisions rouges) ; confusion rotule/rotoïde → nommer le
+TYPE d'articulation et les axes du C-space par leur sens physique
+(lacet/tangage). Demande produit de Stéphane actée : les scènes S7/S9/S10
+doivent raconter « atteignable en apparence, prouvé inatteignable ».
+
+**Annotations** :
+- [A18] Dimensions passives : priorité S8 relevée (tâche n°1) ; `margin` défaut
+  scènes nouvelles ; modèle de coût à raffiner (actives vs passives).
+- [A19] Le fit lstsq surajoute du degré-2 sur les dims passives (φ tordu →
+  UNDECIDED) : en S9, fit STRUCTURÉ (pénaliser/zéroter les coefficients des
+  dims détectées passives par sensibilité).
+- [A20] « Apparence faisable » = critère de conception de scène : ajouté aux
+  checklists V4/V5/V6 (point 0) et aux tâches de conception S7/S9/S10 ; la
+  figure de chaque scène inclut la vue sweep qui montre POURQUOI ça a l'air
+  passable.
+
+**Vigilances S7 (premier contact avec une géométrie externe)** : scènes
+Li-Dantam probablement Panda + maillages (voire doigts prismatiques) ⟹
+s'attendre à une REPRODUCTION APPROCHÉE documentée (décomposition convexe,
+joints prismatiques hors-périmètre v1 à verrouiller), pas un import direct ;
+budget de session en conséquence. Comparaison de temps publiés : machines et
+métriques différentes — le tableau dit ce qu'il peut comparer et ce qu'il ne
+peut pas.
+
+**Diffs à appliquer par Code en ouverture de S7 (CLAUDE.md du repo)** :
+- D6 [A10 tranché/A18] Section S9, note A10 : remplacer « trancher SUR
+  DONNÉES » par « TRANCHÉ (S6) : margin = défaut pour toute scène nouvelle ;
+  oracle = parité de régression uniquement (données : peigne 3-DOF, 736 FAIL
+  oracle vs 54 feuilles margin) ».
+- D7 [A18] Section S8 : « dims passives par intervalles » passe en tâche n°1,
+  avec référence aux données S6 ; ajouter à la sortie S8 : « le peigne certifie
+  avec axis=oracle après mitigation (la profondeur n'est plus gaspillée) ».
+- D8 [A19] Section S9, tâches : ajouter « fit STRUCTURÉ : pénaliser/zéroter les
+  coeffs des dims passives détectées (leçon S6 : lstsq surajuste s2) ».
+- D9 [A20] Checklists V4 (S7), V5 (S9), V6 (S10) : ajouter en point (0) :
+  « la scène a l'air faisable — goal proche/visible dans l'espace de travail,
+  la vue sweep montre pourquoi on croirait passer » ; et aux tâches de
+  conception de scène correspondantes : produire la vue sweep.
+- D10 [V3] Section S11 : la vue sweep et le nommage physique des axes
+  (type d'articulation, lacet/tangage) deviennent des composants STANDARD de
+  `cnp viz` et des figures.
+- D11 Header : version 1.5, changelog « v1.4→v1.5 (revue S6, A18-A20) : G1'
+  actée ; margin par défaut (A10 tranché) ; dims passives tâche n°1 S8 ; fit
+  structuré S9 ; critère "apparence faisable" V4-V6 ; sweep + axes physiques
+  standard S11 ».
+
+**Prochaine étape** : S7 — ouverture : D6-D11 (+ commit doc séparé), puis
+ancrage Li-Dantam 4-DOF (porte G3', validation V4 avec point « apparence
+faisable »).
+
