@@ -766,8 +766,14 @@ puis scenes.py + YAML + `cnp show` + `cnp certify` + adversarial initial
   ENGINE-PROOF (moteur OK, vérif. exacte indisponible — TOUJOURS avec son
   avertissement) / UNDECIDED. Erreurs propres (exit 2).
 - **`src/cnp/viz.py`** (minimal S6) : `show_scene` — bras planaire (squelette
-  polyline + sphères aux joints) aux configs start/goal + obstacles boîtes en
-  Meshcat ; URL retournée. (viz complet `cnp viz <cert>` = S11.)
+  polyline + sphères aux joints) aux configs start ET goal dans un SEUL serveur
+  Meshcat (bleu/vert) ; URL retournée. + `save_planar_figure` — **figure 2D vue de
+  dessus** (dents en rectangles, poses du bras en polylignes épaisses), bien plus
+  lisible que la 3D pour une scène planaire ; `cnp show --png` la produit, et
+  `scripts/make_scene_figures.py` (dans `make figures`) génère
+  `benchmarks/figures/scene_S2_peigne.png` avec start/goal libres + 2 poses
+  in-dalle (link médian pris dans MID puis UP — le relais). (viz complet `cnp viz
+  <cert>` = S11.)
 - **Scènes** : `scenes/S1_relais.yaml` (E3, 46 feuilles, régression rapide),
   `scenes/S2_peigne.yaml` (**peigne 3-DOF planaire**), `scenes/S2b_spatial3.yaml`
   (3-DOF spatiale → ENGINE-PROOF).

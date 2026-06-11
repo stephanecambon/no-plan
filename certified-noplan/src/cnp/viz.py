@@ -61,6 +61,52 @@ def _box_bounds(A, b):
     return list(zip(lo, hi))
 
 
+def save_planar_figure(scene: _cert.Scene, path: str, poses=None, title=None):
+    """Top-down 2-D figure of a planar scene (the natural view for design inspection,
+    V3): obstacle teeth as labelled rectangles, the arm drawn at each pose as a thick
+    polyline with joint dots. ``poses`` is a list of ``(label, s_array, colour)``;
+    defaults to start (blue) and goal (green). Returns ``path``.
+
+    Unlike the 3-D Meshcat view, this reads at a glance for a planar arm and lets us
+    show an in-slab pose (where the body link is caught in the comb) next to the free
+    start/goal — the story the certificate proves."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
+
+    if poses is None:
+        poses = [("start", _config_q_to_s(scene, "start"), "#1f77b4"),
+                 ("goal", _config_q_to_s(scene, "goal"), "#2ca02c")]
+
+    fig, ax = plt.subplots(figsize=(7, 7))
+    for nm, (A, b) in scene.obstacles.items():
+        bnds = _box_bounds(A, b)
+        if bnds is None:
+            continue
+        (xlo, xhi), (ylo, yhi) = bnds[0], bnds[1]
+        ax.add_patch(Rectangle((xlo, ylo), xhi - xlo, yhi - ylo,
+                               facecolor="0.6", edgecolor="0.3", alpha=0.7))
+        ax.text((xlo + xhi) / 2, (ylo + yhi) / 2, nm, ha="center", va="center",
+                fontsize=9, weight="bold")
+
+    for label, s, colour in poses:
+        pts = _joint_world_positions(scene, np.asarray(s, dtype=float))
+        ax.plot(pts[:, 0], pts[:, 1], "-", color=colour, lw=3, label=label, zorder=3)
+        ax.plot(pts[:, 0], pts[:, 1], "o", color=colour, ms=7, zorder=4)
+    ax.plot(0, 0, "ks", ms=9, zorder=5)            # base
+    ax.set_aspect("equal")
+    ax.grid(True, ls=":", alpha=0.5)
+    ax.legend(loc="upper left")
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("y (m)")
+    ax.set_title(title or "scene (top-down)")
+    fig.tight_layout()
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+    return path
+
+
 _CONFIG_COLOUR = {"start": 0x1f77b4, "goal": 0x2ca02c}   # start = blue, goal = green
 
 

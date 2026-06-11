@@ -42,6 +42,7 @@ test-slow: setup
 # Certified-partition figures for the regression scenes (S3 task 4 / V1 validation).
 figures: setup
 	$(VENV_PY) scripts/make_figures.py
+	$(VENV_PY) scripts/make_scene_figures.py
 
 clean:
 	rm -rf $(VENV) .pytest_cache

@@ -112,6 +112,11 @@ def _cmd_show(args) -> int:
     from . import viz as _viz
 
     scene, _ = _scenes.load(args.scene)
+    if args.png is not None:                    # 2-D top-down figure (planar), no server
+        path = _viz.save_planar_figure(scene, args.png,
+                                       title=f"scene {args.scene}")
+        print(f"figure written to {path}")
+        return 0
     url = _viz.show_scene(scene, config=args.config)
     print(f"Meshcat: {url}")
     if args.config == "both":
@@ -154,6 +159,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("scene", help="path to the YAML scene")
     s.add_argument("--config", choices=["both", "start", "goal"], default="both",
                    help="which configuration(s) to draw: both (default), start, or goal")
+    s.add_argument("--png", default=None,
+                   help="save a 2-D top-down figure to this path (planar scenes) "
+                        "instead of launching the Meshcat server")
     s.set_defaults(func=_cmd_show)
     return p
 
