@@ -30,7 +30,9 @@ scènes-vitrines V5/V6 (non négociable) ; tableau de correspondance géométriq
 papier↔YAML archivé (A21) ; **[A24] artefact de validation principal d'une scène
 spatiale = HTML interactif auto-suffisant (`cnp show --interactive`) — curseurs,
 collision visuelle, fantômes start/goal sur toutes les vues, boutons d'évasion ;
-chaque vue déclare ce qu'elle montre** (règle 11 amendée, standard V4-V6). Détail :
+chaque vue déclare ce qu'elle montre** (règle 11 amendée, standard V4-V6) ; **[A25]
+limites articulaires explicites partout (encadré figures, cadre=limites sur C-space,
+butées des curseurs = limites, verdict CLI rappelle ses hypothèses en degrés)**. Détail :
 entrées « Revue de supervision » de JOURNAL.md.
 
 ---
@@ -123,6 +125,16 @@ entrées « Revue de supervision » de JOURNAL.md.
     travail** (pas seulement en symboles dans le C-space) ; (b) **chaque vue déclare ce
     qu'elle montre** (bras complet vs bras supérieur/corps certifié seul). Standard pour
     V4 (livré S7) et obligatoire pour V5/V6.
+    **[A25] Limites articulaires EXPLICITES partout.** Le théorème prouve la déconnexion
+    DANS les limites articulaires (la boîte P) : elles doivent donc être affichées, en
+    degrés (q = 2·arctan(s)), sur (a) un **encadré « limites : ... »** sur chaque figure ;
+    (b) une mention **« le cadre de ce graphe = les limites articulaires »** sur les
+    C-space (le rectangle tracé EST la boîte) ; (c) les **butées des curseurs = les
+    limites** dans l'artefact interactif, dit explicitement, degrés affichés ; (d) le
+    **verdict CLI** (`certify` et `verify`) qui rappelle ses hypothèses à chaque
+    PROOF/ENGINE-PROOF : limites en degrés + pas de wrap-around (⊂ (−π,π)) + obstacles
+    statiques + corps = polytopes + géométrie exacte. Helpers `viz.joint_limits_deg` /
+    `viz.limits_caption`.
 
 12. **Anti-dérive de spec (NOUVEAU).** Si l'implémentation diverge délibérément de
     SPEC.md (exemples actés en S1-S2 : s = tan((q−q*)/2) avec q* de référence au
