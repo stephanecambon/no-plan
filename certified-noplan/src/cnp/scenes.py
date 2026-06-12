@@ -15,7 +15,8 @@ robot:
   kind: planar_revolute        # the S4/S6 builtin (axes +z, links along local x)
   link_lengths: ["1", "1", "1"]
   q_star: ["0", "0", "0"]      # optional, default zeros (planar verify needs q*=0)
-  locked: {}                   # optional, "idx": "angle_rad"
+  locked: {}                   # optional, "idx": {cos: "r", sin: "r"} EXACT rationals
+                               # (cos^2+sin^2==1; e.g. 0:{cos:"1",sin:"0"} or 3/5,4/5)
 body:
   link: 2                      # which link carries the moving convex body
   hull_vertices: [["0","0","0"], ["1","0","0"]]   # optional: derived from the link
@@ -225,7 +226,7 @@ def _spatial_joints(robot: _cert.Robot) -> list:
 def _spatial_problem(scene: _cert.Scene, **kw) -> _engine.Problem:
     from . import witness
     fk = SympyRatFK(_spatial_joints(scene.robot),
-                    locked={k: float(v) for k, v in scene.robot.locked.items()},
+                    locked=scene.robot.locked_angles,
                     q_star=[float(v) for v in scene.robot.q_star])
     body = fk.body(scene.body_link)
     verts = body.vertex_numerators([[float(c) for c in v] for v in scene.hull_vertices])
@@ -259,22 +260,19 @@ def _planar_body_fk(scene: _cert.Scene):
         raise NotImplementedError(f"collision oracle for {scene.robot.kind!r} is S9+")
     joints = _cert._planar_joints(scene.robot)
     fk = SympyRatFK(joints,
-                    locked={k: float(v) for k, v in scene.robot.locked.items()},
+                    locked=scene.robot.locked_angles,
                     q_star=[float(v) for v in scene.robot.q_star])
     return fk.body(f"link{scene.body_link}")
 
 
 def is_exactly_verifiable(scene: _cert.Scene) -> bool:
     """Whether the independent exact verifier (:mod:`cnp.verify`) can re-check this scene
-    in exact arithmetic: a planar (S4) or spatial (S9, G3'b) revolute chain at ``q*=0``
-    with no locked joints (a q*≠0 or a locked joint needs the irrational Rot(angle),
-    refused by the verifier — SPEC §2; iiwa locked-joint support is a follow-up)."""
-    r = scene.robot
-    if r.kind == "planar_revolute":
-        return all(v == 0 for v in r.q_star)
-    if r.kind == "spatial_revolute":
-        return all(v == 0 for v in r.q_star) and not r.locked
-    return False
+    in exact arithmetic: a planar (S4) or spatial (S9, G3'b) revolute chain at ``q*=0``.
+    LOCKED joints are now supported (S9c) as long as their cos/sin are EXACT rationals
+    (enforced by :class:`Robot`); only a q*≠0 still needs the irrational Rot(angle) and
+    is refused by the verifier (SPEC §2)."""
+    return scene.robot.kind in ("planar_revolute", "spatial_revolute") \
+        and all(v == 0 for v in scene.robot.q_star)
 
 
 def scene_matches_cert(scene: _cert.Scene, cert: dict) -> tuple[bool, str]:
@@ -295,7 +293,8 @@ def scene_matches_cert(scene: _cert.Scene, cert: dict) -> tuple[bool, str]:
         return fail("link_lengths differ")
     if cr.get("q_star") != [str(v) for v in r.q_star]:
         return fail("q_star differs")
-    if cr.get("locked_joints", {}) != {str(k): str(v) for k, v in r.locked.items()}:
+    if cr.get("locked_joints", {}) != {str(k): {"cos": str(c), "sin": str(s)}
+                                        for k, (c, s) in r.locked.items()}:
         return fail("locked joints differ")
     if r.kind == "spatial_revolute":
         sj = [{"offset": [str(_cert.Q(x)) for x in j["offset"]],
@@ -336,7 +335,7 @@ def _body_fk(scene: _cert.Scene):
         return _planar_body_fk(scene)
     if scene.robot.kind == "spatial_revolute":
         fk = SympyRatFK(_spatial_joints(scene.robot),
-                        locked={k: float(v) for k, v in scene.robot.locked.items()},
+                        locked=scene.robot.locked_angles,
                         q_star=[float(v) for v in scene.robot.q_star])
         return fk.body(f"j{scene.body_link}")
     raise NotImplementedError(f"collision oracle for {scene.robot.kind!r} not supported")

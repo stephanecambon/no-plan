@@ -13,17 +13,14 @@ What it checks, all in exact rationals (SPEC §2 theorem):
   (0) assumptions / well-formedness (delta>0, box lo<hi, obstacle dim);
   (i) phi(s_start) < -delta  and  phi(s_goal) > +delta;
   (ii) the leaf cells tile the box P exactly (disjoint cover by midpoint bisection);
-  (iii) every "outside" leaf is disjoint from the slab: Bernstein(phi-delta) >= 0 or
-        Bernstein(-phi-delta) >= 0 over the cell;
-  (iv) every "collision" leaf certifies one (body, obstacle) pair: the witness
-        multipliers satisfy  sum_k lambda_k == 1 (exact identity),  Bernstein(lambda_k)
-        >= 0,  mu_j >= 0,  and  Bernstein(g_j - mu_j*(delta^2 - phi^2)) >= 0  for every
-        obstacle face j, where g_j = b_j*D - a_j . X and X = sum_k lambda_k * N_k is the
-        witness numerator over the per-link common denominator D (N_k, D recomputed HERE).
+  (iii) every "outside" leaf is disjoint from the slab (Bernstein(±phi - delta) >= 0);
+  (iv) every "collision" leaf certifies one (body, obstacle) pair: sum_k lambda_k == 1
+        (exact identity), Bernstein(lambda_k) >= 0, mu_j >= 0, and Bernstein(g_j -
+        mu_j*(delta^2 - phi^2)) >= 0 for each face j, with g_j = b_j*D - a_j . X and
+        X = sum_k lambda_k * N_k the witness numerator over the common denom D (recomputed HERE).
 
-SIGN (CLAUDE.md rule 2 / SPEC §2): the verifier itself forms ``g - mu*T`` (subtract)
-from the stored mu — it owns the sign, so a certificate cannot smuggle in the unsound
-``g + mu*T``.
+SIGN (CLAUDE.md rule 2 / SPEC §2): the verifier itself forms ``g - mu*T`` (subtract) from
+the stored mu — it owns the sign, so a cert cannot smuggle in the unsound ``g + mu*T``.
 """
 from __future__ import annotations
 
@@ -187,9 +184,7 @@ def _rot_homog(n: int, s_index, axis, locked_cos_sin=None) -> list:
     K2 = [[sum(K[i][t] * K[t][j] for t in range(3)) for j in range(3)] for i in range(3)]
     T = [[{} for _ in range(4)] for _ in range(4)]
     if locked_cos_sin is None:
-        sq = _mono(n, _unit(n, s_index, 2), 1)               # s^2
-        one = _const_t(n, 1)
-        den = _t_add(one, sq)                                # 1 + s^2
+        den = _t_add(_const_t(n, 1), _mono(n, _unit(n, s_index, 2), 1))  # 1 + s^2
         s1 = _mono(n, _unit(n, s_index, 1), 2)               # 2 s
         s2 = _mono(n, _unit(n, s_index, 2), 2)               # 2 s^2
         for i in range(3):
@@ -252,27 +247,32 @@ def _body_fk(robot: dict, body_link: int):
     """Recompute (vertex-free) the body link's world pose NUMERATOR matrix and the
     common denominator D, independently, in exact Fraction tensors. Returns (T, D, n).
 
-    Planar (S4) and spatial (S9, G3'b) share this serial-chain maths; only the
-    per-joint offset/axis differ. q* absorbed into s (SPEC §2); a nonzero q* or a
-    locked joint needs an irrational Rot(angle), so the verifier REFUSES it (rule 5)."""
+    q* absorbed into s (SPEC §2); a nonzero q* needs an irrational Rot(angle), refused
+    (rule 5). LOCKED joints (S9c) carry EXACT rational cos/sin (``cos^2+sin^2==1``
+    checked here), a numeric rotation and denominator 1; they take NO s-variable, so
+    the unlocked joints are re-indexed 0..n-1 and only they add a ``(1+s^2)`` to D."""
     if any(Fraction(v) != 0 for v in robot["q_star"]):
         _reject("verify: nonzero q_star unsupported by the exact FK")
-    if robot.get("locked_joints"):
-        _reject("verify: locked joints need exact cos/sin (iiwa scenes, follow-up)")
-    joints = _chain_joints(robot)               # all unlocked: s-index == joint index
-    n = len(joints)
+    joints = _chain_joints(robot)
+    locked = {int(k): v for k, v in (robot.get("locked_joints") or {}).items()}
+    n = len(joints) - len(locked)
     if n != int(robot["n"]):
-        _reject("verify: robot n disagrees with joint count")
+        _reject("verify: robot n disagrees with the unlocked joint count")
+    s_of = {j: k for k, j in enumerate(j for j in range(len(joints)) if j not in locked)}
 
     T = [[_const_t(n, 1 if i == j else 0) for j in range(4)] for i in range(4)]
+    D = _const_t(n, 1)                           # D = prod over UNLOCKED chain (1 + s^2)
     for j in range(body_link + 1):
         (ox, oy, oz), axis = joints[j]
-        T = _matmul_t(_matmul_t(T, _trans_homog(n, ox, oy, oz)),
-                      _rot_homog(n, j, axis))
-
-    D = _const_t(n, 1)                           # D = prod_j (1 + s_j^2) over the chain
-    for j in range(body_link + 1):
-        D = _t_mul(D, _t_add(_const_t(n, 1), _mono(n, _unit(n, j, 2), 1)))
+        if j in locked:
+            c, s = Fraction(locked[j]["cos"]), Fraction(locked[j]["sin"])
+            if c * c + s * s != 1:
+                _reject("verify: locked joint cos^2+sin^2 != 1 (not an exact rotation)")
+            rot = _rot_homog(n, None, axis, locked_cos_sin=(c, s))
+        else:
+            rot = _rot_homog(n, s_of[j], axis)
+            D = _t_mul(D, _t_add(_const_t(n, 1), _mono(n, _unit(n, s_of[j], 2), 1)))
+        T = _matmul_t(_matmul_t(T, _trans_homog(n, ox, oy, oz)), rot)
     return T, D, n
 
 

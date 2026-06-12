@@ -110,6 +110,9 @@ def time_scene(name: str) -> dict:
     if result.verdict == "PROOF" and scenes.is_exactly_verifiable(scene):
         # PROOF path: round to an exact certificate and TIME the independent verifier.
         c = cert.make_certificate(scene, result, verify_loop=True)
+        # [A32] decision<->certificate dissonance: collision-decided leaves that failed
+        # full-dim re-resolution (expected 0; a positive count is a benign-but-silent cost).
+        row["n_reresolve_failed"] = c["stats"]["n_reresolve_failed"]
         t0 = time.monotonic()
         ok, msg = verify.verify(c)
         row["verify_exact_s"] = round(time.monotonic() - t0, 4)

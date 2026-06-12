@@ -1,6 +1,11 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
-Version 1.5 — 12 juin 2026 (amendée post-S7/S8 ; v1.0..v1.4 dans git).
+Version 1.6 — 12 juin 2026 (amendée post-S7/S8/S9c ; v1.0..v1.5 dans git).
+Amendement v1.5→v1.6 (acté S9c) : §2 + §5 + §1 + §6 — le vérificateur exact supporte les
+**joints VERROUILLÉS** (cos/sin rationnels exacts, `cos²+sin²=1` vérifié ; ré-indexation
+des débloqués 0..n−1) ; une scène q*=0 à joints verrouillés rend désormais **PROOF**
+(seul q*≠0 reste ENGINE-PROOF). Le champ `locked_joints` du certificat (§4) porte `{cos, sin}`
+(et non plus l'angle — l'implémentation S4-S9a stockait l'angle, ramenée au format §4 ici).
 Réconciliation doc (ouverture S9, lot de revue S8) : §1 [D29] trois verdicts explicités
 (PROOF / ENGINE-PROOF / UNDECIDED) ; §8 [D28] G1' marquée ✅ (acquise S6). Diffs de doc
 (pas de changement mathématique) — jumeaux des diffs CLAUDE.md D27/D30.
@@ -46,9 +51,9 @@ start/goal, produit [amendé S9, D29] l'un des **trois** verdicts (détaillés �
   indépendant en arithmétique exacte**, établissant qu'aucune trajectoire continue
   sans collision ne relie start à goal dans les limites articulaires.
 - **ENGINE-PROOF** : le moteur établit la déconnexion mais la vérification exacte
-  indépendante est indisponible pour cette configuration (depuis G3'b : uniquement
-  joints verrouillés ou q*≠0) — TOUJOURS affiché avec son avertissement, jamais
-  présenté comme un PROOF (règle 5).
+  indépendante est indisponible pour cette configuration (depuis S9c : uniquement
+  q*≠0 — les joints verrouillés à cos/sin rationnels sont désormais PROOF) — TOUJOURS
+  affiché avec son avertissement, jamais présenté comme un PROOF (règle 5).
 - **UNDECIDED** : pas de certificat trouvé au budget donné (ce n'est PAS une preuve
   de faisabilité), avec diagnostic (cellules en échec, visualisation).
 
@@ -105,9 +110,11 @@ rationnelles. C'est une restriction de portée honnête (règle 6), pas un affai
 **Absorption de q* [amendé S4].** Pour les joints **débloqués**, q* est absorbé dans
 s_i = tan((q_i − q*_i)/2) : les numérateurs FK en fonction de s ne dépendent PAS de q*.
 Ré-injecter un q* ≠ 0 exigerait la pré-rotation constante Rot(q*_i), donc cos/sin(q*_i)
-rationnels (irrationnels en général). Le vérificateur exact planaire (S4) n'admet donc
-que **q* = 0** et **refuse** un q* ≠ 0 plutôt que de le « croire » (règle 5) ; les
-scènes Drake à q* ≠ 0 (S9+) porteront les cos/sin verrouillés en rationnels.
+rationnels (irrationnels en général). Le vérificateur exact n'admet donc que **q* = 0** et
+**refuse** un q* ≠ 0 plutôt que de le « croire » (règle 5). **[amendé S9c]** En revanche les
+joints **VERROUILLÉS** sont supportés (cf. §5) : leur cos/sin est porté **en rationnels exacts**
+dans le certificat (`cos²+sin²=1` vérifié), donc l'angle de verrouillage est choisi à cos/sin
+rationnels (0, ±π/2, π, pythagoricien).
 
 ## 3. Architecture
 
@@ -208,10 +215,16 @@ ré-implémentée en exact dans verify.py (duplication assumée, c'est le but).
 `spatial_revolute` (génériques 3-D : chaque joint porte son offset rationnel et son axe
 UNITAIRE, vérifié `Σ axe² = 1` exact) en plus du `planar_revolute` — même boucle de
 chaîne sérielle, seuls l'offset/l'axe par joint diffèrent. Le certificat spatial porte
-donc un champ `joints` (offset/axe exacts) que verify re-dérive. Restrictions inchangées
-(refus q*≠0 et joints verrouillés : ils exigent une Rot(angle) irrationnelle — support
-iiwa à joints verrouillés = suite). Conséquence : les scènes spatiales à q*=0 sans joint
-verrouillé rendent **PROOF** (plus ENGINE-PROOF) ; G3'b acquise.
+donc un champ `joints` (offset/axe exacts) que verify re-dérive.
+**[amendé S9c] Joints VERROUILLÉS supportés** : un joint verrouillé porte ses **cos/sin
+exacts rationnels** (`locked_joints[idx] = {cos, sin}`, SPEC §4 ; le vérificateur exige
+`cos²+sin²=1` exact), sa rotation est la matrice de Rodrigues numérique R = I + sin·K +
+(1−cos)·K² de dénominateur 1, et il **ne prend PAS de variable s** (les joints débloqués
+sont ré-indexés 0..n−1, eux seuls contribuent un facteur (1+s²) à D). Un angle générique
+a des cos/sin irrationnels : les scènes verrouillent à 0, ±π/2, π ou un angle pythagoricien
+(cos=3/5, sin=4/5…). Seul un **q*≠0** reste refusé (il exige une Rot(q*) irrationnelle).
+Conséquence : les scènes spatiales à q*=0 — **y compris à joints verrouillés** — rendent
+**PROOF** (plus ENGINE-PROOF) ; G3'b acquise (S9a), support iiwa verrouillé acquis (S9c).
 
 ## 6. Scènes (du jouet au real-world)
 
@@ -226,9 +239,9 @@ phifit/S5 bake son φ rationnel dans la scène), budget (depth max, temps,
 L'enveloppe convexe du corps mobile est **extraite de la géométrie du link** (le
 link planaire = segment `[0,0,0]→[len,0,0]`) si `hull_vertices` n'est pas donné.
 `cnp certify` rend PROOF (vérifié exact) / ENGINE-PROOF (moteur OK, vérif. exacte
-indisponible — [amendé S9] désormais uniquement les configs hors-portée du vérificateur :
-joints verrouillés ou q*≠0 ; les `spatial_revolute` à q*=0 sans joint verrouillé sont
-PROOF depuis G3'b) / UNDECIDED ; `cnp verify cert scene.yaml` croise la scène externe
+indisponible — [amendé S9c] désormais uniquement les configs à **q*≠0** ; les
+`spatial_revolute` à q*=0 sont PROOF depuis G3'b, **y compris à joints verrouillés**
+(cos/sin rationnels) depuis S9c) / UNDECIDED ; `cnp verify cert scene.yaml` croise la scène externe
 (la comparaison inclut les `joints` offset/axe pour le spatial) ; `cnp show scene.yaml`
 ouvre une vue Meshcat minimale.
 

@@ -1820,3 +1820,107 @@ posteriori). Cible de publication pressentie : RSS 2027 (review amicale d'abord,
 décision de pilotage Stéphane).
 
 
+
+## 2026-06-12 — Session S9c (Claude Code) — **verify joints verrouillés (G3'b iiwa) + instrumentation A32 ; coupe après tâches 1-2 → S9d**
+
+Cette session ouvre S9c (go/no-go technique 5-6 DOF). Elle livre les DEUX briques
+d'infrastructure (tâches 1-2 du prompt) et **coupe proprement après elles** (règle 8) :
+la scène iiwa 5-6 DOF, la calibration, le **gate humain V5** (« VALIDÉ S9-V5 » requis
+avant tout run long) et **DECISION-G2.md** (signature Stéphane avant S10) constituent
+**S9d**. Le cœur de G2' (la scène certifiée + le chiffrage) n'est PAS ouvert ici : il
+est gaté humainement (V5 + signature) ⟹ non-franchissable en autonomie, et une scène
+bâclée serait pire que pas de scène (leçon micro-canal : vérité-terrain dense AVANT
+certification, rule 9).
+
+**Ouverture doc (circuit A16, commit doc séparé `7a4cd87`)** :
+- 3a — revue de supervision S9a-suite (claude.ai) appendée à JOURNAL.md (déjà appliquée
+  en working tree par un run partiel antérieur ; le fichier temporaire avait été consommé).
+- 3b — `docs/BIBLIO-ANTERIORITE.md` versée telle quelle ; **risque n°6 SPEC §9 marqué
+  « TRAITÉ, claim reformulé »** (voisin le plus proche : Henrion, Miller & Safey El Din
+  2024, arXiv:2404.06985 ; claim « premiers certificats d'infaisabilité de motion planning
+  pour bras articulés *exactement vérifiables a posteriori* »).
+- 3c — **D31** [A32] tâche instrumentation + mesure par-paire à la calibration ; **D32**
+  header CLAUDE.md **v1.10** + changelog v1.9→v1.10.
+
+**Fait — Tâche 1 : joints VERROUILLÉS dans `verify.py` (sacré)** :
+- Le primitif `_rot_homog` portait DÉJÀ une branche `locked_cos_sin` (Rodrigues numérique
+  R = I + sin·K + (1−cos)·K², dénominateur 1) ; le seul verrou était `_body_fk` qui REFUSAIT
+  les joints verrouillés. Réécriture de `_body_fk` : joints verrouillés substitués par leur
+  rotation numérique exacte, **`cos²+sin²=1` vérifié exact** ; ils ne prennent PAS de variable
+  s ⟹ les débloqués sont ré-indexés 0..n−1 et eux seuls ajoutent un facteur (1+s²) à D.
+- **PRÉ-ARBITRAGE 500→600 NON UTILISÉ** : la factorisation a suffi. `verify.py` = **499 lignes**
+  (inline d'un temporaire dans `_rot_homog`, docstrings resserrées sans perte de contenu de
+  soundness). Test `test_verify_under_500_lines` vert. Fichier unique, stdlib only, zéro import
+  du générateur — invariants règle 4 intacts.
+- **Format §4 ré-aligné** : le certificat portait l'ANGLE verrouillé (dérive S4-S9a) ; ramené
+  au format SPEC §4 **`locked_joints[idx] = {cos, sin}`** rationnels exacts. `Robot.locked`
+  stocke (cos, sin) Fraction + valide `cos²+sin²=1` (défense en profondeur côté générateur) ;
+  `Robot.locked_angles` (atan2) alimente la FK FLOAT du générateur (`SympyRatFK`), l'interface
+  bas-niveau ratfk reste angle-based (inchangée). Sites mis à jour : certificate, scenes (×3 +
+  scene_matches_cert), viz, cli (messages verdict). `is_exactly_verifiable` : un q*=0 à joints
+  verrouillés (cos/sin rationnels) est désormais **PROOF**.
+- **Tests adversariaux dédiés** (`tests/test_locked_joints.py`, 9 tests) sur une scène 3R
+  spatiale à pitch j1 verrouillé au **3-4-5 pythagoricien** (PROOF, 2 feuilles, < 1 s) — la
+  PREMIÈRE scène dont la preuve exacte DÉPEND d'un joint verrouillé (verify re-dérive la
+  rotation ⟹ déplacer le verrou relocalise le poignet piégé hors du mur). Mutations toutes
+  rejetées : cos/sin corrompus (`cos²+sin²≠1`), **joint verrouillé déplacé** (4 rotations valides),
+  verrou retiré (n incohérent), mauvais index ; + identité (cos=1,sin=0) PROOF ; + le générateur
+  refuse aussi un verrou non-unitaire.
+
+**Fait — Tâche 2 : instrumentation A32 (D31)** :
+- Exception `certificate.ReResolutionFailed` + compteur **`cert['stats']['n_reresolve_failed']`** :
+  feuilles décidées « collision » (géométrie A29-simplifiée / A30-réduite, chemin de DÉCISION)
+  qui échouent la re-résolution pleine-dim depuis la FK de scène. Dissonance décision↔certificat
+  **bénigne au pire** (UNDECIDED, jamais un faux PROOF — verify arbitre en pleine dim), mais
+  coût silencieux à l'échelle ⟹ COMPTÉE sur TOUTES les feuilles (pas crash à la première) et
+  rendue BRUYANTE (raise A32 explicite si > 0, jamais de PROOF amputé d'une feuille).
+- Exposé dans le harness (`run_benchmark.py` row `n_reresolve_failed`). **Asserté à ZÉRO**
+  sur S3 (margin ET oracle) dans `test_reductions.py` (`test_a32_...`) — le zéro instrumenté
+  que les runs S4 (S9d) asserteront. `test_certificate` round-trip E3 inclut le champ.
+
+**Soundness (règle 1 — changement de `verify.py` sacré)** : suite adversariale complète
+(test_verify 26 mutations + test_adversarial + test_locked_joints 9) verte ; aucun verdict
+ne bascule. **`verify.py` reste l'arbitre pleine dim**.
+
+**Décisions / amendements** :
+- **SPEC v1.5→v1.6** (rule 12, acté S9c) : §2 + §5 + §1 + §6 — vérificateur supporte les
+  joints verrouillés (cos/sin rationnels) ; scène q*=0 verrouillée = PROOF ; seul q*≠0 reste
+  ENGINE-PROOF. Champ `locked_joints` = `{cos, sin}` (et non l'angle).
+- **CLAUDE.md v1.10** (D32) déjà au commit doc `7a4cd87`.
+- **Coupe S9c→S9d** (règle 8) : tâches 1-2 = unité propre, verte, committable. Scène iiwa,
+  calibration, V5, DECISION-G2.md = S9d (gates humains).
+
+**Pièges** :
+- **Format verrouillé = cos/sin, PAS l'angle** : un angle générique a des cos/sin irrationnels ⟹
+  invérifiable en exact. Les scènes verrouillent à 0, ±π/2, π ou pythagoricien (3/5, 4/5).
+  L'implémentation S4-S9a stockait l'angle (jamais exercé car locked={} partout) — dérive
+  silencieuse vs SPEC §4, corrigée ici.
+- **Test « joint verrouillé déplacé » subtil** : sur une scène où le témoin λ se concentre sur
+  l'extrémité PROXIMALE (poignet, indépendant du joint distal), déplacer ce joint n'est PAS
+  attrapé — et c'est SOUND (la preuve ne dépend pas de sa valeur). Il a fallu une scène où le
+  verrou AFFECTE le point certifié (pitch proximal piégeant le poignet dans un mur serré en x)
+  pour que la mutation soit rejetée. La scène tip-trap (témoin sur l'extrémité distale) était
+  trop lente (> 30 s) ⟹ écartée comme fixture.
+- **verify.py à 1 ligne près** : le test exige `< 500` STRICT (pas ≤). Atterri à 499.
+
+**Décompte exact (sortie S9c)** : `make test` = **188 passed, 0 skipped, 0 warnings**,
+~198 s (machine au repos ; un run antérieur avait fait flaker `test_parallel_speedup`, test
+de TIMING ≥3×, sous charge concurrente — vert au repos). 178 (S9a-suite) + 9 (test_locked_joints)
++ 1 (test_a32 reductions) = 188. `verify.py` = **499 lignes** (sacré, sous 500). Commits :
+doc `7a4cd87` (circuit A16) + code S9c (verify locked + A32 + SPEC v1.6 rule 12).
+
+**Diffs CLAUDE.md** (règle 14) : header v1.10 + changelog D31/D32 + tâches S9c (A32, par-paire)
+— au commit doc `7a4cd87`. **Diffs SPEC** : v1.6, §1/§2/§5/§6 (joints verrouillés PROOF),
+§9 risque n°6 traité — répartis commit doc (§9) + commit code (§1/§2/§5/§6, rule 12).
+
+**Prochaine étape — S9d** (nouvelle session, gates humains) : (1) **scène iiwa 5-6 DOF**
+choisie pour comparabilité (lire/vérifier descriptions arXiv:2406.04795 / RA-L 2023, rule 9/A28 ;
+refléter si descriptible sinon bac technique iiwa joints verrouillés ⊂ (−π,π) ; margin défaut ;
+fit STRUCTURÉ A19 si φ fité ; **vérité-terrain dense AVANT certification**) ; (2) **calibration
+A31/D20/D31** : feuilles(n)+coût/feuille à n=3,4,5,6, mesure **par-paire proximale vs distale**
+sur la scène bac (1re validation réelle du levier A30), wall-clock S3 à la régénération du
+benchmark canonique, `n_reresolve_failed` asserté ZÉRO ; (3) **[V5]** validation visuelle
+OBLIGATOIRE avant tout run long (`cnp show --interactive` A24 + coupes C-space + limites A25 ;
+attendre « VALIDÉ S9-V5 ») ; (4) **DECISION-G2.md** — verdict G2' chiffré, calibration,
+comparaison chiffres GPU EXACTS Li-Dantam, GO/NO-GO/RE-SCOPE — revue supervision puis SIGNÉE
+Stéphane avant S10. SI ROUGE : mitigations SPEC §9.1, pivot journalisé (décision avec Stéphane).

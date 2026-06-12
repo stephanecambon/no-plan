@@ -198,6 +198,21 @@ def test_reductions_keep_s3_proof_and_verify():
         assert verify.verify(c)[0]
 
 
+def test_a32_no_decision_certificate_dissonance_s3():
+    """[A32, D31] The decision path runs on the A29-simplified / A30-reduced geometry; the
+    certificate is re-solved at FULL dim. A collision-decided leaf could in theory fail that
+    full-dim re-solve (a benign decision<->certificate dissonance — UNDECIDED at worst, never
+    a false PROOF). The counter ``stats['n_reresolve_failed']`` MUST be ZERO on the shipped
+    scenes (here S3 on both heuristics) — this is the instrumented zero the S4 runs assert."""
+    scene, _ = _s3()
+    for axis in ("margin", "oracle"):
+        prob = scenes.build_problem(scene, max_depth=20)
+        res = engine.solve(prob, axis=axis, budget=engine.Budget(max_leaves=4000))
+        c = cert.make_certificate(scene, res, verify_loop=True)
+        assert c["stats"]["n_reresolve_failed"] == 0, \
+            f"A32 dissonance on S3 ({axis}): {c['stats']['n_reresolve_failed']} leaves"
+
+
 def test_a29_bonus_s3_end_to_end_speedup():
     """[non-gate bonus, A29] Detecting the roll cuts the S3 end-to-end decision cost
     (collision leaves x Bernstein LP rows) by >= 10x vs leaving it (falsely) active —

@@ -38,6 +38,7 @@ NONE of these — it re-implements Bernstein and the FK substitution from scratc
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass, field
 from fractions import Fraction
 
@@ -51,6 +52,15 @@ SUBSTITUTION = "half_angle_homemade_v1"
 DENOMINATOR = "per_link_prod_1_plus_s2"
 ASSUMPTIONS = ["no_wraparound_rel_qstar", "static_obstacles", "polytope_geometry"]
 DEFAULT_MAX_DEN = 10 ** 6
+
+
+class ReResolutionFailed(ValueError):
+    """[A32, S9c] A leaf the engine DECIDED 'collision' (on the A29-simplified, A30-reduced
+    DECISION geometry) failed to re-solve to a positive witness margin at FULL dimension
+    from the scene FK. This decision<->certificate dissonance is at worst BENIGN (the leaf
+    is unproven ⇒ UNDECIDED, never a false PROOF — verify.py arbitrates in full dim), but a
+    silent cost at scale, so it is COUNTED (``cert['stats']['n_reresolve_failed']``) and
+    made loud here rather than degrading quietly. Expected ZERO on every shipped scene."""
 
 
 def Q(x) -> Fraction:
@@ -81,13 +91,21 @@ class Robot:
     kind: str
     link_lengths: list           # [Fraction]; one per joint (planar: link carried after)
     q_star: list                 # [Fraction] reference posture (rad), one per joint
-    locked: dict = field(default_factory=dict)  # joint idx -> locked angle (rad); S4: {}
+    # joint idx -> (cos, sin) EXACT rationals of the locked angle (SPEC §2/§4); S4: {}.
+    # cos^2+sin^2==1 must hold exactly so the verifier accepts a PROOF (a generic angle
+    # has irrational cos/sin — locked joints use 0, ±pi/2, pi or a Pythagorean angle).
+    locked: dict = field(default_factory=dict)
     joints: list | None = None   # spatial_revolute: [{"offset": [..], "axis": [..]}]
 
     def __post_init__(self):
         self.link_lengths = [Q(v) for v in self.link_lengths]
         self.q_star = [Q(v) for v in self.q_star]
-        self.locked = {int(k): Q(v) for k, v in self.locked.items()}
+        self.locked = {int(k): (Q(v["cos"]), Q(v["sin"]))
+                       for k, v in self.locked.items()}
+        for k, (c, s) in self.locked.items():
+            if c * c + s * s != 1:
+                raise ValueError(f"locked joint {k}: cos^2+sin^2 != 1 "
+                                 f"({c}, {s}) is not an exact rotation")
 
     @property
     def n_joints(self) -> int:
@@ -97,6 +115,12 @@ class Robot:
     def n(self) -> int:
         """Number of UNLOCKED joints = number of s-variables."""
         return self.n_joints - len(self.locked)
+
+    @property
+    def locked_angles(self) -> dict:
+        """``{idx: angle_rad}`` for the FLOAT generator FK (:class:`SympyRatFK`), derived
+        from the exact cos/sin via ``atan2`` — the exact verifier uses the rationals."""
+        return {k: math.atan2(float(s), float(c)) for k, (c, s) in self.locked.items()}
 
 
 @dataclass
@@ -165,7 +189,7 @@ def _body_numerators(scene: Scene):
         joints, body_id = _spatial_joints(r), scene.body_link
     else:
         raise NotImplementedError(f"robot kind {r.kind!r} not supported")
-    fk = SympyRatFK(joints, locked={k: float(v) for k, v in r.locked.items()},
+    fk = SympyRatFK(joints, locked=r.locked_angles,
                     q_star=[float(v) for v in r.q_star])
     body = fk.body(body_id)
     verts = body.vertex_numerators([[float(c) for c in v] for v in scene.hull_vertices])
@@ -302,8 +326,8 @@ def _collision_leaf(scene: Scene, lf, verts, D, backend, max_den: int) -> dict:
                                   delta=float(scene.delta), lam_degree=scene.lam_degree)
     res = backend.solve(lp)
     if res.z is None or res.t is None or res.t <= 0:
-        raise ValueError(f"leaf {lf.cell} did not re-solve to a positive margin "
-                         f"(status={res.status})")
+        raise ReResolutionFailed(f"leaf {lf.cell} did not re-solve to a positive margin "
+                                 f"at full dim (status={res.status})")
     lam, mu = _export_multipliers(res, lp, max_den)
     return {"cell": [[str(lo), str(hi)] for lo, hi in lf.cell], "status": "collision",
             "obstacle": lf.pair, "lambda": [_tensor_str(t) for t in lam],
@@ -353,12 +377,17 @@ def _assemble_certificate(scene: Scene, result: engine.EngineResult,
     verts, D = _body_numerators(scene)
 
     leaves = []
+    reresolve_failed = []        # [A32] collision-decided leaves that fail full-dim re-solve
     for lf in result.leaves:
         if lf.status == "outside":
             leaves.append({"cell": [[str(lo), str(hi)] for lo, hi in lf.cell],
                            "status": "outside"})
         elif lf.status == "collision":
-            leaves.append(_collision_leaf(scene, lf, verts, D, backend, max_den))
+            try:
+                leaves.append(_collision_leaf(scene, lf, verts, D, backend, max_den))
+            except ReResolutionFailed:
+                # Count ALL failures (not just the first) for an honest at-scale diagnostic.
+                reresolve_failed.append([[str(lo), str(hi)] for lo, hi in lf.cell])
         else:  # pragma: no cover - guarded by the verdict check above
             raise ValueError(f"undecided leaf in a PROOF result: {lf.status}")
 
@@ -370,7 +399,8 @@ def _assemble_certificate(scene: Scene, result: engine.EngineResult,
             "kind": r.kind,
             "link_lengths": [str(v) for v in r.link_lengths],
             "q_star": [str(v) for v in r.q_star],
-            "locked_joints": {str(k): str(v) for k, v in r.locked.items()},
+            "locked_joints": {str(k): {"cos": str(c), "sin": str(s)}
+                              for k, (c, s) in r.locked.items()},
             "n": r.n,
             # spatial_revolute (S9, G3'b): the verifier re-derives FK from these exact
             # offsets/axes — without them a spatial cert is not independently checkable.
@@ -398,8 +428,14 @@ def _assemble_certificate(scene: Scene, result: engine.EngineResult,
         "leaves": leaves,
         "stats": {"n_leaves": len(leaves),
                   "n_collision": sum(1 for l in leaves if l["status"] == "collision"),
-                  "n_outside": sum(1 for l in leaves if l["status"] == "outside")},
+                  "n_outside": sum(1 for l in leaves if l["status"] == "outside"),
+                  "n_reresolve_failed": len(reresolve_failed)},   # [A32] expected 0
     }
+    if reresolve_failed:
+        raise ReResolutionFailed(
+            f"{len(reresolve_failed)} collision-decided leaf/leaves failed full-dim "
+            f"re-resolution (A32 decision<->certificate dissonance; at worst UNDECIDED, "
+            f"never a false PROOF): {reresolve_failed[:3]}")
     return cert
 
 

@@ -29,7 +29,8 @@ def test_e3_roundtrip_46_leaves():
     generate->verify path is covered daily."""
     result, c = cert.certify(cert_scenes.e3_scene(), axis="oracle")
     assert result.verdict == "PROOF"
-    assert c["stats"] == {"n_leaves": 46, "n_collision": 38, "n_outside": 8}
+    assert c["stats"] == {"n_leaves": 46, "n_collision": 38, "n_outside": 8,
+                          "n_reresolve_failed": 0}      # A32: zero dissonance (S9c)
     ok, msg = verify.verify(c)
     assert ok, msg
 

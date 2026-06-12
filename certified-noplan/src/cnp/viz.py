@@ -24,7 +24,7 @@ def _config_q_to_s(scene: _cert.Scene, which: str):
 def _fk_and_names(scene: _cert.Scene):
     """Build the FK back-end and the per-joint body names for a planar or spatial
     builtin robot. Returns ``(fk, names, body_name, tip_body_frame_point)``."""
-    locked = {k: float(v) for k, v in scene.robot.locked.items()}
+    locked = scene.robot.locked_angles
     q_star = [float(v) for v in scene.robot.q_star]
     kind = scene.robot.kind
     if kind == "planar_revolute":

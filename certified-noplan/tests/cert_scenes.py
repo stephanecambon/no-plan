@@ -47,6 +47,29 @@ def e3_scene(start_s=(F(-9, 10), F(0)), goal_s=(F(9, 10), F(0))) -> cert.Scene:
                       start_s=list(start_s), goal_s=list(goal_s), pairs=list(NAMES))
 
 
+def spatial_locked_scene(lock1=("3/5", "4/5")) -> cert.Scene:
+    """S9c — a spatial 3R chain with the PITCH joint j1 LOCKED at an exact-rational
+    rotation (default the Pythagorean 3-4-5 angle), j0 (base yaw) and j2 (distal) free.
+    The forearm is pitched down into a tight front WALL over a band of the base yaw s0,
+    so every config with |s0| <= 1/10 collides — a genuine 2-DOF disconnection, and the
+    FIRST scene whose exact PROOF depends on a locked joint's cos/sin (verify re-derives
+    the Rodrigues rotation, so moving the lock relocates the trapped wrist). Certifies
+    in 2 leaves with ``axis="margin"``."""
+    robot = cert.Robot(kind="spatial_revolute", link_lengths=[], q_star=[0, 0, 0],
+                       locked={1: {"cos": lock1[0], "sin": lock1[1]}},
+                       joints=[{"offset": ["0", "0", "0"], "axis": ["0", "0", "1"]},
+                               {"offset": ["0", "0", "3/10"], "axis": ["0", "1", "0"]},
+                               {"offset": ["3/10", "0", "0"], "axis": ["0", "1", "0"]}])
+    wall_A = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0], [0, -1, 0], [0, 0, -1]]
+    wall_b = [F(8, 25), F(1, 10), F(31, 50), F(-2, 25), F(1, 10), F(1, 20)]
+    return cert.Scene(robot=robot, body_link=2,
+                      hull_vertices=[[0, 0, 0], [F(3, 10), 0, 0]],
+                      obstacles={"WALL": (wall_A, wall_b)}, phi={(1, 0): 1},
+                      phi_degree=2, delta=F(1, 10),
+                      box=[(F(-7, 10), F(7, 10)), (F(-7, 10), F(7, 10))],
+                      start_s=[F(-3, 5), F(0)], goal_s=[F(3, 5), F(0)], pairs=["WALL"])
+
+
 def e4_scene(den=10 ** 6, start_s=(F(-9, 10), F(0)),
              goal_s=(F(9, 10), F(0))) -> cert.Scene:
     """E4: learned (least-squares) barrier, rationalised to denominators <= ``den``
