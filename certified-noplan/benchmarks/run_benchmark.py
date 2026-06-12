@@ -14,10 +14,11 @@ Two jobs, both written to a fresh ``benchmarks/results/<UTC-datetime>/`` directo
    version of the S9 ``feuilles(n)`` task, brought forward because the passive-dim
    blow-up is risk #1 and it bit at n=3 in S6). A parametric proximal-trap arm with
    2 ACTIVE joints (yaw, pitch) and ``k`` PASSIVE distal joints is certified at
-   n = 2..5 with both axis heuristics. It quantifies, on real engine runs, why
-   ``axis=margin`` is the S6-mandated default for new scenes (it does not split the
-   passive dims) and why ``axis=oracle`` explodes — the data behind A18 / the S8
-   "passive dims by intervals" task.
+   n = 2..5 with both axis heuristics. Through S7 this MOTIVATED A18: ``axis=oracle``
+   grew 8/12/20/36 over 0..3 passive dims (it split them) while ``axis=margin`` stayed
+   flat at 8. S8 IMPLEMENTED the mitigation (engine detects passive dims, keeps them as
+   intervals, and reduces each cell LP to the active dims), so the sweep now VALIDATES
+   it: BOTH heuristics stay flat as passive dims are added.
 
 Run: ``python benchmarks/run_benchmark.py`` (or ``make benchmark``). Deterministic
 (seeded); the only varying field is the wall-clock ``*_s`` timings.
@@ -55,6 +56,17 @@ def _commit_hash() -> str:
             ["git", "rev-parse", "HEAD"], cwd=HERE, text=True).strip()
     except Exception:                                  # pragma: no cover
         return "unknown"
+
+
+def _git_dirty() -> bool:
+    """Whether the working tree has uncommitted changes (D15/A27): a benchmark taken on
+    a dirty tree must SAY so — its commit hash does not fully describe the code that ran."""
+    try:
+        out = subprocess.check_output(
+            ["git", "status", "--porcelain"], cwd=HERE, text=True)
+        return bool(out.strip())
+    except Exception:                                  # pragma: no cover
+        return False
 
 
 def _max_depth(result, box) -> int:
@@ -192,7 +204,9 @@ def main(scene_names=("S1_relais", "S2_peigne", "S3_shoulder_elbow")) -> str:
     outdir = os.path.join(RESULTS, stamp)
     os.makedirs(outdir, exist_ok=True)
 
-    print(f"benchmark run {stamp}  (commit {_commit_hash()[:10]})")
+    dirty = _git_dirty()
+    print(f"benchmark run {stamp}  (commit {_commit_hash()[:10]}"
+          f"{'  +DIRTY-TREE' if dirty else ''})")
     print("scene timings:")
     scene_rows = []
     for nm in scene_names:
@@ -208,7 +222,7 @@ def main(scene_names=("S1_relais", "S2_peigne", "S3_shoulder_elbow")) -> str:
     sweep_rows = passive_dim_sweep()
 
     payload = {
-        "stamp": stamp, "commit": _commit_hash(), "seed": SEED,
+        "stamp": stamp, "commit": _commit_hash(), "git_dirty": dirty, "seed": SEED,
         "scenes": scene_rows, "passive_dim_sweep": sweep_rows,
     }
     with open(os.path.join(outdir, "results.json"), "w") as f:

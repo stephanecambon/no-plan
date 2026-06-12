@@ -40,3 +40,16 @@ addopts = "-ra"
 markers = [
     "slow: slow regression cases (SOS-SDP cross-check at higher n)",
 ]
+# Warnings hygiene (CLAUDE.md S8 "warnings traités"):
+#  * the fork DeprecationWarning is RESOLVED at source — the parallel engine now defaults
+#    to start_method="forkserver" (S8), which forks workers from a clean single-threaded
+#    server, so no fork-from-multithreaded-parent warning is raised (was 20 in S7);
+#  * the CLARABEL "Solution may be inaccurate" notice is DOCUMENTED-as-benign and filtered:
+#    it comes ONLY from the SOS-SDP / Bernstein cross-check ORACLE in tests/regref.py — a
+#    test-only second opinion that CLAUDE.md rule 3 keeps OUT of src/cnp — where CLARABEL
+#    solves a poorly-scaled SDP at higher n. The test still asserts the cross-check bound
+#    matches the Bernstein-LP to tolerance, so an "inaccurate" (but in-tolerance) interior
+#    solution does not weaken anything. The product LP path (HiGHS/highspy) never uses it.
+filterwarnings = [
+    "ignore:Solution may be inaccurate:UserWarning",
+]

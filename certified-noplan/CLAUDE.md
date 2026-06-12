@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.5 — 11 juin 2026 (révision post-S6 ; v1.0..v1.4 dans git).
+Version 1.6 — 12 juin 2026 (révision post-S7 ; v1.0..v1.5 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -33,7 +33,14 @@ collision visuelle, fantômes start/goal sur toutes les vues, boutons d'évasion
 chaque vue déclare ce qu'elle montre** (règle 11 amendée, standard V4-V6) ; **[A25]
 limites articulaires explicites partout (encadré figures, cadre=limites sur C-space,
 butées des curseurs = limites, verdict CLI rappelle ses hypothèses en degrés)**. Détail :
-entrées « Revue de supervision » de JOURNAL.md.
+entrées « Revue de supervision » de JOURNAL.md. Changements v1.5 → v1.6 (revue S7,
+A26-A28) : **repositionnement état-de-l'art [A26]** — Li-Dantam scalent à 5-6 DOF sur
+GPU (arXiv 2406.04795, vérifié S8) ; le récit « rigoureux plafonne à 4-DOF » est périmé ;
+notre différenciateur = NATURE du certificat (algébrique, exactement revérifiable, CPU/LP,
+murs réutilisables) ; **G3' scindée a/b** (G3'a S7 ✅ scène 4-DOF chiffrée ENGINE-PROOF /
+G3'b S9 vérif exacte spatiale) ; G2'/G4' relus selon A26 ; **règle 9 amendée [A28]** —
+toute référence externe est vérifiée à sa première utilisation ; harness enregistre
+l'état git clean/dirty [A27].
 
 ---
 
@@ -82,7 +89,10 @@ entrées « Revue de supervision » de JOURNAL.md.
    jour, amender engine ET verify ET la SPEC dans le même commit ; verify
    calcule Bernstein AU MÊME DEGRÉ que le générateur (plus bas = borne plus
    lâche = faux rejets, piège S4) ; q* est absorbé dans s pour les joints
-   débloqués (piège S4 — garde A12 en S5).
+   débloqués (piège S4 — garde A12 en S5). **[A28, S8] Toute référence externe
+   (papier, chiffre, benchmark, arXiv) citée dans SPEC/CLAUDE.md est VÉRIFIÉE à sa
+   première utilisation par la session qui s'en sert** (leçon S7 : deux arXiv mal
+   attribués par la supervision ; corrigé S7-S8).
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
@@ -204,8 +214,23 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   comparative honnête + balayage dims passives (margin plat 8 / oracle 8→36) ; figures
   sweep+côté+C-space + **widget interactif HTML (`cnp show --interactive`, A24)** +
   table géométrie A21 + limites explicites partout (A25) (158 tests, 0 skip).
-  **Réserve G3'** : la moitié « + vérifiée (exact) » portée à S9 (verify spatial,
-  Option A actée avec Stéphane) — arbitrage du libellé de la porte par la revue.
+  **G3' SCINDÉE (revue S7, A26)** : **G3'a ✅ ACQUISE en S7** (scène 4-DOF fidèle
+  chiffrée, ENGINE-PROOF + contrôles : start/goal libres, 0 libre/150k dalle, libre
+  des deux côtés, contrôle négatif refusé) ; **G3'b = vérification exacte spatiale,
+  livrée avec S9** (`spatial_revolute` dans verify.py).
+- ✅ **S8** — perf. **Tâche n°1 [A18] dims passives par intervalles livrée** : le moteur
+  détecte les joints passifs (`engine.passive_dims`), ne branche jamais dessus, et réduit
+  chaque LP de cellule aux dims actives (`(d+1)^k` au lieu de `(d+1)^n`). **Le peigne 3-DOF
+  certifie maintenant avec `axis=oracle`** (46 feuilles + vérifié exact, vs UNDECIDED/736).
+  Back-end **highspy direct** (défaut moteur, Mosek-free) ; parallélisme **forkserver**
+  par défaut (les 20 DeprecationWarning fork résolues) + 5 warnings Clarabel documentés
+  (cross-check SOS test-only). Soundness re-validée (suite + adversarial, 0 changement de
+  verdict). **Honnêteté perf** : le gain back-end seul est ~2× (PAS 10×) ; le ≥10× vient
+  de la réduction `(d+1)^k` (mesuré 7× à 1 dim passive → 733× à 4) — sur S3 (1 dim passive
+  détectée) ~6× bout-en-bout. **Le critère « ≥10× vs cvxpy sur S3 » n'est donc PAS atteint
+  au sens littéral** (mesure honnête ~6×, S3 trop petit / 1 seule dim passive détectée) :
+  à arbitrer par la revue (reformuler en « ≥10× dès ≥2 dims passives » ?). Détection plus
+  fine (roll géométriquement passif mais formellement présent) = suite. (voir JOURNAL.md S8.)
 
 ---
 

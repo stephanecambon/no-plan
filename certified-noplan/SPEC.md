@@ -1,6 +1,9 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
-Version 1.3 — 11 juin 2026 (amendée post-S6 ; v1.0/v1.1/v1.2 dans git).
+Version 1.4 — 12 juin 2026 (amendée post-S7 ; v1.0..v1.3 dans git).
+Amendement v1.3→v1.4 (acté S8, revue S7 [A26]) : §7 B1 — récit état-de-l'art corrigé
+(Li-Dantam scalent à 5-6 DOF sur GPU, arXiv 2406.04795 vérifié S8 ; notre
+différenciation = NATURE du certificat, pas la borne en DOF).
 Projet : « certified-noplan ». Contexte : campagnes E1-E4 (CAMPAGNE-E1-E4-RESULTATS.md).
 Amendements v1.1 (actés en S0/S1/S2, règle 12 de CLAUDE.md) : paramétrisation autour
 d'une configuration de référence q* ; dénominateur commun PAR LINK ; exposant p=1 ;
@@ -229,10 +232,21 @@ croise la scène externe ; `cnp show scene.yaml` ouvre une vue Meshcat minimale.
 
 ## 7. Benchmarks et métriques
 
-- **B1** : scènes Li-Dantam (récupérer leur code/scènes si publics — vérifier en
-  S7 ; sinon ré-implémentation depuis les papiers arXiv 2406.04795 / 2501.11434,
-  documentée comme telle). Métrique : temps-jusqu'à-preuve à 3-4 DOF (eux vs nous),
-  puis 5+ DOF (nous seuls — c'est LE résultat-titre).
+- **B1** : scènes Li-Dantam (récupérer leur code/scènes si publics — vérifié en S7 :
+  aucun artefact public ; ré-implémentation approchée documentée). Source réelle =
+  Li & Dantam RSS2021/IJRR2023, **et leur lignée de scaling : arXiv 2406.04795
+  « Scaling Motion Planning Infeasibility Proofs » (2024, GPU, scènes 5-DoF et 6-DoF,
+  ~2 ordres de grandeur vs leur méthode antérieure — vérifié S8)**. [amendé S8 [A26]]
+  **Le récit « les méthodes rigoureuses plafonnent à 4-DOF » est PÉRIMÉ** : Li-Dantam
+  atteignent 5-6 DOF sur GPU. Notre différenciation n'est donc PAS « seuls au-delà de
+  4-DOF » mais la **NATURE du certificat** — algébrique, revérifiable en arithmétique
+  EXACTE par un vérificateur indépendant, LP pur sur CPU, murs réutilisables (requêtes
+  µs) — vs triangulation numérique d'un manifold appris, validée par collision-checker
+  flottant. Métrique : temps-jusqu'à-preuve à 3-4 DOF (eux vs nous) ; à 5-6 DOF, **G2'
+  se relit « frontière GPU de Li-Dantam atteinte sur laptop CPU, avec un certificat
+  d'une autre force »** ; **G4' (7-DOF) = au-delà en DOF *et* en force de certificat**
+  (à confirmer sur leurs chiffres exacts). Pas de claim de vitesse apples-to-apples
+  (méthode/matériel/objet différents — cf. benchmarks/COMPARISON-Li-Dantam.md).
 - **B2** : scène étagère C-IRIS (géométries du repo Drake). Pas de comparaison de
   temps (objet différent : eux certifient le libre) — comparaison de POSITIONNEMENT.
 - **B3** : 2-3 scènes MotionBenchMaker adaptées (bookshelf, table) en variantes
@@ -249,10 +263,15 @@ croise la scène externe ; `cnp show scene.yaml` ouvre une vue Meshcat minimale.
 - **G1'** : témoin 3D validé vs vérité-terrain échantillonnée sur S2 (3-DOF) ;
   zéro faux certificat sur la suite adversariale (§9).
 - **G2'** : S4 (5-6 DOF) certifié en < 1 h sur la machine cible, < 10⁴ feuilles.
-  SI ÉCHEC : actionner les mitigations §9 avant d'élargir le périmètre.
-- **G3'** : S3 reproduit et chiffré face à Li-Dantam à 4-DOF.
-- **G4'** : S5 (7-DOF) certifié + vérification exacte indépendante OK. C'est le
-  résultat-titre du papier.
+  SI ÉCHEC : actionner les mitigations §9 avant d'élargir le périmètre. [relu S8 [A26]]
+  se lit désormais « frontière GPU 5-6 DOF de Li-Dantam (arXiv 2406.04795) atteinte sur
+  laptop CPU, avec un certificat exactement revérifiable » — pas « seuls à 5+ DOF ».
+- **G3' [SCINDÉE, revue S7, A26]** : **G3'a ✅ (S7)** = S3 reproduit et chiffré face à
+  Li-Dantam à 4-DOF (ENGINE-PROOF + contrôles denses) ; **G3'b (S9)** = vérification
+  exacte de la scène spatiale (`spatial_revolute` dans verify.py).
+- **G4'** : S5 (7-DOF) certifié + vérification exacte indépendante OK. [relu S8 [A26]]
+  résultat-titre = au-delà de Li-Dantam **en DOF *et* en force de certificat** (algébrique,
+  exactement revérifiable), à confirmer sur leurs chiffres exacts.
 
 ## 9. Risques techniques et mitigations
 

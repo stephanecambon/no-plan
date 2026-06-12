@@ -321,3 +321,67 @@ def test_backend_isolation_scipy_agrees():
         cell, verts, D, ob, phi=PHI, delta=DELTA, backend=_SciPyBackend()).t
     assert t_cvxpy is not None and t_scipy is not None
     assert abs(t_cvxpy - t_scipy) < 1e-6
+
+
+def test_backend_highspy_agrees():
+    """S8: the DIRECT highspy back-end (the new engine default) consumes the same
+    WitnessLP and agrees with cvxpy on t* to the engine tolerance."""
+    verts, D = _e3_body_3d()
+    cell = [(-0.125, 0.0), (0.875, 1.0)]
+    ob = _box3(regref.UP)
+    t_cvxpy = witness.certify_cell_pair(
+        cell, verts, D, ob, phi=PHI, delta=DELTA, backend=witness.CvxpyBackend()).t
+    t_hsp = witness.certify_cell_pair(
+        cell, verts, D, ob, phi=PHI, delta=DELTA, backend=witness.HighspyBackend()).t
+    assert t_cvxpy is not None and t_hsp is not None
+    assert abs(t_cvxpy - t_hsp) < 1e-6
+
+
+# --------------------------------------------------------------------------- #
+# Active-dimension LP reduction (S8, annotation A18 — passive dims by intervals)
+# --------------------------------------------------------------------------- #
+
+def _proximal_body_3r():
+    """A 3R chain (yaw z, pitch y, distal roll x) whose body is the UPPER arm (j1):
+    its segment lies on the distal joint's own axis, so the distal joint (dim 2) is
+    PASSIVE for the body — the canonical passive-dimension structure (A18)."""
+    joints = [RevoluteJoint("j0", _tr(0, 0, 0), np.array([0, 0, 1.0])),   # yaw   active
+              RevoluteJoint("j1", _tr(0, 0, 0), np.array([0, 1.0, 0])),   # pitch active
+              RevoluteJoint("j2", _tr(0.4, 0, 0), np.array([1.0, 0, 0]))]  # distal passive
+    fk = SympyRatFK(joints)
+    body = fk.body("j1")
+    verts = body.vertex_numerators([[0.0, 0, 0], [0.4, 0, 0]])
+    return body, [[0.0, 0, 0], [0.4, 0, 0]], verts, body.D
+
+
+def test_active_dim_reduction_matches_full_margin():
+    """A18: with a passive distal joint, reducing the LP to the 2 active dims gives
+    FEWER Bernstein rows ((d+1)^2 vs (d+1)^3) and the SAME margin t* — the optimum needs
+    no passive-dim freedom, so the reduced (subset) feasible region is not pessimistic."""
+    body, vbf, verts, D = _proximal_body_3r()
+    cell = [(-0.1, 0.1), (-0.1, 0.1), (-0.7, 0.7)]
+    grid = np.linspace(-0.1, 0.1, 5)
+    grid2 = np.linspace(-0.7, 0.7, 5)
+    pts = np.array([body.eval_world_point(v, s)
+                    for s in itertools.product(grid, grid, grid2) for v in vbf])
+    ob = witness.Polytope.box(pts.min(0) - 0.03, pts.max(0) + 0.03)
+
+    full = witness.build_witness_lp(cell, verts, D, ob, phi=None, lam_degree="affine")
+    red = witness.build_witness_lp(cell, verts, D, ob, phi=None, lam_degree="affine",
+                                   active_dims=(0, 1))
+    assert red.face_Az.shape[0] < full.face_Az.shape[0]
+    tf = witness.HighspyBackend().solve(full).t
+    tr = witness.HighspyBackend().solve(red).t
+    assert tf is not None and tr is not None
+    assert tr > TOL                       # the reduced LP still certifies the collision
+    assert abs(tf - tr) < 1e-6
+
+
+def test_active_dim_reduction_refuses_unsound_projection():
+    """Soundness guard: declaring an axis the geometry DEPENDS on as passive must raise,
+    never silently drop a real term (which would build a quietly-wrong LP)."""
+    _body, _vbf, verts, D = _proximal_body_3r()
+    cell = [(-0.1, 0.1), (-0.1, 0.1), (-0.1, 0.1)]
+    ob = witness.Polytope.box([-1, -1, -1], [1, 1, 1])
+    with pytest.raises(ValueError, match="passive"):       # dim 1 (pitch) is ACTIVE
+        witness.build_witness_lp(cell, verts, D, ob, phi=None, active_dims=(0, 2))

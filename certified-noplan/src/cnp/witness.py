@@ -31,8 +31,9 @@ never sets it.
 
 Back-end isolation: :func:`build_witness_lp` returns a solver-agnostic
 :class:`WitnessLP` (plain numpy). A back-end consumes it and returns an
-:class:`LPResult`. :class:`CvxpyBackend` is the S2 default; S8 will add a direct
-highspy back-end consuming the very same :class:`WitnessLP`.
+:class:`LPResult`. :class:`CvxpyBackend` is the S2 default; S8 added :class:`HighspyBackend`
+(the direct highspy C++ API) as the engine default, consuming the very same
+:class:`WitnessLP`. The passive-dimension LP reduction (``active_dims``, A18) is also S8.
 
 The only shared kernel with the rest of cnp is :mod:`cnp.polylin` (tensor algebra).
 """
@@ -190,9 +191,10 @@ class HighsBackend(LPBackend):
     (S3): (1) it is **Mosek-free** — unlike importing cvxpy, which probes every
     installed solver and so transitively wakes the Drake-bundled mosek (CLAUDE.md
     rule 3; see tests/test_mosek_guard.py); (2) no per-solve compile / no cvxpy
-    import, so it is faster and lets forked workers start instantly. S8 will swap
-    scipy for highspy directly; the WitnessLP stays identical (the S2 isolation
-    design). t* agrees with CLARABEL to < 1e-6 (proved in tests/test_witness.py)."""
+    import, so it is faster and lets forked workers start instantly. S8 added the direct
+    :class:`HighspyBackend` (now the engine default); this scipy wrapper stays available
+    and identical (the S2 isolation design). t* agrees with CLARABEL to < 1e-6 (proved in
+    tests/test_witness.py)."""
 
     name = "highs"
 
@@ -224,6 +226,92 @@ class HighsBackend(LPBackend):
                         basis=lp.basis, K=lp.K, dim=lp.dim)
 
 
+class HighspyBackend(LPBackend):
+    """DIRECT HiGHS back-end via the ``highspy`` C++ API (session S8), consuming the
+    SAME solver-agnostic :class:`WitnessLP` as every other back-end (the S2 isolation
+    design). It skips ``scipy.optimize.linprog``'s per-call Python repacking: the LP is
+    handed to a reused :class:`highspy.Highs` instance as a single CSC matrix, so the
+    fixed cost per cell drops to the solve itself. Like :class:`HighsBackend` it is
+    **Mosek-free** (CLAUDE.md rule 3). ``t*`` agrees with CLARABEL / scipy-HiGHS to the
+    engine tolerance (frozen in tests/test_witness.py). This is the S8 perf default.
+    Honest scope (CLAUDE.md rules 5/6): the backend swap alone is a ~2x constant factor
+    over cvxpy on these LPs, NOT 10x — the order-of-magnitude S8 win is the active-dim LP
+    reduction (``active_dims`` below / A18), which shrinks the row count itself."""
+
+    name = "highspy"
+
+    def __init__(self):
+        import highspy
+        self._highspy = highspy
+        self._inf = highspy.kHighsInf
+        self._h = None          # reused Highs instance, created lazily PER PROCESS
+        self._pid = None        # so a forked worker makes its own (never shares the C++
+        #                         solver object across a fork)
+
+    def _solver(self):
+        """One reused Highs instance per process: re-allocating a fresh Highs() per cell
+        dominates the solve at these sizes (passModel replaces the model in place, so
+        sibling cells reuse the same warm internals). Re-created after a fork so workers
+        never share the parent's C++ solver object."""
+        import os
+        if self._h is None or self._pid != os.getpid():
+            self._h = self._highspy.Highs()
+            self._h.setOptionValue("output_flag", False)
+            self._pid = os.getpid()
+        return self._h
+
+    def _model(self, lp: WitnessLP):
+        import numpy as np
+        from scipy.sparse import csc_matrix
+        hp, inf = self._highspy, self._inf
+        nz, nmu = lp.nz, lp.nmu
+        nv = nz + nmu + 1                       # z (free), mu (>=0), t (free, objective)
+
+        # rows: eq (sum lambda == 1), lam (lambda >= 0), face (g - mu T - t >= -face_b)
+        eqA = np.hstack([lp.eq_A, np.zeros((lp.eq_A.shape[0], nmu + 1))])
+        lamA = np.hstack([lp.lam_A, np.zeros((lp.lam_A.shape[0], nmu + 1))])
+        faceA = np.hstack([lp.face_Az, lp.face_Amu,
+                           -np.ones((lp.face_Az.shape[0], 1))])
+        A = csc_matrix(np.vstack([eqA, lamA, faceA]))
+        rlo = np.concatenate([lp.eq_b, -lp.lam_b, -lp.face_b])
+        rhi = np.concatenate([lp.eq_b,
+                              np.full(lp.lam_A.shape[0], inf),
+                              np.full(lp.face_Az.shape[0], inf)])
+        c = np.zeros(nv); c[-1] = -1.0         # minimize -t == maximize t
+        col_lo = np.array([-inf] * nz + [0.0] * nmu + [-inf])
+        col_hi = np.array([inf] * nv)
+
+        m = hp.HighsLp()
+        m.num_col_, m.num_row_ = nv, A.shape[0]
+        m.col_cost_ = c
+        m.col_lower_, m.col_upper_ = col_lo, col_hi
+        m.row_lower_, m.row_upper_ = rlo, rhi
+        m.a_matrix_.format_ = hp.MatrixFormat.kColwise
+        m.a_matrix_.start_ = A.indptr.astype(np.int32)
+        m.a_matrix_.index_ = A.indices.astype(np.int32)
+        m.a_matrix_.value_ = A.data
+        return m, nz, nmu
+
+    def solve(self, lp: WitnessLP) -> LPResult:
+        import numpy as np
+        try:
+            m, nz, nmu = self._model(lp)
+            h = self._solver()
+            h.passModel(m)
+            h.run()
+            status = h.getModelStatus()
+            if h.modelStatusToString(status) != "Optimal":
+                return LPResult(None, h.modelStatusToString(status),
+                                basis=lp.basis, K=lp.K, dim=lp.dim)
+            sol = h.getSolution()
+            x = np.asarray(sol.col_value, dtype=float)
+        except Exception:  # noqa: BLE001 - any solver failure is UNDECIDED, not a crash
+            return LPResult(None, "error", basis=lp.basis, K=lp.K, dim=lp.dim)
+        return LPResult(float(x[-1]), "optimal",
+                        z=x[:nz], mu=(x[nz:nz + nmu] if nmu else None),
+                        basis=lp.basis, K=lp.K, dim=lp.dim)
+
+
 DEFAULT_BACKEND = CvxpyBackend()
 
 
@@ -247,9 +335,33 @@ def _pad(t: np.ndarray, d_dst: int) -> np.ndarray:
     return np.pad(t, [(0, d_dst - d_src)] * t.ndim)
 
 
+def _tensor_depends(t: np.ndarray, axis: int) -> bool:
+    """``True`` iff ``t`` has a nonzero coefficient with a positive exponent on ``axis``."""
+    sl = [slice(None)] * t.ndim
+    sl[axis] = slice(1, None)
+    return bool(np.any(t[tuple(sl)] != 0))
+
+
+def _project_tensor(t: np.ndarray, active, n_full: int) -> np.ndarray:
+    """Drop the PASSIVE axes of a coefficient tensor that is constant along them.
+
+    Used by the active-dimension LP reduction (A18): ``phi`` / ``N_k`` / ``D`` do not
+    depend on the passive joints, so they are constant along those axes (only their
+    exponent-0 slice is nonzero). Slicing that slice yields the same polynomial over the
+    active axes. Refuses to drop an axis the tensor actually varies on (would silently
+    discard a real term — a soundness trap), so a mis-classified axis fails loudly here
+    rather than producing a quietly-wrong LP."""
+    for i in range(n_full):
+        if i not in active and _tensor_depends(t, i):
+            raise ValueError(f"witness: axis {i} declared passive but the polynomial "
+                             "depends on it (refusing an unsound projection)")
+    idx = tuple(slice(None) if i in active else 0 for i in range(n_full))
+    return t[idx]
+
+
 def build_witness_lp(cell, verts_num, D, obstacle: Polytope,
                      phi=None, delta=None, lam_degree: str = "affine",
-                     _putinar_sign: int = -1) -> WitnessLP:
+                     _putinar_sign: int = -1, active_dims=None) -> WitnessLP:
     """Assemble the slab-aware witness LP for one (cell, moving body, obstacle).
 
     Parameters
@@ -263,10 +375,29 @@ def build_witness_lp(cell, verts_num, D, obstacle: Polytope,
     phi, delta : the slab ``T = delta^2 - phi^2``; pass ``phi=None`` to drop the slab
         (certify the whole cell, no barrier).
     lam_degree : 'const' | 'affine' | 'quadratic'.
+    active_dims : optional tuple of the axes the geometry/barrier actually depend on
+        (session S8, annotation A18). When the problem has PASSIVE joints (``phi`` and the
+        moving body are constant along them), passing the active axes builds the LP in the
+        reduced ``k = len(active_dims)`` dimensions: the Bernstein blocks shrink from
+        ``(d+1)^n`` to ``(d+1)^k`` rows — the core of the passive-dimension optimisation.
+        The reduced LP's feasible set is a subset of the full one (λ forced constant along
+        passive axes), so its margin ``t`` is a SOUND lower bound of the full margin
+        (``t_reduced <= t_full``): a reduced "collision" is a fortiori a full collision,
+        never the reverse. The exact verifier (:mod:`cnp.verify`) re-checks the FINAL
+        certificate at FULL dimension regardless, so this only ever speeds the search.
+        ``None`` (default) ⇒ full dimension (unchanged S2 behaviour).
     _putinar_sign : TEST-ONLY. -1 (default, SOUND) builds ``g - mu*T``; +1 builds the
         UNSOUND ``g + mu*T``. Frozen by tests/test_witness.py (CLAUDE.md rule 2).
     """
     assert _putinar_sign in (-1, +1)
+    n_full = len(cell)
+    if active_dims is not None and len(active_dims) < n_full:
+        active = tuple(active_dims)
+        cell = [cell[i] for i in active]
+        D = _project_tensor(D, active, n_full)
+        verts_num = [[_project_tensor(c, active, n_full) for c in v] for v in verts_num]
+        if phi is not None:
+            phi = _project_tensor(phi, active, n_full)
     n = len(cell)
     K = len(verts_num)
     dim = obstacle.dim

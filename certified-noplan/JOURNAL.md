@@ -1250,3 +1250,181 @@ sur 0→3 dims passives), highspy direct, sparsité, warnings. NB : la vérifica
 des scènes spatiales (kind `spatial_revolute` dans verify.py) reste S9 — c'est elle qui
 complétera le « + vérifiée » de G3' sur S3.
 
+## 2026-06-11 — Revue de supervision S7 (claude.ai) — **A26 repositionnement, G3' scindée**
+
+**Le point majeur [A26] — correction stratégique, pas bibliographique.** Vérifié
+par la supervision : arXiv 2406.04795 = Li & Dantam, « Scaling Motion Planning
+Infeasibility Proofs » (GPU, triangulation de Coxeter en batch, deux ordres de
+grandeur vs leur méthode antérieure), précédé d'un RA-L 2023 sur le même axe.
+La ligne « les méthodes rigoureuses plafonnent à 4-DOF », présente dans le récit
+SPEC §1 et le pitch du projet, est PÉRIMÉE (elle venait des notes de la
+supervision ; attrapée par la vérification de littérature de S7 — mea culpa
+supervision, bravo session). Conséquences :
+- G2' (5-6 DOF) se relit « la frontière GPU de Li-Dantam atteinte sur laptop
+  CPU, avec certificat d'une autre nature » ; G4' (7-DOF) reste vraisemblablement
+  au-delà d'eux (à confirmer sur leurs chiffres exacts).
+- Le différenciateur principal devient la NATURE du certificat : algébrique,
+  revérifiable en arithmétique exacte par un vérificateur indépendant, LP pur
+  CPU, murs réutilisables (requêtes en microsecondes) — vs triangulation
+  numérique d'un manifold appris validée par collision-checker flottant.
+  « L'auditeur peut recompter » vs « croyez le pipeline ».
+- Lecture positive : leur investissement continu (RSS→IJRR→WAFR→RA-L→GPU)
+  valide le créneau.
+
+**Arbitrage de porte (réserve S7)** : G3' est SCINDÉE — **G3'a ACQUISE en S7**
+(scène 4-DOF fidèle épaule-coude, chiffrée, ENGINE-PROOF avec contrôles :
+start/goal libres, 0 libre/150k dalle, libre des deux côtés, contrôle négatif
+refusé) ; **G3'b = vérification exacte spatiale**, livrée avec S9
+(`spatial_revolute` dans verify.py). L'option A de la session était la bonne ;
+le refus d'auto-amender la porte (règle 14) est conforme.
+
+**Verdict S7** : validée. Au-dessus de l'attendu : (1) balayage dims passives
+sur runs moteur réels (margin PLAT à 8 feuilles, oracle 8/12/20/36 sur 0→3 dims
+passives) — la donnée qui calibre G2', obtenue 2 sessions en avance ; (2) table
+comparative refusant le claim de vitesse apples-to-apples (pas de « ×400 ») —
+l'honnêteté qui survit à un reviewer ; (3) itérations V4 transformées en
+produit : `cnp show --interactive` (HTML auto-suffisant, FK JS vérifiée contre
+l'oracle Python, bug de verdict trajet-vs-pose attrapé), fantômes start/goal
+partout, limites articulaires explicites partout (A24/A25), y compris la
+correction des chiffres d'exemple erronés de la supervision (±62° → ±70°).
+
+**Diffs à appliquer par Code en ouverture de S8 (CLAUDE.md + SPEC du repo)** :
+- D12 [A26] SPEC §1 (et toute mention « plafonnent à 4-DOF ») : amender le récit
+  état-de-l'art — Li-Dantam scalent à 5-6 DOF sur GPU (RA-L 2023, arXiv
+  2406.04795) ; notre différenciation = certificat algébrique exactement
+  vérifiable + CPU/LP + murs réutilisables ; G4' = au-delà en DOF *et* en force
+  de certificat. Marquer « amendé S8 [A26] ».
+- D13 [A26] benchmarks/COMPARISON-Li-Dantam.md : ajouter une section « lignée
+  scaling » (RA-L 2023 + 2406.04795) avec leurs DOF/temps/matériel EXACTS lus
+  dans les papiers (tâche d'ouverture S8, ~30 min de lecture) ; reformuler la
+  conclusion du tableau selon A26.
+- D14 [portes] CLAUDE.md : G3' scindée en G3'a (S7 ✅) / G3'b (S9) dans l'État
+  et la section S7 ; libellés G2'/G4' annotés du repositionnement A26.
+- D15 [A27] Harness : enregistrer l'état git clean/dirty avec le hash de commit
+  (un benchmark sur arbre sale doit le dire) ; régénérer le run canonique
+  post-commit.
+- D16 [A28, légère] Règle 9, ajout : « toute référence externe (papier, chiffre,
+  benchmark) citée dans SPEC/CLAUDE.md est VÉRIFIÉE à la première utilisation
+  par la session qui s'en sert (leçon S7 : deux arXiv mal attribués par la
+  supervision) ».
+- D17 Header : version 1.6, changelog « v1.5→v1.6 (revue S7, A26-A28) :
+  repositionnement état-de-l'art ; G3' scindée a/b ; lignée scaling au tableau ;
+  git-dirty au harness ; vérification des citations ».
+
+**Action Stéphane (V4 finale)** : `make figures`, ouvrir le TRIO de figures
+(sweep dessus / côté tangage-hauteur / C-space) + l'interactif
+(`python -m cnp show scenes/S3_shoulder_elbow.yaml --interactive /tmp/s3.html`
+puis ouvrir le fichier) ; vérifier le bandeau de limites (A25) sur chaque vue,
+les fantômes start/goal étiquetés, et que les trois boutons d'évasion concluent
+BLOQUÉ ; répondre « VALIDÉ S7-V4 » (ou anomalie) à Code, qui clôt par
+micro-commit et ouvre S8.
+
+**Prochaine étape** : V4 finale, clôture S7, puis S8 — ouverture D12-D17, puis
+tâche n°1 dims passives par intervalles (données S7 : oracle 8→36), highspy
+direct, sparsité, warnings.
+
+## 2026-06-12 — Session S8 (perf) — dims passives par intervalles + highspy + warnings
+
+Entrée : S7 vert re-confirmé (`make test` = 158 passed, 0 skipped, 25 warnings avant S8).
+
+**Fait** :
+- **Ouverture (diffs de supervision S7, D12-D17, circuit A16/règle 14)** — tous appliqués :
+  - **D12** SPEC §7 B1 + header (v1.3→v1.4) : récit état-de-l'art corrigé (A26). Li-Dantam
+    **scalent à 5-6 DOF sur GPU** ; le « rigoureux plafonne à 4-DOF » est PÉRIMÉ.
+  - **D13** `benchmarks/COMPARISON-Li-Dantam.md` : section « Scaling lineage » + reformulation
+    de la conclusion (différenciateur = NATURE du certificat, pas la borne DOF) + bloc perf
+    honnête. **D16** vérification de citation : `arXiv:2406.04795` confirmé par WebFetch
+    (Li & Dantam, « Scaling Motion Planning Infeasibility Proofs », 2024, GPU, scènes 5-DoF
+    et 6-DoF, ~2 ordres de grandeur vs leur méthode antérieure).
+  - **D14** CLAUDE.md : G3' **scindée a/b** dans l'État (G3'a ✅ S7 / G3'b S9) ; **SPEC §8**
+    portes G2'/G3'/G4' annotées du repositionnement A26.
+  - **D15/A27** harness : `_git_dirty()` → champ `git_dirty` dans results.json + tag
+    `+DIRTY-TREE` au header (un benchmark sur arbre sale le dit).
+  - **D16/A28** règle 9 : clause « toute référence externe est vérifiée à sa première
+    utilisation ». **D17** CLAUDE.md header v1.5→v1.6 + changelog + entrée État S8.
+- **TÂCHE N°1 [A18] — dimensions passives par intervalles (le cœur de S8)** :
+  - `engine.passive_dims(problem)` / `engine.active_axes` : un axe est PASSIF si ni `phi`
+    ni aucune géométrie de paire (numérateurs FK + dénominateur D) n'en dépend
+    (détection tensorielle, conservatrice).
+  - **(a) Partition** : `_choose_axis` / `_slab_boundary_axis` / `_margin_axis` / fallback
+    oracle restreints aux axes ACTIFS ⟹ on ne branche jamais sur une dim passive (elle reste
+    un intervalle plein). Tie-breaking préservé ⟹ E3/E4 (0 dim passive) **byte-identiques**
+    (46 / 78). **Le peigne 3-DOF certifie maintenant avec `axis=oracle` : PROOF, 46 feuilles,
+    + vérifié exact** (vs UNDECIDED/736 avant). C'est le critère de sortie S8 nommé.
+  - **(b) Réduction de LP** : `build_witness_lp(..., active_dims=)` projette `phi`/`N_k`/`D`
+    sur les axes actifs (constants sur les passifs) et construit le LP en `k` dims ⟹ blocs
+    Bernstein `(d+1)^k` au lieu de `(d+1)^n` — la lettre de A18. Appliqué au chemin de
+    DÉCISION du moteur seulement ; le **certificat est re-résolu en pleine dimension** et
+    `verify.py` (sacré, intact) le re-vérifie en pleine dim ⟹ **une réduction erronée ne peut
+    PAS produire un faux PROOF** (au pire ENGINE-PROOF, attrapé par les tests). Garde de
+    soundness : `_project_tensor` REFUSE de projeter un axe dont le polynôme dépend.
+  - Sweep cost-model (harness) : **oracle 8/12/20/36 → 8/8/8/8** (plat), margin reste plat.
+- **highspy direct (`witness.HighspyBackend`)** : API C++ via une instance `Highs` réutilisée
+  (lazy par process, re-créée après fork). Consomme le MÊME `WitnessLP` (isolation S2).
+  **Défaut moteur** (`ENGINE_BACKEND`), Mosek-free. Parité `t*` vs cvxpy/scipy < 1e-6 (test).
+- **Warnings traités (25 → 0)** :
+  - **20 DeprecationWarning fork** : RÉSOLUES (pas masquées) — défaut du work-queue passé de
+    `fork` à `forkserver` (fork depuis un serveur mono-thread, plus de warning). Possible
+    SANS perte car le ré-import est léger maintenant que le backend est highspy (pas cvxpy) :
+    forkserver ~9% sous fork, toujours ≥3× sur 8 cœurs (test speedup vert).
+  - **5 warnings Clarabel « Solution may be inaccurate »** : DOCUMENTÉS bénins + filtrés
+    (`pyproject` filterwarnings) — proviennent UNIQUEMENT du cross-check SOS-SDP de
+    `tests/regref.py` (oracle test-only, hors src/cnp par règle 3) ; le test assert quand
+    même l'accord SOS↔LP à tolérance, donc une solution intérieure « inaccurate » mais
+    in-tolérance n'affaiblit rien. Le chemin produit (HiGHS/highspy) ne l'utilise jamais.
+- **Soundness re-validée** (règle 1, changement witness+engine) : `make test` complet +
+  suite adversariale `test_adversarial.py` verts, **0 changement de verdict**. Nouveaux tests :
+  `test_passive_dims.py` (6 — détection, oracle certifie le peigne + vérif exacte, sweep plat),
+  `test_witness.py` +3 (parité highspy, réduction active-dim == pleine dim sur t*, refus de
+  projection non-sound). `test_s3_anchor` mis à jour (oracle désormais PLAT, pas croissant).
+
+**Décisions** :
+- **Réduction `(d+1)^k` au chemin de DÉCISION seulement, certificat en pleine dim** : minimise
+  la surface sur le code soundness-critique (witness/cert/verify). Le vérificateur indépendant
+  reste l'arbitre en pleine dim (règle 5) ⟹ la réduction est un pur levier de coût.
+- **highspy = défaut moteur** : le plus rapide des trois, Mosek-free ; débloque aussi forkserver
+  (le coût de ré-import qui écrasait spawn/forkserver disparaît sans cvxpy).
+- **Peigne gardé sur `axis: margin`** (cert canonique stable à 54 feuilles, défaut A10) ; oracle
+  documenté comme certifiant désormais (46) mais non basculé pour ne pas churner le cert.
+
+**Pièges rencontrés / HONNÊTETÉ PERF (le point dur de S8)** :
+- **« ≥10× vs cvxpy » N'EST PAS atteint par le back-end** : mesure honnête (chaud, par-LP)
+  highspy ~1.3-3.7× vs cvxpy, et l'écart **rétrécit** avec la taille (le solve simplex domine).
+  Le « 85 ms cvxpy » initial était du COLD-START (compilation), trompeur si amorti par-LP.
+  Bout-en-bout S3 (process froid) : cvxpy 1.06 s / highspy-full 0.51 s / **highspy-réduit
+  0.18 s** = **~6×**, pas 10×. **Refus de fabriquer un 10× cosmétique** (éthique S7, « pas de
+  ×400 »). Le VRAI ≥10× est la réduction `(d+1)^k` : mesuré **7× (1 dim passive) → 28× → 133×
+  → 733× (4 dims)** sur le bras-piège, `t_réduit == t_plein` exactement (aucune décision ne
+  bascule). S3 ne décroche que 6× car **une seule** de ses dims passives est DÉTECTÉE (le roll
+  s2 est géométriquement passif mais formellement présent dans le tenseur FK ⟹ détecteur
+  conservateur le garde). **Le critère littéral « ≥10× sur S3 » reste rouge ; à arbitrer par la
+  revue** (reformuler en « ≥10× dès ≥2 dims passives » ? améliorer la détection ?).
+- **Shadowing `active`** dans `_wq_worker` : le param `active` y est DÉJÀ le compteur in-flight
+  (Value) ; ma variable d'axes actifs l'aurait masqué (deadlock). Renommée `active_ax`.
+- **Instance Highs partagée à travers fork** : créée lazy par-process (`os.getpid()`), jamais
+  partagée — un objet solveur C++ copié par fork est un piège.
+
+**Décompte exact (sortie de session)** : `make test` = **167 passed, 0 skipped, 0 warnings**,
+~206 s (158 S7 + 9 nouveaux ; les 25 warnings S7 soldés : 20 fork via forkserver, 5 Clarabel
+filtrés). `make test-fast` = **103 passed, 64 deselected, ~24 s**. Benchmark canonique : à
+régénérer post-commit (arbre propre, hash aligné, git_dirty=false).
+
+**Critères de sortie S8** :
+- « le peigne 3-DOF certifie avec `axis=oracle` après mitigation » ✅ (46 feuilles + vérif exacte) ;
+- « aucun changement de verdict sur la suite + adversarial » ✅ ;
+- « warnings traités » ✅ (25 → 0) ;
+- « mémoire bornée » ✅ (highspy + LP réduit) ;
+- **« ≥10× plus rapide que cvxpy sur S3 » ⚠️ NON atteint au sens littéral** (mesure honnête ~6×
+  bout-en-bout ; le ≥10× est livré par la réduction `(d+1)^k`, 7×→733×, mais S3 n'a qu'1 dim
+  passive détectée). **Réserve actée, à arbitrer par la revue** (cf. honnêteté perf ci-dessus).
+
+**Diffs CLAUDE.md de cette session** (règle 14) : header v1.6 + changelog ; règle 9 clause A28 ;
+État — entrée S8 + G3' scindée a/b sur S7. **Diffs SPEC** : header v1.4 ; §7 B1 (A26) ; §8
+portes annotées. Tous = application des décisions journalisées de la revue S7 (D12-D17) ou
+tenue de l'État (règle 14 (a)/(b)/(c)) — aucune règle/critère changé de ma propre initiative.
+
+**Prochaine étape** : revue de supervision S8 — **arbitrage du critère « ≥10× sur S3 »**
+(reformuler ? améliorer la détection de passivité géométrique ?) ; puis S9 (scène S4 5-6 DOF,
+G2') qui porte aussi **G3'b** (`spatial_revolute` dans verify.py — la moitié « vérifiée exacte »).
+
+

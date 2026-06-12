@@ -134,8 +134,9 @@ class SceneBudget:
     """Solver budget carried by the scene (SPEC §6): depth cap + engine Budget + the
     branch axis heuristic. ``axis`` only changes COST, never soundness (CLAUDE.md
     rule 9): ``"oracle"`` (widest axis, reproduces the E3/E4 partition) or ``"margin"``
-    (relay-lookahead — needed when a scene has a PASSIVE joint the widest-axis rule
-    would waste depth splitting; the passive-dimension optimisation proper is S8)."""
+    (relay-lookahead). Since S8 the engine detects PASSIVE joints and never branches on
+    them (``engine.passive_dims`` / A18), so ``"oracle"`` no longer wastes depth on a
+    passive joint — both heuristics now certify passive-dim scenes (e.g. the 3-DOF comb)."""
     max_depth: int = 16
     max_leaves: int | None = None
     max_time_s: float | None = None

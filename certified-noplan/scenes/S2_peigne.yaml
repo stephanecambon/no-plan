@@ -10,10 +10,13 @@
 #
 # This is the E3 relay LIFTED to 3-DOF by a passive distal joint (the principled
 # "proximal-trapping" construction validated in S5). It is certified AND re-checked by
-# the independent exact verifier (planar, q*=0). Because s2 is passive, the widest-axis
-# heuristic would waste depth splitting it (736 leaves, 256 FAIL) — the relay-lookahead
-# `axis: margin` avoids that and certifies in 54 leaves (the passive-dimension
-# optimisation proper is S8). The barrier is the hand phi = s0.
+# the independent exact verifier (planar, q*=0). s2 is passive: through S7 the widest-axis
+# `axis: oracle` wasted depth splitting it (736 leaves / UNDECIDED) and only the
+# relay-lookahead `axis: margin` certified (54 leaves). S8 DELIVERED the passive-dimension
+# mitigation (engine.passive_dims detects s2, never branches on it, reduces each LP to the
+# active dims), so `axis: oracle` now certifies too (46 leaves + exact-verified). This
+# scene keeps `axis: margin` as its shipped heuristic (the A10 default; canonical cert =
+# 54 leaves). The barrier is the hand phi = s0.
 robot:
   kind: planar_revolute
   link_lengths: ["1", "1", "1"]

@@ -48,15 +48,17 @@ from multiprocessing import get_context
 import numpy as np
 
 from .polylin import bernstein_coeffs
-from .witness import (Polytope, LPBackend, HighsBackend,  # noqa: F401
+from .witness import (Polytope, LPBackend, HighsBackend, HighspyBackend,  # noqa: F401
                       build_witness_lp)
 
-# The engine's default LP back-end is HiGHS (scipy.linprog), NOT cvxpy: it is
-# Mosek-free (CLAUDE.md rule 3 — importing cvxpy transitively wakes the Drake-bundled
-# mosek), faster (no per-solve compile), and reproduces the E3/E4 oracle exactly
-# (t* == CLARABEL to < 1e-6, and no leaf flips at tol). Pass ``backend=`` to override
-# (e.g. CvxpyBackend for a cross-check).
-ENGINE_BACKEND = HighsBackend()
+# The engine's default LP back-end is DIRECT HiGHS via highspy (session S8): Mosek-free
+# (CLAUDE.md rule 3 — importing cvxpy transitively wakes the Drake-bundled mosek), and
+# the fastest of the three (no per-solve cvxpy canonicalisation, no scipy repacking — a
+# reused Highs instance). t* agrees with CLARABEL / scipy-HiGHS to < 1e-6 and no leaf
+# flips at tol (frozen in tests/test_witness.py). Through S7 the default was scipy-HiGHS
+# (HighsBackend); both remain available. Pass ``backend=`` to override (CvxpyBackend for
+# a cross-check).
+ENGINE_BACKEND = HighspyBackend()
 
 Cell = tuple  # tuple of (lo, hi) pairs, one per s-variable
 
@@ -151,6 +153,65 @@ def _widths(cell):
     return [hi - lo for (lo, hi) in cell]
 
 
+# --------------------------------------------------------------------------- #
+# Passive dimensions (S8, task #1 / annotation A18)
+# --------------------------------------------------------------------------- #
+#
+# A dimension ``i`` is PASSIVE when neither the barrier ``phi`` nor any pair's moving
+# geometry (vertex numerators + common denominator) depends on ``s_i``: the polynomials
+# the per-cell certifier evaluates (the slab ``T = delta^2 - phi^2`` and every face
+# ``g_j = b_j D - a_j^T X``) are then CONSTANT along axis ``i``.  Two consequences:
+#
+#   * splitting a passive axis can never change a cell's verdict — the outside test and
+#     the witness LP give the IDENTICAL result on a child as on the parent (same
+#     Bernstein coefficients), so a passive split only wastes depth.  This is exactly
+#     the S6 comb blow-up: ``axis="oracle"`` (widest axis) keeps bisecting the passive
+#     distal joint (736 leaves / UNDECIDED) where ``axis="margin"`` already avoided it
+#     (54 leaves).  The fix is to certify each leaf over the passive dim's FULL interval
+#     and never branch on it — "passive dimensions by intervals" (A18).
+#
+# Soundness (CLAUDE.md rule 1): excluding an axis from branching only COARSENS the
+# partition.  Each leaf is still certified independently over its full box (the LP and
+# the outside test are unchanged — same dimension, same margin ``t``), so a coarser
+# partition can never turn a refusal into a proof; at worst it leaves a cell UNDECIDED.
+# Mis-detecting an ACTIVE axis as passive is therefore a cost bug, never a soundness
+# one.  The exact verifier reconstructs the cover from whatever midpoint bisections
+# actually happened (verify ``_verify_cover``), so a passive-aware partition needs no
+# verifier change.  The branch is still always re-validated by the adversarial suite.
+
+def _tensor_depends(t: np.ndarray, axis: int) -> bool:
+    """``True`` iff the coefficient tensor ``t`` has a nonzero coefficient with a
+    positive exponent on ``axis`` (i.e. the polynomial actually varies along ``s_axis``)."""
+    sl = [slice(None)] * t.ndim
+    sl[axis] = slice(1, None)
+    return bool(np.any(t[tuple(sl)] != 0))
+
+
+def passive_dims(problem: Problem) -> tuple:
+    """The axes ``problem`` does not depend on (neither ``phi`` nor any pair geometry)."""
+    n = problem.n
+    passive = []
+    for i in range(n):
+        if _tensor_depends(problem.phi, i):
+            continue
+        dep = False
+        for pr in problem.pairs:
+            if _tensor_depends(pr.D, i) or any(
+                    _tensor_depends(comp, i) for v in pr.verts_num for comp in v):
+                dep = True
+                break
+        if not dep:
+            passive.append(i)
+    return tuple(passive)
+
+
+def active_axes(problem: Problem) -> tuple:
+    """The axes worth branching on = all dims minus :func:`passive_dims` (always
+    non-empty for a real disconnection: ``phi`` separates start from goal on >= 1 axis)."""
+    passive = set(passive_dims(problem))
+    return tuple(i for i in range(problem.n) if i not in passive)
+
+
 def _split(cell, axis):
     """Bisect ``cell`` on ``axis`` at its midpoint → (lower, upper) children."""
     mid = 0.5 * (cell[axis][0] + cell[axis][1])
@@ -172,30 +233,34 @@ class _CellVerdict:
     margin: float | None = None
 
 
-def _best_pair_margin(cell, problem: Problem, backend: LPBackend):
+def _best_pair_margin(cell, problem: Problem, backend: LPBackend, active=None):
     """Best (largest) witness margin over all pairs on ``cell``; ``+inf`` if the cell
-    is outside the slab (trivially certified), ``-inf`` if no pair returns a value."""
+    is outside the slab (trivially certified), ``-inf`` if no pair returns a value.
+    ``active`` (the non-passive axes) reduces each LP to those dimensions (A18)."""
     if cell_outside_slab(cell, problem.phi, problem.delta):
         return float("inf"), None
     best_t, best_name = None, None
     for pr in problem.pairs:
-        t = certify_cell_pair_margin(cell, pr, problem, backend)
+        t = certify_cell_pair_margin(cell, pr, problem, backend, active)
         if t is not None and (best_t is None or t > best_t):
             best_t, best_name = t, pr.name
     return (best_t if best_t is not None else float("-inf")), best_name
 
 
-def certify_cell_pair_margin(cell, pr: Pair, problem: Problem, backend: LPBackend):
-    """Witness margin ``t*`` of one (cell, pair); ``None`` if the LP failed."""
+def certify_cell_pair_margin(cell, pr: Pair, problem: Problem, backend: LPBackend,
+                             active=None):
+    """Witness margin ``t*`` of one (cell, pair); ``None`` if the LP failed. ``active``
+    (non-passive axes) shrinks the Bernstein blocks to ``(d+1)^k`` rows (A18); the margin
+    stays a sound lower bound and the final certificate is verified at full dim."""
     lp = build_witness_lp(cell, pr.verts_num, pr.D, pr.obstacle,
                           phi=problem.phi, delta=problem.delta,
-                          lam_degree=problem.lam_degree)
+                          lam_degree=problem.lam_degree, active_dims=active)
     return backend.solve(lp).t
 
 
-def _certify_cell(cell, problem: Problem, backend: LPBackend) -> _CellVerdict:
+def _certify_cell(cell, problem: Problem, backend: LPBackend, active=None) -> _CellVerdict:
     """Decide one cell: outside / collision (best pair) / undecided."""
-    best_t, best_name = _best_pair_margin(cell, problem, backend)
+    best_t, best_name = _best_pair_margin(cell, problem, backend, active)
     if best_t == float("inf"):
         return _CellVerdict("outside")
     if best_t == float("-inf"):
@@ -208,17 +273,19 @@ def _certify_cell(cell, problem: Problem, backend: LPBackend) -> _CellVerdict:
 # Axis heuristics
 # --------------------------------------------------------------------------- #
 
-def _slab_boundary_axis(cell, problem: Problem):
+def _slab_boundary_axis(cell, problem: Problem, active):
     """If splitting some axis makes a whole child fall outside the slab, return that
-    axis (lowest such), else ``None``.  Same probe order as the frozen oracle."""
-    for ax in range(problem.n):
+    axis (lowest such), else ``None``.  Same probe order as the frozen oracle. Restricted
+    to ``active`` axes — a passive axis cannot move a child outside the slab anyway
+    (``phi`` does not depend on it), so this only skips dead probes."""
+    for ax in active:
         for child in _split(cell, ax):
             if cell_outside_slab(child, problem.phi, problem.delta):
                 return ax
     return None
 
 
-def _margin_axis(cell, problem: Problem, backend: LPBackend) -> int:
+def _margin_axis(cell, problem: Problem, backend: LPBackend, active) -> int:
     """Worst-LP-margin axis of a failing cell: one-step lookahead toward the *relay*
     structure. For each axis, bisect and score the cut by the *best* child's best-pair
     margin; take the axis that maximises it — i.e. the cut that carves off one
@@ -226,26 +293,29 @@ def _margin_axis(cell, problem: Problem, backend: LPBackend) -> int:
     recurse. Bounded by construction (a productive cut, never a runaway), and it
     certifies E3/E4 with no FAIL leaf (journalled leaf counts may differ from the
     widest-axis oracle: that is the allowed deviation). Ties → widest axis, then
-    lowest index."""
+    lowest index. Restricted to ``active`` axes (a passive split never improves the
+    margin: same Bernstein bound on both children — A18)."""
     widths = _widths(cell)
-    scores = []
-    for ax in range(problem.n):
+    scores = {}
+    for ax in active:
         c1, c2 = _split(cell, ax)
-        m1, _ = _best_pair_margin(c1, problem, backend)
-        m2, _ = _best_pair_margin(c2, problem, backend)
-        scores.append(max(m1, m2))
-    return max(range(problem.n), key=lambda i: (scores[i], widths[i], -i))
+        m1, _ = _best_pair_margin(c1, problem, backend, active)
+        m2, _ = _best_pair_margin(c2, problem, backend, active)
+        scores[ax] = max(m1, m2)
+    return max(active, key=lambda i: (scores[i], widths[i], -i))
 
 
 def _choose_axis(cell, problem: Problem, axis_mode: str,
-                 backend: LPBackend) -> int:
-    """Slab-boundary first; else the mode's fallback (widest / worst-margin)."""
-    ax = _slab_boundary_axis(cell, problem)
+                 backend: LPBackend, active) -> int:
+    """Slab-boundary first; else the mode's fallback (widest / worst-margin), both
+    restricted to ``active`` axes so passive dims are kept as full intervals (A18)."""
+    ax = _slab_boundary_axis(cell, problem, active)
     if ax is not None:
         return ax
     if axis_mode == "margin":
-        return _margin_axis(cell, problem, backend)
-    return int(np.argmax(_widths(cell)))   # "oracle": widest axis (numpy → lowest on tie)
+        return _margin_axis(cell, problem, backend, active)
+    widths = _widths(cell)               # "oracle": widest ACTIVE axis (lowest on tie)
+    return max(active, key=lambda i: (widths[i], -i))
 
 
 # --------------------------------------------------------------------------- #
@@ -260,6 +330,7 @@ class _Ctx:
         self.budget = budget or Budget()
         self.axis_mode = axis_mode
         self.backend = backend
+        self.active = active_axes(problem)   # passive dims excluded from branching (A18)
         self.start_depth = start_depth
         self.leaves: list[Leaf] = []
         self.failed: list = []
@@ -282,7 +353,7 @@ def _recurse(ctx: _Ctx, cell, depth):
         ctx.failed.append(cell)
         ctx.leaves.append(Leaf(cell, "undecided"))
         return False
-    v = _certify_cell(cell, ctx.problem, ctx.backend)
+    v = _certify_cell(cell, ctx.problem, ctx.backend, ctx.active)
     ctx.n_lp += 0 if v.status == "outside" else len(ctx.problem.pairs)
     if v.status == "outside":
         ctx.leaves.append(Leaf(cell, "outside"))
@@ -294,7 +365,7 @@ def _recurse(ctx: _Ctx, cell, depth):
         ctx.failed.append(cell)
         ctx.leaves.append(Leaf(cell, "FAIL", None, v.margin))
         return False
-    axis = _choose_axis(cell, ctx.problem, ctx.axis_mode, ctx.backend)
+    axis = _choose_axis(cell, ctx.problem, ctx.axis_mode, ctx.backend, ctx.active)
     c1, c2 = _split(cell, axis)
     ok1 = _recurse(ctx, c1, depth + 1)
     ok2 = _recurse(ctx, c2, depth + 1)
@@ -378,10 +449,14 @@ def _solve_subtree_pooled(args):
 # expands. The processed tree is the deterministic heuristic tree, so the leaf SET is
 # byte-identical to serial (no work inflation) regardless of who processed what.
 #
-# Start method: "fork" (default) is safe HERE because the parent never solves an LP —
-# the workers own all cvxpy/BLAS work, so no library thread is live at fork time —
-# and it avoids re-importing cvxpy per worker (which crushes "spawn" to ~1.5x). The
-# method is overridable for portability.
+# Start method: "forkserver" (default, S8). The parent is multi-threaded (idle BLAS
+# pools), and Python 3.12 deprecates fork() from a multi-threaded process — so "fork",
+# though SAFE here (the parent never solves an LP, no solver thread is live), raises a
+# DeprecationWarning per worker. forkserver forks workers from a clean single-threaded
+# server ⇒ no warning and no deadlock risk. The historical reason fork was the default
+# (spawn/forkserver re-import cvxpy, crushing them to ~1.5x) vanished once the engine
+# backend became highspy (S8): re-import is light, so forkserver is ~9% off fork and
+# still >= 3x on 8 cores. "fork"/"spawn" stay overridable for portability.
 
 def _wq_worker(problem, axis_mode, pending, results, active, lock, deadline):
     """Pull cells off ``pending``; emit leaves to ``results``; push children back.
@@ -389,6 +464,7 @@ def _wq_worker(problem, axis_mode, pending, results, active, lock, deadline):
     the tree is fully partitioned and the worker exits with a ``None`` sentinel."""
     from queue import Empty
     backend = ENGINE_BACKEND
+    active_ax = active_axes(problem)       # branch only on non-passive axes (A18)
     while True:
         with lock:
             if active.value == 0:
@@ -398,7 +474,8 @@ def _wq_worker(problem, axis_mode, pending, results, active, lock, deadline):
         except Empty:
             continue
         over_budget = deadline is not None and time.monotonic() >= deadline
-        v = _certify_cell(cell, problem, backend) if not over_budget else _CellVerdict("undecided")
+        v = (_certify_cell(cell, problem, backend, active_ax) if not over_budget
+             else _CellVerdict("undecided"))
         if v.status == "outside":
             results.put((cell, "outside", None, None))
             with lock:
@@ -416,7 +493,7 @@ def _wq_worker(problem, axis_mode, pending, results, active, lock, deadline):
             with lock:
                 active.value -= 1
         else:
-            ax = _choose_axis(cell, problem, axis_mode, backend)
+            ax = _choose_axis(cell, problem, axis_mode, backend, active_ax)
             c1, c2 = _split(cell, ax)
             with lock:
                 active.value += 1        # 2 children replace 1 ⇒ net +1
@@ -534,7 +611,7 @@ class _Checkpoint:
 
 def solve(problem: Problem, budget: Budget | None = None, axis: str = "oracle",
           n_workers: int = 1, checkpoint_dir: str | None = None,
-          frontier_depth: int | None = None, start_method: str = "fork",
+          frontier_depth: int | None = None, start_method: str = "forkserver",
           backend: LPBackend | None = None) -> EngineResult:
     """Certify (or refuse) the disconnection over ``problem.box``.
 

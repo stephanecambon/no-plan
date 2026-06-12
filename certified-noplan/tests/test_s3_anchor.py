@@ -144,9 +144,12 @@ def test_interactive_html_rejects_planar_scene():
 
 
 @pytest.mark.slow
-def test_benchmark_passive_dim_sweep_margin_flat_oracle_grows():
-    """The harness' cost-model experiment (A18 data): axis=margin stays flat in the
-    passive-dim count while axis=oracle grows. Run only n=2,3,4 to keep the test fast."""
+def test_benchmark_passive_dim_sweep_both_flat_after_s8():
+    """The harness' cost-model experiment (A18 data). Through S7 this showed axis=oracle
+    GROWING with the passive-dim count (8/12/20/36) while axis=margin stayed flat. S8
+    delivered the passive-dimension mitigation (the engine detects passive joints and
+    never branches on them), so BOTH heuristics are now flat — the depth is no longer
+    wasted. Run n=2,3,4 to keep the test fast."""
     if BENCH not in sys.path:
         sys.path.insert(0, BENCH)
     import run_benchmark as rb
@@ -154,12 +157,13 @@ def test_benchmark_passive_dim_sweep_margin_flat_oracle_grows():
     leaves = {}
     for n in (2, 3, 4):
         prob = rb._trap_problem(n)
+        assert engine.passive_dims(prob) == tuple(range(2, n))   # distal joints passive
         m = engine.solve(prob, axis="margin", budget=engine.Budget(max_leaves=20000))
         o = engine.solve(prob, axis="oracle", budget=engine.Budget(max_leaves=20000))
         assert m.verdict == "PROOF" and o.verdict == "PROOF"
         leaves[n] = (m.counts()["n_leaves"], o.counts()["n_leaves"])
-    # margin is constant across passive dims; oracle strictly grows with them.
+    # After S8, BOTH margin and oracle are flat in the passive-dim count.
     margin = [leaves[n][0] for n in (2, 3, 4)]
     oracle = [leaves[n][1] for n in (2, 3, 4)]
-    assert margin[0] == margin[1] == margin[2]                 # flat
-    assert oracle[0] < oracle[1] < oracle[2]                   # grows with passive dims
+    assert margin[0] == margin[1] == margin[2]                 # flat (unchanged)
+    assert oracle[0] == oracle[1] == oracle[2]                 # flat now (was growing)
