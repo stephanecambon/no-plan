@@ -1924,3 +1924,56 @@ OBLIGATOIRE avant tout run long (`cnp show --interactive` A24 + coupes C-space +
 attendre « VALIDÉ S9-V5 ») ; (4) **DECISION-G2.md** — verdict G2' chiffré, calibration,
 comparaison chiffres GPU EXACTS Li-Dantam, GO/NO-GO/RE-SCOPE — revue supervision puis SIGNÉE
 Stéphane avant S10. SI ROUGE : mitigations SPEC §9.1, pivot journalisé (décision avec Stéphane).
+
+## 2026-06-12 — Revue de supervision S9c (claude.ai) — **validée, A33-A34, cap sur S9d**
+
+**Verdict : S9c validée.** Joints verrouillés dans verify.py (sacré) à **499 lignes
+— le pré-arbitrage 500→600 N'A PAS SERVI**, la factorisation a suffi ; invariants
+règle 4 intacts ; instrumentation A32 livrée (compteur bruyant, jamais de PROOF
+amputé, asserté zéro sur S3) ; 188 passed, 0 skip, 0 warning ; coupe S9c→S9d
+correcte (gates humains).
+
+**Au-dessus de l'attendu** :
+1. **Dérive de spec latente attrapée** : le certificat stockait l'ANGLE verrouillé
+   (S4-S9a) au lieu du `{cos, sin}` de SPEC §4 — jamais exercée (locked={}
+   partout), elle aurait mordu exactement à l'iiwa. Corrigée avec défense en
+   profondeur (cos²+sin²=1 vérifié exact dans verify ET le générateur), règle 12
+   appliquée (SPEC v1.6). Le verrouillage au triplet pythagoricien (3/5, 4/5) rend
+   la première scène dont la preuve exacte DÉPEND d'un verrou — vérifiable.
+2. **Pensée adversariale fine** : avoir compris qu'une mutation « verrou déplacé »
+   non détectée est SOUND quand le témoin n'en dépend pas, et avoir CONÇU une
+   scène où le verrou affecte le point certifié pour que la mutation morde —
+   c'est la bonne définition d'un test adversarial (tester le mécanisme, pas
+   cocher une case).
+3. A32 au-delà de la lettre : compté sur TOUTES les feuilles, bruyant (raise si
+   > 0), exposé au harness, prêt pour l'assertion zéro des runs S9d.
+
+**Annotations** :
+- [A33 → ouverture de session] L'anomalie « run partiel antérieur » (revue déjà
+  appliquée en working tree, fichier temporaire consommé) a été réconciliée
+  proprement, mais révèle un trou : l'ouverture de session doit VÉRIFIER l'arbre
+  git propre (`git status`) et journaliser toute modification pré-existante avant
+  de continuer. Un run partiel non commité est un état à constater explicitement,
+  pas à absorber en silence.
+- [A34 → S9d, légère] `test_parallel_speedup` a flaké deux fois (S9a, S9c) sous
+  charge — test de TIMING (≥3×), vert au repos. Le traiter explicitement plutôt
+  que le re-lancer en silence : l'exécuter isolé/en premier dans la suite de
+  sortie, ou best-of-2 documenté ; tout flake aux tests REQUIS est consigné au
+  journal avec sa cause (règle 13, esprit).
+
+**Diffs à appliquer par Code en ouverture de S9d (CLAUDE.md du repo)** :
+- D33 [A33] Règle 8 (ou checklist d'ouverture) : ajouter « l'ouverture de session
+  vérifie `git status` propre ; toute modification pré-existante du working tree
+  est journalisée avant d'être absorbée ou écartée ».
+- D34 [A34] Section S9d, sorties : « tout flake d'un test requis est consigné
+  (cause + re-run isolé) ; test_parallel_speedup exécuté isolé si la suite
+  vient de charger la machine ».
+- D35 Header : version 1.11, changelog « v1.10→v1.11 (revue S9c, A33-A34) :
+  S9c validée ; arbre propre à l'ouverture ; discipline de flake aux tests
+  requis ».
+
+**Prochaine étape** : S9d — scène iiwa 5-6 DOF (comparabilité, vérité-terrain
+dense AVANT certification), calibration A31 (+ par-paire proximale/distale,
+wall-clock S3, n_reresolve_failed=0), [V5] avant tout run long, DECISION-G2.md
+(revue supervision puis signature Stéphane avant S10).
+

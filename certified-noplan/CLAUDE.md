@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.10 — 12 juin 2026 (révision post-S7/S8 + pilotage + D26 + revue S9a-suite ; v1.0..v1.9 dans git).
+Version 1.11 — 12 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c ; v1.0..v1.10 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -65,6 +65,12 @@ la supervision ; **[D31]** instrumentation de la dissonance décision↔certific
 (compteur de re-résolution pleine-dim échouée sur feuille décidée collision, asserté à
 ZÉRO sur les runs S4) ; mesure PAR-PAIRE (proximale vs distale) ajoutée à la table de
 calibration A31. Détail : entrée « Revue de supervision S9a-suite » de JOURNAL.md.
+Changements v1.10 → v1.11 (revue S9c, **[A33-A34]**) : **S9c validée** (verify joints
+verrouillés à 499 l. sans le pré-arbitrage 600 ; format §4 `{cos,sin}` ré-aligné, SPEC v1.6 ;
+A32 livrée) ; **[D33]** arbre git PROPRE vérifié à l'ouverture, modification pré-existante
+journalisée (règle 8) ; **[D34]** discipline de flake aux tests requis (consigné + re-run
+isolé ; `test_parallel_speedup` isolé si la suite vient de charger la machine).
+Détail : entrée « Revue de supervision S9c » de JOURNAL.md.
 
 ---
 
@@ -99,11 +105,15 @@ calibration A31. Détail : entrée « Revue de supervision S9a-suite » de JOURN
    commit hash.
 8. **Discipline de session** : une session = un objectif de la liste ci-dessous.
    On n'attaque pas la session N+1 si les critères de sortie de N ne sont pas
-   verts. Fin de session : mise à jour de JOURNAL.md (Fait / Décisions / Pièges /
-   Prochaine étape), **commit ET push [D26]**. Le push est partie intégrante de la
-   clôture : sans lui, le journal que la supervision lit via GitHub a une session de
-   retard. (D26 lève, pour la clôture de session, la règle globale « jamais de push
-   sans demande » — la clôture EST la demande permanente, actée par Stéphane.)
+   verts. **Ouverture [D33, A33]** : la session vérifie `git status` PROPRE ; toute
+   modification pré-existante du working tree (run partiel antérieur non commité,
+   etc.) est **journalisée** avant d'être absorbée ou écartée — un état à constater
+   explicitement, jamais à absorber en silence. Fin de session : mise à jour de
+   JOURNAL.md (Fait / Décisions / Pièges / Prochaine étape), **commit ET push [D26]**.
+   Le push est partie intégrante de la clôture : sans lui, le journal que la
+   supervision lit via GitHub a une session de retard. (D26 lève, pour la clôture de
+   session, la règle globale « jamais de push sans demande » — la clôture EST la
+   demande permanente, actée par Stéphane.)
 9. **Pièges connus à ne pas redécouvrir** : signe de Putinar (règle 2) ; coupes
    dyadiques vs frontières de dalle non dyadiques (⟹ certificat slab-aware
    obligatoire) ; **la grille d'échantillonnage ne fait pas foi** (micro-canal raté
@@ -274,6 +284,15 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   **G2'**, `DECISION-G2.md` signée, joints VERROUILLÉS dans verify (Rot(angle) cos/sin §4 —
   pré-arbitrage 500→600 l. UNE fois si la factorisation ne suffit pas), **V5** (gate humain).
   Circuit doc S8→S9 appliqué (header v1.9, S9 re-scopée, S9b insérée, D27-D30). (voir JOURNAL.md S9a.)
+- ✅ **S9c** (coupe de S9, tâches 1-2) — **joints VERROUILLÉS dans `verify.py`** (sacré, 499 l.,
+  **pré-arbitrage 600 NON utilisé** — factorisation suffisante) : `_body_fk` substitue la
+  rotation numérique exacte (`cos²+sin²=1` vérifié), ré-indexe les débloqués 0..n−1 ; **format §4
+  `locked_joints={cos,sin}` ré-aligné** (dérive S4-S9a qui stockait l'angle, corrigée ; SPEC v1.6,
+  règle 12). Une scène q*=0 verrouillée = **PROOF**. 9 tests adversariaux (verrou déplacé/corrompu/
+  retiré). **[A32] instrumentation** : compteur `n_reresolve_failed` (dissonance décision↔certificat,
+  bruyant, asserté ZÉRO sur S3). **188 passed, 0 skip, 0 warning** ; CLAUDE.md v1.10. **Reste de S9
+  (= S9d)** : scène iiwa 5-6 DOF, calibration (+ par-paire), **G2'**, `DECISION-G2.md` signée, **V5**
+  (gate humain). (voir JOURNAL.md S9c + revue S9c.)
 
 ---
 
@@ -481,12 +500,17 @@ plus proche et journaliser.
   plausiblement start de goal. (NB : « apparence faisable » A20 N'est PLUS un critère ici —
   S9 est un go/no-go technique, pas une vitrine ; A20 revient non négociable en S9b/V6.)
   Réponse « VALIDÉ S9-V5 » = autorisation de lancer les runs longs.
+- **Discipline de tests [D34, A34]** : tout flake d'un test REQUIS est consigné au journal
+  (cause + re-run isolé) — pas de re-run silencieux de la suite ; `test_parallel_speedup`
+  (test de TIMING ≥3×, flaké S9a/S9c sous charge) est exécuté ISOLÉ si la suite vient de
+  charger la machine (esprit règle 13).
 - **Sortie formelle : `DECISION-G2.md`** [pilotage D22] — verdict **G2'** chiffré (S4
-  certifiée < 1 h, < 10⁴ feuilles, verify OK), calibration du modèle de coût, comparaison
-  aux chiffres GPU EXACTS de Li-Dantam, **recommandation GO / NO-GO / RE-SCOPE** ; revue
-  par la supervision puis **SIGNÉE par Stéphane AVANT toute ouverture de S10**. **V5
-  validée**. SI ROUGE : mitigations SPEC §9.1 — point de pivot, journalisé comme tel ;
-  la décision de re-scope se prend avec Stéphane, pas dans Claude Code.
+  certifiée < 1 h, < 10⁴ feuilles, verify OK, `n_reresolve_failed`=0), calibration du modèle
+  de coût (globale ET par-paire), comparaison aux chiffres GPU EXACTS de Li-Dantam,
+  **recommandation GO / NO-GO / RE-SCOPE** ; revue par la supervision puis **SIGNÉE par
+  Stéphane AVANT toute ouverture de S10**. **V5 validée**. SI ROUGE : mitigations SPEC §9.1 —
+  point de pivot, journalisé comme tel ; la décision de re-scope se prend avec Stéphane, pas
+  dans Claude Code.
 
 ### S9b — Portefeuille de cas d'usage (session légère) [NOUVELLE, pilotage D23]
 - Entrée : S9 (machinerie G2' acquise ou en vue). Session de CONCEPTION produit, pas de
