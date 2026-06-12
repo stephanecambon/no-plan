@@ -1427,4 +1427,54 @@ tenue de l'État (règle 14 (a)/(b)/(c)) — aucune règle/critère changé de m
 (reformuler ? améliorer la détection de passivité géométrique ?) ; puis S9 (scène S4 5-6 DOF,
 G2') qui porte aussi **G3'b** (`spatial_revolute` dans verify.py — la moitié « vérifiée exacte »).
 
+## 2026-06-12 — Décision de pilotage (Stéphane + supervision) — **S9 = go/no-go, S9b cas d'usage**
+
+**Décision de Stéphane** : S9 sert essentiellement de go/no-go et de validation
+du gain sur l'état de l'art ; la définition des cas d'usage devient une étape
+explicite ; les trois scénarios proposés (bac logistique, étagère pharma, capot
+de sûreté) sont retenus comme COMPLÉMENTAIRES (trois propositions de valeur du
+même certificat : élagage prouvé TAMP / portée 7-DOF / auditabilité
+dossier-de-sûreté).
+
+**Restructuration actée** :
+- **S9 (re-scopée) — go/no-go technique pur.** Ouverture D18-D21 + A29/A30 ;
+  G3'b (`spatial_revolute` dans verify.py) ; scène 5-6 DOF choisie pour la
+  COMPARABILITÉ (si les scènes des papiers scaling Li-Dantam sont descriptibles,
+  en refléter une — reproduction approchée documentée, précédent S7 ; sinon bac
+  technique) ; micro-tâche feuilles(n) + coût/feuille (calibration A31).
+  Le critère A20 « apparence faisable » est RETIRÉ de V5 (déplacé en S9b/V6) ;
+  V5 reste : intention de scène + artefact interactif (A24) + limites (A25).
+  **Sortie formelle : `DECISION-G2.md`** — verdict G2' chiffré, calibration du
+  modèle de coût, comparaison aux chiffres GPU exacts de Li-Dantam,
+  recommandation GO / NO-GO / RE-SCOPE — revue par la supervision puis SIGNÉE
+  par Stéphane avant toute ouverture de S10.
+- **S9b (NOUVELLE, légère) — Portefeuille de cas d'usage.** Pour chacun des
+  trois cas (bin-picking logistique ; étagère pharma ; capot de sûreté/fenêtre
+  opérateur) : one-pager (claim, persona, valeur), spec de scène YAML
+  (géométrie, robot, limites), storyboard des artefacts (figures + interactif,
+  critères A20 non négociable / A24 / A25), et critères d'acceptation. Choix du
+  cas FLAGSHIP pour S10. Validation **VU par Stéphane** (c'est sa matière
+  commerciale Cambon AI autant que la nôtre).
+- **S10** : implémente le flagship choisi en S9b (7-DOF, G4', V6 avec A20 non
+  négociable). **S11** : pack démo étendu aux DEUX autres cas (certifiés à
+  5-6 DOF via la machinerie S9) + viz complète (A11, sweep, axes physiques).
+
+**Diffs à appliquer par Code en ouverture de S9 (CLAUDE.md du repo)** :
+- D22 [re-scope S9] Réécrire la section S9 selon ci-dessus (go/no-go, scène
+  comparabilité, A20 retiré de V5, sortie DECISION-G2.md signée avant S10) ;
+  tâche : lire les descriptions de scènes 5/6-DOF de 2406.04795/RA-L 2023 et
+  trancher reflet vs bac technique (documenté).
+- D23 [nouvelle session] Insérer la section S9b « Portefeuille de cas d'usage »
+  (contenu ci-dessus, validation VU, session légère) entre S9 et S10.
+- D24 [S10/S11] S10 : « implémente le flagship choisi en S9b » ; S11 : ajouter
+  « pack démo des deux autres cas d'usage certifiés 5-6 DOF ».
+- D25 Header : version 1.8, changelog « v1.7→v1.8 (décision de pilotage) :
+  S9 = go/no-go avec DECISION-G2.md signée ; S9b portefeuille de cas d'usage ;
+  S10/S11 ajustés ».
+
+**Prochaine étape** : S9 (gabarit habituel). Rappel des risques : session
+chargée malgré le re-scope (A29/A30 + verify spatial + scène + calibration) —
+Code est autorisé à proposer une coupe S9a (réductions + G3'b) / S9c (scène +
+G2' + DECISION-G2.md) si le contexte sature, au critère partiel le plus proche
+(règle 8).
 
