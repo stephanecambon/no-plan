@@ -178,6 +178,28 @@ def _widths(cell):
 # one.  The exact verifier reconstructs the cover from whatever midpoint bisections
 # actually happened (verify ``_verify_cover``), so a passive-aware partition needs no
 # verifier change.  The branch is still always re-validated by the adversarial suite.
+#
+# RATIONAL passivity (S9, annotation A29). The plain tensor test below misses a joint
+# that is GEOMETRICALLY passive but whose ``(1 + s_i^2)`` denominator factor the common
+# per-link denominator still carries on BOTH the numerators and ``D`` (the S3 roll: a
+# joint about the upper arm's own axis does not move it, yet ``D = prod (1 + s_j^2)``
+# over the unlocked chain to the body keeps an ``(1 + s_i^2)`` factor, and each numerator
+# ``N_k = x_world * D`` carries it too).  Since ``x = N_k / D`` is unchanged by dividing
+# numerator AND denominator by the SAME positive factor ``(1 + s_i^2)``, we divide it out
+# exactly when it is present in D and EVERY numerator component (:func:`_simplify_geometry`),
+# exposing the joint as plainly passive.  This is an exact, geometry-preserving rewrite of
+# the DECISION-path geometry only; the certificate is re-solved from the full unsimplified
+# FK (certificate.py) and the exact verifier re-derives FK independently, so a mis-division
+# could at worst cost a leaf, never forge a PROOF.
+#
+# PER-PAIR reduction (S9, annotation A30 — the G2' lever).  Passivity is a property of the
+# PAIR, not of the whole problem: for a pair on link ``k`` every joint downstream of ``k``
+# is passive FOR THAT pair's LP (it does not move link ``k``'s body).  So each pair's leaf
+# LP is reduced to ITS OWN active axes (:class:`_PairView`), which is in general a STRICTER
+# reduction than the global one — a proximal pair on a long chain sees ``(d+1)^2`` rows
+# where the global active set would keep ``(d+1)^n``.  Branching still happens on the GLOBAL
+# active set (the union of the pairs' active axes), so the partition is unchanged; only the
+# per-pair LP shrinks.  Same soundness architecture as S8 (decision-path only).
 
 def _tensor_depends(t: np.ndarray, axis: int) -> bool:
     """``True`` iff the coefficient tensor ``t`` has a nonzero coefficient with a
@@ -187,27 +209,131 @@ def _tensor_depends(t: np.ndarray, axis: int) -> bool:
     return bool(np.any(t[tuple(sl)] != 0))
 
 
-def passive_dims(problem: Problem) -> tuple:
-    """The axes ``problem`` does not depend on (neither ``phi`` nor any pair geometry)."""
-    n = problem.n
+# Float dust tolerance for the exact ``(1 + s_i^2)`` factor test. The two slices are
+# produced by the same tensor multiply (``_factor(..., "one")`` = coefficients [1, 0, 1]),
+# so they are bit-identical in practice; the tiny atol only guards FK conversion dust. A
+# false negative just forgoes a cost win; a false positive is caught by the exact verifier.
+_FACTOR_TOL = 1e-12
+
+
+def _divide_out_one_plus_s2(t: np.ndarray, axis: int):
+    """If ``(1 + s_axis^2)`` divides tensor ``t`` with an ``s_axis``-independent quotient,
+    return that quotient (axis collapsed to degree 0); else ``None`` (A29).
+
+    ``t = (1 + s_axis^2) * M`` with ``M`` free of ``s_axis`` iff, slicing along ``axis``,
+    the exponent-1 slice is zero and the exponent-0 and exponent-2 slices are equal (then
+    ``M`` = the exponent-0 slice).  Tensors here are degree <= 2 per variable, so a present
+    factor leaves the quotient at degree 0 on that axis."""
+    e0 = np.take(t, 0, axis=axis)
+    e1 = np.take(t, 1, axis=axis)
+    e2 = np.take(t, 2, axis=axis)
+    if np.any(e1 != 0.0) or not np.allclose(e0, e2, rtol=0.0, atol=_FACTOR_TOL):
+        return None
+    out = np.zeros_like(t)
+    sl = [slice(None)] * t.ndim
+    sl[axis] = 0
+    out[tuple(sl)] = e0
+    return out
+
+
+def _simplify_geometry(verts_num, D, n: int):
+    """A29: divide out every ``(1 + s_i^2)`` factor common to ``D`` AND all vertex-numerator
+    components.  Returns ``(verts', D', removed_axes)`` representing the SAME world point
+    ``x = N/D`` (we divide numerator and denominator by the same positive factor), but whose
+    tensors no longer carry the removable factor — so a rationally-passive joint becomes
+    detectable by :func:`_tensor_depends`."""
+    removed = []
+    D2 = D
+    verts2 = [[c for c in v] for v in verts_num]
+    for i in range(n):
+        if not _tensor_depends(D2, i):
+            continue                       # already independent of s_i (plainly passive)
+        qD = _divide_out_one_plus_s2(D2, i)
+        if qD is None:
+            continue                       # factor not present in D ⇒ genuinely active
+        qverts, ok = [], True
+        for v in verts2:
+            row = []
+            for c in v:
+                qc = _divide_out_one_plus_s2(c, i)
+                if qc is None:
+                    ok = False
+                    break
+                row.append(qc)
+            if not ok:
+                break
+            qverts.append(row)
+        if ok:                             # factor common to D and every numerator: divide
+            D2, verts2 = qD, qverts
+            removed.append(i)
+    return verts2, D2, tuple(removed)
+
+
+@dataclass
+class _PairView:
+    """A pair's DECISION-path view: its (A29-simplified) geometry and its OWN active axes
+    (the axes ``phi`` or this pair's body depends on).  The leaf LP for this pair is reduced
+    to ``active`` (A30); the certificate is still re-solved at full dim from the scene FK."""
+
+    pair: Pair
+    verts_num: list
+    D: np.ndarray
+    active: tuple
+
+
+def _geom_passive(phi: np.ndarray, verts_num, D, n: int) -> tuple:
+    """Axes neither ``phi`` nor this (already-simplified) geometry depends on."""
     passive = []
     for i in range(n):
-        if _tensor_depends(problem.phi, i):
+        if _tensor_depends(phi, i) or _tensor_depends(D, i):
             continue
-        dep = False
-        for pr in problem.pairs:
-            if _tensor_depends(pr.D, i) or any(
-                    _tensor_depends(comp, i) for v in pr.verts_num for comp in v):
-                dep = True
-                break
-        if not dep:
-            passive.append(i)
+        if any(_tensor_depends(c, i) for v in verts_num for c in v):
+            continue
+        passive.append(i)
     return tuple(passive)
 
 
+def pair_views(problem: Problem) -> list:
+    """Per-pair decision views (A29 simplification + A30 per-pair active axes)."""
+    n = problem.n
+    views = []
+    for pr in problem.pairs:
+        verts, D, _removed = _simplify_geometry(pr.verts_num, pr.D, n)
+        passive = set(_geom_passive(problem.phi, verts, D, n))
+        active = tuple(i for i in range(n) if i not in passive)
+        views.append(_PairView(pr, verts, D, active))
+    return views
+
+
+def _global_active(views, problem: Problem) -> tuple:
+    """The axes to BRANCH on = the union of the pairs' active axes (A30 keeps branching on
+    the union so the partition is unchanged; only the per-pair LP shrinks)."""
+    if not views:
+        return tuple(i for i in range(problem.n) if _tensor_depends(problem.phi, i))
+    active: set = set()
+    for view in views:
+        active.update(view.active)
+    return tuple(sorted(active))
+
+
+def passive_dims(problem: Problem) -> tuple:
+    """The axes the problem does not depend on — neither ``phi`` nor ANY pair's geometry,
+    A29-simplified (so the S3 roll, hidden behind its ``(1+s²)`` denominator factor, now
+    counts as passive).  A dim is globally passive iff it is passive for EVERY pair."""
+    n = problem.n
+    views = pair_views(problem)
+    if not views:                          # degenerate (no pairs): only phi separates
+        return tuple(i for i in range(n) if not _tensor_depends(problem.phi, i))
+    passive = set(range(n))
+    for view in views:
+        passive &= set(i for i in range(n) if i not in view.active)
+    return tuple(sorted(passive))
+
+
 def active_axes(problem: Problem) -> tuple:
-    """The axes worth branching on = all dims minus :func:`passive_dims` (always
-    non-empty for a real disconnection: ``phi`` separates start from goal on >= 1 axis)."""
+    """The axes worth BRANCHING on = all dims minus :func:`passive_dims` (= the union of the
+    pairs' active axes; always non-empty for a real disconnection: ``phi`` separates start
+    from goal on >= 1 axis)."""
     passive = set(passive_dims(problem))
     return tuple(i for i in range(problem.n) if i not in passive)
 
@@ -233,34 +359,34 @@ class _CellVerdict:
     margin: float | None = None
 
 
-def _best_pair_margin(cell, problem: Problem, backend: LPBackend, active=None):
-    """Best (largest) witness margin over all pairs on ``cell``; ``+inf`` if the cell
-    is outside the slab (trivially certified), ``-inf`` if no pair returns a value.
-    ``active`` (the non-passive axes) reduces each LP to those dimensions (A18)."""
+def _best_pair_margin(cell, problem: Problem, backend: LPBackend, views):
+    """Best (largest) witness margin over all pair views on ``cell``; ``+inf`` if the cell
+    is outside the slab (trivially certified), ``-inf`` if no pair returns a value.  Each
+    view reduces its LP to ITS OWN active axes (A30) over its A29-simplified geometry."""
     if cell_outside_slab(cell, problem.phi, problem.delta):
         return float("inf"), None
     best_t, best_name = None, None
-    for pr in problem.pairs:
-        t = certify_cell_pair_margin(cell, pr, problem, backend, active)
+    for view in views:
+        t = certify_cell_view_margin(cell, view, problem, backend)
         if t is not None and (best_t is None or t > best_t):
-            best_t, best_name = t, pr.name
+            best_t, best_name = t, view.pair.name
     return (best_t if best_t is not None else float("-inf")), best_name
 
 
-def certify_cell_pair_margin(cell, pr: Pair, problem: Problem, backend: LPBackend,
-                             active=None):
-    """Witness margin ``t*`` of one (cell, pair); ``None`` if the LP failed. ``active``
-    (non-passive axes) shrinks the Bernstein blocks to ``(d+1)^k`` rows (A18); the margin
-    stays a sound lower bound and the final certificate is verified at full dim."""
-    lp = build_witness_lp(cell, pr.verts_num, pr.D, pr.obstacle,
+def certify_cell_view_margin(cell, view: _PairView, problem: Problem, backend: LPBackend):
+    """Witness margin ``t*`` of one (cell, pair view); ``None`` if the LP failed.  The LP is
+    built from the view's A29-simplified geometry and reduced to the view's OWN active axes
+    (A30) — Bernstein blocks shrink to ``(d+1)^{len(view.active)}`` rows.  The margin stays a
+    sound lower bound and the final certificate is re-solved + verified at FULL dim."""
+    lp = build_witness_lp(cell, view.verts_num, view.D, view.pair.obstacle,
                           phi=problem.phi, delta=problem.delta,
-                          lam_degree=problem.lam_degree, active_dims=active)
+                          lam_degree=problem.lam_degree, active_dims=view.active)
     return backend.solve(lp).t
 
 
-def _certify_cell(cell, problem: Problem, backend: LPBackend, active=None) -> _CellVerdict:
-    """Decide one cell: outside / collision (best pair) / undecided."""
-    best_t, best_name = _best_pair_margin(cell, problem, backend, active)
+def _certify_cell(cell, problem: Problem, backend: LPBackend, views) -> _CellVerdict:
+    """Decide one cell: outside / collision (best pair view) / undecided."""
+    best_t, best_name = _best_pair_margin(cell, problem, backend, views)
     if best_t == float("inf"):
         return _CellVerdict("outside")
     if best_t == float("-inf"):
@@ -285,7 +411,7 @@ def _slab_boundary_axis(cell, problem: Problem, active):
     return None
 
 
-def _margin_axis(cell, problem: Problem, backend: LPBackend, active) -> int:
+def _margin_axis(cell, problem: Problem, backend: LPBackend, active, views) -> int:
     """Worst-LP-margin axis of a failing cell: one-step lookahead toward the *relay*
     structure. For each axis, bisect and score the cut by the *best* child's best-pair
     margin; take the axis that maximises it — i.e. the cut that carves off one
@@ -293,27 +419,29 @@ def _margin_axis(cell, problem: Problem, backend: LPBackend, active) -> int:
     recurse. Bounded by construction (a productive cut, never a runaway), and it
     certifies E3/E4 with no FAIL leaf (journalled leaf counts may differ from the
     widest-axis oracle: that is the allowed deviation). Ties → widest axis, then
-    lowest index. Restricted to ``active`` axes (a passive split never improves the
-    margin: same Bernstein bound on both children — A18)."""
+    lowest index. Restricted to the GLOBAL ``active`` axes (a passive split never improves
+    the margin: same Bernstein bound on both children — A18); the child margins use the
+    per-pair views (A30)."""
     widths = _widths(cell)
     scores = {}
     for ax in active:
         c1, c2 = _split(cell, ax)
-        m1, _ = _best_pair_margin(c1, problem, backend, active)
-        m2, _ = _best_pair_margin(c2, problem, backend, active)
+        m1, _ = _best_pair_margin(c1, problem, backend, views)
+        m2, _ = _best_pair_margin(c2, problem, backend, views)
         scores[ax] = max(m1, m2)
     return max(active, key=lambda i: (scores[i], widths[i], -i))
 
 
 def _choose_axis(cell, problem: Problem, axis_mode: str,
-                 backend: LPBackend, active) -> int:
+                 backend: LPBackend, active, views) -> int:
     """Slab-boundary first; else the mode's fallback (widest / worst-margin), both
-    restricted to ``active`` axes so passive dims are kept as full intervals (A18)."""
+    restricted to the GLOBAL ``active`` axes so passive dims are kept as full intervals
+    (A18); margin scoring uses the per-pair views (A30)."""
     ax = _slab_boundary_axis(cell, problem, active)
     if ax is not None:
         return ax
     if axis_mode == "margin":
-        return _margin_axis(cell, problem, backend, active)
+        return _margin_axis(cell, problem, backend, active, views)
     widths = _widths(cell)               # "oracle": widest ACTIVE axis (lowest on tie)
     return max(active, key=lambda i: (widths[i], -i))
 
@@ -330,7 +458,8 @@ class _Ctx:
         self.budget = budget or Budget()
         self.axis_mode = axis_mode
         self.backend = backend
-        self.active = active_axes(problem)   # passive dims excluded from branching (A18)
+        self.views = pair_views(problem)     # per-pair simplified geometry + active (A29/A30)
+        self.active = _global_active(self.views, problem)  # branch on the union (A18)
         self.start_depth = start_depth
         self.leaves: list[Leaf] = []
         self.failed: list = []
@@ -353,7 +482,7 @@ def _recurse(ctx: _Ctx, cell, depth):
         ctx.failed.append(cell)
         ctx.leaves.append(Leaf(cell, "undecided"))
         return False
-    v = _certify_cell(cell, ctx.problem, ctx.backend, ctx.active)
+    v = _certify_cell(cell, ctx.problem, ctx.backend, ctx.views)
     ctx.n_lp += 0 if v.status == "outside" else len(ctx.problem.pairs)
     if v.status == "outside":
         ctx.leaves.append(Leaf(cell, "outside"))
@@ -365,7 +494,7 @@ def _recurse(ctx: _Ctx, cell, depth):
         ctx.failed.append(cell)
         ctx.leaves.append(Leaf(cell, "FAIL", None, v.margin))
         return False
-    axis = _choose_axis(cell, ctx.problem, ctx.axis_mode, ctx.backend, ctx.active)
+    axis = _choose_axis(cell, ctx.problem, ctx.axis_mode, ctx.backend, ctx.active, ctx.views)
     c1, c2 = _split(cell, axis)
     ok1 = _recurse(ctx, c1, depth + 1)
     ok2 = _recurse(ctx, c2, depth + 1)
@@ -464,7 +593,8 @@ def _wq_worker(problem, axis_mode, pending, results, active, lock, deadline):
     the tree is fully partitioned and the worker exits with a ``None`` sentinel."""
     from queue import Empty
     backend = ENGINE_BACKEND
-    active_ax = active_axes(problem)       # branch only on non-passive axes (A18)
+    views = pair_views(problem)            # per-pair simplified geometry + active (A29/A30)
+    active_ax = _global_active(views, problem)   # branch only on the union (A18)
     while True:
         with lock:
             if active.value == 0:
@@ -474,7 +604,7 @@ def _wq_worker(problem, axis_mode, pending, results, active, lock, deadline):
         except Empty:
             continue
         over_budget = deadline is not None and time.monotonic() >= deadline
-        v = (_certify_cell(cell, problem, backend, active_ax) if not over_budget
+        v = (_certify_cell(cell, problem, backend, views) if not over_budget
              else _CellVerdict("undecided"))
         if v.status == "outside":
             results.put((cell, "outside", None, None))
@@ -493,7 +623,7 @@ def _wq_worker(problem, axis_mode, pending, results, active, lock, deadline):
             with lock:
                 active.value -= 1
         else:
-            ax = _choose_axis(cell, problem, axis_mode, backend, active_ax)
+            ax = _choose_axis(cell, problem, axis_mode, backend, active_ax, views)
             c1, c2 = _split(cell, ax)
             with lock:
                 active.value += 1        # 2 children replace 1 ⇒ net +1

@@ -1657,3 +1657,106 @@ de clôture S9a (`4f5f678`) et ce commit D26 sont poussés vers `origin/main` en
 force-push, pas d'amend (règles globales inchangées). La règle globale « jamais de push
 sans demande » reste en vigueur HORS clôture de session.
 
+## 2026-06-12 — Session S9a-suite (Claude Code) — **réductions A29 + A30 (S9a COMPLÈTE)**
+
+Cette session complète S9a en livrant les deux RÉDUCTIONS (les « réductions » de la
+décision de pilotage = A29 + A30, D19). Avec G3'b (session S9a précédente), S9a est désormais
+COMPLÈTE. Le reste de S9 (scène 5-6 DOF, calibration, G2', DECISION-G2.md, joints verrouillés
+dans verify, V5) constitue S9c — non ouvert ici (gate humain V5 + signature Stéphane sur
+DECISION-G2.md ⟹ infaisable en autonomie ; clôture propre, règle 8).
+
+**Entrée** : S9a (G3'b) re-confirmée verte — `make test` = 170 passed, 0 skip, 0 warning.
+
+**Ouverture doc (circuit A16, commit doc séparé `11964e7`)** — diffs de supervision D27-D30
+du lot revue S8 (D26 déjà commité `33cda50`) :
+- **D27** [CLAUDE.md « Estimation honnête »] : re-scope 5-6 DOF re-cadré = frontière GPU
+  Li-Dantam atteinte sur laptop CPU, certificat exactement revérifiable, différencié par la
+  NATURE du certificat (A26) pas par le DOF (récit « seuls au-delà de 4-DOF » périmé).
+- **D28** [SPEC §8] : G1' marquée ✅ (acquise S6).
+- **D29** [SPEC §1] : « l'un des deux verdicts » → « l'un des **trois** verdicts »
+  (PROOF / ENGINE-PROOF / UNDECIDED, renvoi §6).
+- **D30** [CLAUDE.md règle 12] : « Amendements en attente : voir S4 » (périmé) supprimé.
+- CLAUDE.md header v1.9 + changelog étendu D27-D30 ; SPEC réconciliation doc notée (pas de
+  changement mathématique). Repo = unique source de vérité (A16).
+
+**Fait — A29 (passivité RATIONNELLE)** :
+- Primitive `engine._divide_out_one_plus_s2(t, axis)` : divise un tenseur par (1+s_i²) en
+  EXACT quand le facteur est présent. Test structurel (les tenseurs sont deg ≤2/var) :
+  `t = (1+s_i²)·M` avec M indépendant de s_i ⟺ tranche-exposant-1 nulle ET
+  tranche-exposant-0 == tranche-exposant-2 (alors M = tranche-0). atol 1e-12 (les deux
+  tranches sont bit-identiques en pratique — même `_factor("one")` = [1,0,1]).
+- `engine._simplify_geometry(verts, D, n)` : divise N_k ET D par chaque (1+s_i²) commun à D
+  et à TOUS les numérateurs (« si tout divise, simplifier »). Réécriture EXACTE et
+  géométrie-préservante (x = N/D inchangé : on divise num et dén par le même facteur > 0).
+- **Effet** : le roll de S3 (j2, axe x sur un bras coaxial — géométriquement passif mais le
+  dénominateur commun par link l'habillait d'un (1+s2²) que le détecteur tensoriel gardait)
+  est enfin détecté : `passive_dims(S3)` = **(2, 3)** (était (3,) seul). Vérifié que le
+  détecteur PLAIN (pré-A29) garde s2 actif (`_tensor_depends(D, 2)` True) et que A29 le
+  passive. Géométrie préservée testée à 200 échantillons (|x_full − x_simp| < 1e-9).
+
+**Fait — A30 (réduction PAR-PAIRE, le levier G2')** :
+- `engine._PairView` (paire → géométrie A29-simplifiée + ses dims actives propres) ;
+  `pair_views(problem)` calcule, par paire, les axes dont φ OU la géométrie de CETTE paire
+  dépend ; `_global_active` = union (axe de branchement). Chaque LP de feuille est réduit aux
+  dims actives de SA paire (`certify_cell_view_margin`, `active_dims=view.active`) — une
+  réduction en général PLUS fine que la globale (paire proximale sur chaîne longue : tous les
+  joints en aval passifs POUR CE LP). Le branchement reste sur l'union ⟹ **partition
+  inchangée**, seul le LP par-paire rétrécit. `passive_dims`/`active_axes` reformulés sur les
+  vues. Chemins série, work-queue parallèle et frontier/checkpoint tous re-câblés sur les vues.
+- NB : les scènes LIVRÉES n'ont qu'UN body_link ⟹ A30 == réduction globale sur elles
+  (l'infrastructure par-paire est en place ; le levier ne se manifeste qu'avec plusieurs
+  corps — paires proximale/distale de la scène bac S9c). Testé sur un problème synthétique à
+  deux corps (link 1 actif {0,1} ; link 3 actif {0,1,2,3} ; union {0,1,2,3} ; global passif {4}).
+
+**Soundness (règle 1 — changement engine.py, witness/verify INTACTS)** :
+- **Architecture S8 préservée** : réduction sur le chemin de DÉCISION seulement ; le
+  certificat est re-résolu en PLEINE DIM depuis la FK de scène (`certificate._body_numerators`,
+  `active_dims=None`) ; `verify.py` (sacré, 499 lignes, **zéro diff**) re-dérive la FK et
+  arbitre en pleine dim. Une réduction buggée ne peut au pire que coûter une feuille ou
+  rétrograder PROOF→ENGINE-PROOF, jamais forger un PROOF.
+- **Tests requis livrés** (`tests/test_reductions.py`, 8 tests) : (a) primitive de division
+  exacte (positif + négatif) ; (b) géométrie préservée sur S3 ; (c) détection du roll S3 ;
+  (d) **t_réduit == t_plein par paire** sur les feuilles réelles de S3 ET sur le problème
+  deux-corps (la projection ne tombe que des axes réellement passifs ⟹ ne peut pas gonfler t) ;
+  (e) actifs par-paire plus fins que le global (deux-corps) ; (f) **0 changement de verdict**
+  (S3 PROOF + verify exact sur margin ET oracle) ; (g) bonus non-porte **S3 ~19× de coût LP
+  bout-en-bout** (feuilles × lignes Bernstein, mesuré 632 vs 12256, ≥10× acquis).
+- Suite adversariale (planaire + spatiale S9a) re-verte ; aucun verdict ne bascule sur la
+  suite complète.
+
+**Pièges / décisions** :
+- **A29 division ≠ projection S8** : la division change la VALEUR de t (g_j divisé par
+  (1+s_i²) ≥ 1 ⟹ t rétréci, plus conservateur ; T = δ²−φ² non divisé), mais préserve le
+  VERDICT (vérifié). Le « t_réduit == t_plein » de la règle 1 se teste donc À géométrie
+  simplifiée fixée (réduit-dim vs pleine-dim sur la MÊME géométrie A29) — là la projection
+  est EXACTE (tenseurs constants le long des axes passifs), c'est la propriété S8 re-confirmée.
+- **Synthétique deux-corps, piège du coaxial** : un premier jet mettait j3 d'axe x sur un
+  body segment-x ⟹ j3 coaxial donc A29 le passivait à juste titre (actif (0,1,2) au lieu de
+  (0,1,2,3)). Corrigé en tangages (axe y) perpendiculaires aux segments-x.
+- `certify_cell_pair_margin` (publique, non utilisée ailleurs) renommée
+  `certify_cell_view_margin` (prend une vue).
+
+**Prép S9c (sans risque)** : modèles Drake **déjà en cache** (`iiwa14` chargé en 0.0s, hors
+réseau) ⟹ prérequis règle 10 satisfait pour les tests iiwa REQUIS de S9c.
+
+**Décompte exact (sortie S9a-suite)** : `make test` = **178 passed, 0 skipped, 0 warnings**,
+~198 s (170 S9a + 8 `test_reductions.py`). `verify.py` = **499 lignes, zéro diff** (sacré
+intact, règle 4). Diff de code : `engine.py` seul (+175/−45). Commit doc séparé `11964e7`.
+
+**Diffs CLAUDE.md** (règle 14) : header v1.9 + changelog D27-D30 ; règle 12 résidu retiré
+(D30) ; « Estimation honnête » re-cadrée (D27) ; État d'avancement S9a ✅ COMPLÈTE (réductions
+livrées) ; section S9 « État S9a : COMPLÈTE ». **Diffs SPEC** : §1 trois verdicts (D29), §8
+G1' ✅ (D28), note de réconciliation au header.
+
+**Prochaine étape — S9c** (nouvelle session, gates humains) : (1) joints VERROUILLÉS dans
+`verify.py` (Rot(angle) cos/sin rationnels §4 ; pré-arbitrage : factoriser d'abord, plafond
+500→600 l. UNE seule fois si réellement inévitable, fichier unique/stdlib/zéro import
+générateur) ; (2) scène 5-6 DOF iiwa choisie pour comparabilité (lire descriptions
+arXiv:2406.04795 / RA-L 2023, refléter si descriptible sinon bac technique ; margin défaut,
+fit STRUCTURÉ A19, vérité-terrain dense AVANT certification) ; (3) calibration
+feuilles(n)+coût/feuille à n=3,4,5,6 avec réduction par-paire (A31/D20) ; (4) **[V5]**
+validation visuelle OBLIGATOIRE avant tout run long (artefact `cnp show --interactive` A24 +
+coupes C-space + limites A25 ; attendre « VALIDÉ S9-V5 ») ; (5) **DECISION-G2.md** — verdict
+G2' chiffré, calibration, comparaison chiffres GPU Li-Dantam, GO/NO-GO/RE-SCOPE — revue
+supervision puis SIGNÉE Stéphane avant S10.
+

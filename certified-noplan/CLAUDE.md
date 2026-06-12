@@ -252,15 +252,23 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   ✅ ACQUIS, réserve LEVÉE** : « ≥10× de coût/feuille dès 2 dims passives (mesuré 28×-733×)
   ET S3 ≥5× bout-en-bout (mesuré 6×) ». Détection rationnelle plus fine (roll de S3) traitée
   en S9 [A29]. (voir JOURNAL.md S8 + revue S8.)
-- 🟡 **S9a** (coupe de S9, partiel) — **G3'b acquise** : `verify.py` (sacré, 499 lignes)
+- ✅ **S9a** (coupe de S9, COMPLÈTE) — **G3'b acquise** : `verify.py` (sacré, 499 lignes)
   vérifie en arithmétique exacte les chaînes `spatial_revolute` (FK 3-D re-dérivée des
   `joints` offset/axe du certificat ; axe unitaire exigé). **S2b ET l'ancrage 4-DOF S3
-  passent ENGINE-PROOF → PROOF** (G3'a renforcée). Suite adversariale spatiale + frontière
-  à deux couches (verify interne / cross-check scène) testées ; 170 passed, 0 skip,
-  0 warning ; SPEC v1.5. **Restent pour compléter S9a** : les RÉDUCTIONS — A29 (passivité
-  rationnelle) + A30 (réduction par-paire). **Reste de S9 (= S9c)** : scène 5-6 DOF,
-  calibration feuilles(n), **G2'**, `DECISION-G2.md`, + joints verrouillés dans verify (iiwa).
-  Circuit doc S8→S9 appliqué (header v1.8, S9 re-scopée, S9b insérée). (voir JOURNAL.md S9a.)
+  passent ENGINE-PROOF → PROOF** (G3'a renforcée). **RÉDUCTIONS livrées (S9a-suite)** :
+  **[A29] passivité RATIONNELLE** — division exacte de N_k ET D par (1+s_i²) (test
+  structurel slice0==slice2, slice1==0) ⟹ **le roll de S3 est enfin détecté passif**
+  (`passive_dims(S3)` = (2,3), était (3,)) ; **[A30] réduction PAR-PAIRE** — chaque LP de
+  feuille réduit aux dims actives de SA paire (`_PairView`), branchement sur l'union
+  globale. Architecture soundness S8 préservée (décision seulement, cert re-résolu pleine
+  dim, **verify.py INTACT** — 499 l., zéro diff). Bonus non-porte : **S3 ~19× de coût LP
+  bout-en-bout** (feuilles × lignes Bernstein, ≥10× acquis). Suite adversariale (spatiale +
+  planaire) + frontière à deux couches re-vertes ; **178 passed, 0 skip, 0 warning** (170 +
+  8 `test_reductions.py`) ; SPEC v1.5, CLAUDE.md v1.9. **Reste de S9 (= S9c)** : scène 5-6
+  DOF (iiwa, modèles Drake déjà en cache), calibration feuilles(n)+coût/feuille (A31/D20),
+  **G2'**, `DECISION-G2.md` signée, joints VERROUILLÉS dans verify (Rot(angle) cos/sin §4 —
+  pré-arbitrage 500→600 l. UNE fois si la factorisation ne suffit pas), **V5** (gate humain).
+  Circuit doc S8→S9 appliqué (header v1.9, S9 re-scopée, S9b insérée, D27-D30). (voir JOURNAL.md S9a.)
 
 ---
 
@@ -416,8 +424,8 @@ plus proche et journaliser.
 - Entrée : S8 vert. Pré-télécharger les modèles Drake (hors-ligne interdit ici :
   les tests iiwa sont REQUIS, règle 13). **Coupes autorisées (règle 8) si le contexte
   sature** : **S9a** (réductions A29/A30 + **G3'b**) / **S9c** (scène + G2' +
-  `DECISION-G2.md`). État S9a : **G3'b LIVRÉE** (verify spatial, S2b+S3 → PROOF) ;
-  **réductions A29/A30 restantes**.
+  `DECISION-G2.md`). État S9a : **COMPLÈTE** — G3'b LIVRÉE (verify spatial, S2b+S3 → PROOF) ;
+  **réductions A29/A30 LIVRÉES** (roll S3 détecté passif, LP par-paire, ~19× S3, verify intact).
 - Tâches d'ouverture [revue S8, D19/D20] :
   1. **[A29] passivité RATIONNELLE** : diviser N_k ET D par (1+s_i²) en exact ; si tout
      divise, simplifier et marquer le joint passif (le roll de S3 est géométriquement
