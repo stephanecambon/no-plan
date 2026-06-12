@@ -143,6 +143,27 @@ def test_spatial_scene_is_now_exactly_verifiable_g3b():
     assert ok                                                 # re-checked in exact arithmetic
 
 
+def test_s4_iiwa_bin_locked_joints_certifies_and_verifies(tmp_path):
+    """S9d — the iiwa-like 5-DOF deep-bin scene (two WRIST joints LOCKED at 0): a proximal
+    trap (φ=base yaw) the distal joints are PASSIVE to. End-to-end PROOF, re-checked by the
+    exact verifier (locked cos/sin support), with the A32 dissonance counter at ZERO and a
+    leaf count far under the G2' 10^4 budget. The interactive HTML builds with the locked
+    joints carried through to the JS FK (regression for the viz locked-joint fix)."""
+    scene, budget = _scene("S4_iiwa_bin.yaml")
+    assert scene.robot.n == 5 and len(scene.robot.locked) == 2   # 7 joints, 2 locked
+    assert scenes.is_exactly_verifiable(scene)
+    res = engine.solve(scenes.build_problem(scene, max_depth=budget.max_depth),
+                       axis=budget.axis, budget=budget.engine_budget())
+    assert res.verdict == "PROOF"
+    c = cert.make_certificate(scene, res, verify_loop=True)
+    assert c["stats"]["n_reresolve_failed"] == 0                  # A32: zero dissonance
+    assert c["stats"]["n_leaves"] < 10_000                        # G2' budget
+    assert verify.verify(c)[0]                                    # exact re-check with locked joints
+    html = viz.export_interactive_html(scene, str(tmp_path / "s4.html"))
+    body = open(html).read()
+    assert '"locked": 0.0' in body and "VERROUILL" in body        # locked joints carried + announced
+
+
 @pytest.mark.slow
 def test_cli_certify_then_verify_s1(tmp_path, capsys):
     out = tmp_path / "s1.cert.json"

@@ -1,0 +1,71 @@
+# S4 — iiwa-like 5-DOF "deep bin" (bin-picking infeasibility, SPEC §6).
+#
+# CLAIM: an arm whose proximal segment must pass a sealed front wall to reach the
+# back of a bin cannot do so — and NO amount of distal-joint articulation helps,
+# because the trapped segment depends only on the base yaw + shoulder pitch. This is
+# the bin-picking pruning argument: "the part at the back of the bin is unreachable
+# without first removing the front crate" (proven, not sampled).
+#
+# ROBOT — iiwa-LIKE technical reproduction (NOT the exact Drake URDF). The real KUKA
+# iiwa14 has inter-joint frame rotations the `spatial_revolute` builtin (offset+axis)
+# does not carry, so this is a documented "bac technique" (CLAUDE.md S9d, the option
+# the prompt sanctions when an exact reflection is not expressible; precedent S7/S3).
+# Geometry-correspondence table (A21) — FAITHFUL to iiwa7/14 vs CHOSEN BY US:
+#   FAITHFUL : 7-joint serial chain, alternating yaw/pitch (S-R-S) axes, factory joint
+#              limits all in (-pi, pi) (iiwa: +-170 deg / +-120 deg per joint), iiwa
+#              shares iiwa7 & iiwa14 kinematics (cached Drake model iiwa7_no_collision).
+#   CHOSEN   : link offsets rounded to tidy rationals near iiwa link lengths; joint
+#              frames simplified (no constant inter-joint rotation); the bin WALL; the
+#              two WRIST joints (j5,j6) LOCKED at 0 (cos=1,sin=0) to drop 7->5 active DOF;
+#              the per-joint working box (+-70 deg active, wider passive, all in factory
+#              limits) over which the theorem proves disconnection.
+#
+# WHY PROXIMAL trapping (lesson S5/S6/S7): a distal barrier is defeated by redundancy.
+# The certified body is link 2 (the shoulder/elbow segment); its proximal endpoint sits
+# at world-x in [0.10,0.30] over the whole yaw band, inside the WALL x in [0.08,0.32] for
+# EVERY pitch in the box -> trapped. Joints j3,j4 (distal, unlocked) move only points
+# beyond link 2, so they are PASSIVE for this collision: the engine never branches on them
+# (A18) and the leaf LP drops to the active dims {0,1,2} (A30). Cost scales with ACTIVE
+# dims (3), not the 5 DOF -> 8 leaves, certified in well under a second.
+#
+# Ground truth (dense seeded sampling BEFORE certification, rule 9 / micro-canal lesson):
+#   start/goal collision-free; 0 free points in the slab |s0|<=delta over 40000 samples;
+#   free points on BOTH sides (two components); negative control (unseal the WALL by
+#   lowering its top) -> UNDECIDED, never a false certificate.
+robot:
+  kind: spatial_revolute
+  q_star: ["0","0","0","0","0","0","0"]
+  joints:
+    - {offset: ["0","0","0"],        axis: ["0","0","1"]}   # j0 base yaw      (z)  ACTIVE
+    - {offset: ["0","0","3/10"],     axis: ["0","1","0"]}   # j1 shoulder pitch(y)  ACTIVE
+    - {offset: ["3/10","0","0"],     axis: ["0","1","0"]}   # j2 elbow pitch   (y)  ACTIVE  -> body
+    - {offset: ["3/10","0","0"],     axis: ["0","0","1"]}   # j3 forearm roll  (z)  passive
+    - {offset: ["3/10","0","0"],     axis: ["0","1","0"]}   # j4 wrist pitch   (y)  passive
+    - {offset: ["1/5","0","0"],      axis: ["0","0","1"]}   # j5 wrist roll    (z)  LOCKED 0
+    - {offset: ["161/2000","0","0"], axis: ["0","1","0"]}   # j6 flange pitch  (y)  LOCKED 0
+  locked:
+    5: {cos: "1", sin: "0"}
+    6: {cos: "1", sin: "0"}
+
+body:
+  link: 2                                                   # shoulder/elbow segment
+  hull_vertices: [["0","0","0"], ["3/10","0","0"]]
+
+obstacles:
+  WALL:                       # sealed front wall: x in [2/25,8/25], y in [-1/10,1/10], z in [-1/20,31/50]
+    hrep:
+      A: [["1","0","0"], ["0","1","0"], ["0","0","1"], ["-1","0","0"], ["0","-1","0"], ["0","0","-1"]]
+      b: ["8/25", "1/10", "31/50", "-2/25", "1/10", "1/20"]
+
+phi: {degree_per_var: 2, coeffs: {"1,0,0,0,0": "1"}}        # phi = s0 (base yaw)
+delta: "1/10"
+
+# box P in s-space (one entry per UNLOCKED joint). q = 2*arctan(s):
+#   active joints 0,1,2 limited to s in [-7/10,7/10]  (q in +-70 deg, soft cell limit
+#   within iiwa factory +-170/+-120 deg); passive joints 3,4 free over s in [-5,5]
+#   (q in +-157 deg, within factory limits) -> the distal joints may be ANYWHERE.
+box:     [["-7/10","7/10"], ["-7/10","7/10"], ["-7/10","7/10"], ["-5","5"], ["-5","5"]]
+start_s: ["-3/5", "0", "0", "0", "0"]
+goal_s:  ["3/5", "0", "0", "0", "0"]
+pairs: ["WALL"]
+budget: {max_depth: 24, axis: margin}

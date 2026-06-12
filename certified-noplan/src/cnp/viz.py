@@ -309,10 +309,12 @@ function rot(axis,a){ // Rodrigues about unit axis
 function ap(T,p){return [T[0]*p[0]+T[1]*p[1]+T[2]*p[2]+T[3],
                          T[4]*p[0]+T[5]*p[1]+T[6]*p[2]+T[7],
                          T[8]*p[0]+T[9]*p[1]+T[10]*p[2]+T[11]];}
-// forward kinematics: q_i = 2*atan(s_i); returns transform AFTER each joint
-function fkChain(s){let T=ident(),out=[];for(let i=0;i<SC.joints.length;i++){
+// forward kinematics: unlocked joint q = 2*atan(s); LOCKED joint = fixed angle (no slider);
+// s is the UNLOCKED vector (one entry per slider), mapped onto the full joint chain here.
+function fkChain(s){let T=ident(),out=[],si=0;for(let i=0;i<SC.joints.length;i++){
   T=mul(T,trans(SC.joints[i].offset));
-  T=mul(T,rot(SC.joints[i].axis, 2*Math.atan(s[i])));
+  let a = SC.joints[i].locked!=null ? SC.joints[i].locked : 2*Math.atan(s[si++]);
+  T=mul(T,rot(SC.joints[i].axis, a));
   out.push(T);}return out;}
 function armPts(s){ // {base, elbow, hand, upper:[base,elbow]}
   let T=fkChain(s); let L=SC.upper_len;
@@ -366,12 +368,17 @@ function setS(s){cur=s.slice();for(let i=0;i<cur.length;i++){
   document.getElementById("s"+i).value=cur[i];document.getElementById("v"+i).textContent=cur[i].toFixed(2);}redraw();}
 // sliders
 document.getElementById("limits").innerHTML="<b>"+SC.limits_caption+"</b> — les BUTÉES des curseurs ci-dessous SONT ces limites articulaires (A25) ; toutes ⊂ (−180°,180°) ⟹ pas de wrap-around. Le cadre des deux vues = l'espace atteignable dans ces limites.";
-const NAMES=SC.joint_names;let sl=document.getElementById("sliders");
+const NAMES=SC.joint_names;let sl=document.getElementById("sliders");let si=0;
 for(let i=0;i<SC.joints.length;i++){let d=document.createElement("div");d.className="sld";
- let ld=SC.limits_deg[i];let deg='['+Math.round(ld[0])+'…'+Math.round(ld[1])+'°]';
- d.innerHTML='<label>s'+i+' — '+NAMES[i]+' '+deg+'</label><input id="s'+i+'" type="range" min="'+SC.box[i][0]+'" max="'+SC.box[i][1]+'" step="0.01" value="'+cur[i]+'"><span class="val" id="v'+i+'"></span>';
+ if(SC.joints[i].locked!=null){                              // LOCKED joint: no slider, announced as such
+   let dg=Math.round(SC.joints[i].locked*180/Math.PI);
+   d.innerHTML='<label>'+NAMES[i]+' — 🔒 VERROUILLÉ à '+dg+'° (hors C-space certifié)</label>';
+   d.style.opacity=0.6;sl.appendChild(d);continue;}
+ let j=si;let ld=SC.limits_deg[j];let deg='['+Math.round(ld[0])+'…'+Math.round(ld[1])+'°]';
+ d.innerHTML='<label>s'+j+' — '+NAMES[i]+' '+deg+'</label><input id="s'+j+'" type="range" min="'+SC.box[j][0]+'" max="'+SC.box[j][1]+'" step="0.01" value="'+cur[j]+'"><span class="val" id="v'+j+'"></span>';
  sl.appendChild(d);let inp=d.querySelector("input");
- inp.oninput=()=>{cur[i]=parseFloat(inp.value);document.getElementById("v"+i).textContent=cur[i].toFixed(2);redraw();};}
+ inp.oninput=()=>{cur[j]=parseFloat(inp.value);document.getElementById("v"+j).textContent=cur[j].toFixed(2);redraw();};
+ si++;}
 // escape attempts: animate a path; report whether ANY pose was free
 function play(kind){let path=[],N=24;
  if(kind==='yaw'){for(let k=0;k<=N;k++){let t=k/N;path.push(SC.start_s.map((v,i)=>v+(SC.goal_s[i]-v)*t));}}
@@ -455,9 +462,11 @@ def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float
         raise NotImplementedError(
             "interactive HTML is for spatial scenes; planar scenes use the 2-D figures")
 
+    locked_ang = scene.robot.locked_angles                     # {joint_idx: angle_rad}
     joints = [{"offset": [float(_cert.Q(x)) for x in j["offset"]],
-               "axis": [float(_cert.Q(x)) for x in j["axis"]]}
-              for j in scene.robot.joints]
+               "axis": [float(_cert.Q(x)) for x in j["axis"]],
+               "locked": locked_ang.get(i)}                     # angle (rad) if locked, else None
+              for i, j in enumerate(scene.robot.joints)]
     panels = []
     for (A, b) in scene.obstacles.values():
         bnds = _box_bounds(A, b)
