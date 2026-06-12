@@ -1977,3 +1977,88 @@ dense AVANT certification), calibration A31 (+ par-paire proximale/distale,
 wall-clock S3, n_reresolve_failed=0), [V5] avant tout run long, DECISION-G2.md
 (revue supervision puis signature Stéphane avant S10).
 
+
+## 2026-06-12 — Session S9d (Claude Code) — **scène iiwa 5-6 DOF, calibration, G2' VERT, DECISION-G2.md (GO) — en attente signature Stéphane**
+
+S9d livre le cœur de S9 : la scène S4, la calibration, le verdict **G2' (GO)** et `DECISION-G2.md`.
+Gate humain **V5 VALIDÉ** par Stéphane (« VALIDÉ S9-V5 ») ; gate humain restant = **signature de
+DECISION-G2.md avant S10** (supervision revoit, puis Stéphane signe).
+
+**Ouverture doc (circuit A16, commit doc séparé `00d114f`)** :
+- [A33] Arbre git : `M JOURNAL.md` pré-existant = la revue S9c déjà appendée par un run partiel
+  antérieur (fichier temporaire consommé). **Observé, journalisé, ABSORBÉ** (D33 appliqué : l'ouverture
+  vérifie `git status`, toute modif pré-existante est journalisée avant absorption).
+- D33 (règle 8 : arbre propre à l'ouverture), D34 (discipline de flake aux tests requis), D35
+  (header CLAUDE.md **v1.11** + changelog), État d'avancement S9c ✅.
+
+**Fait — Tâche 1 : scène S4 iiwa-like bac profond** (`scenes/S4_iiwa_bin.yaml`) :
+- Chaîne iiwa-like S-R-S 7 joints (offsets rationnels ~ longueurs iiwa7/14 lues du modèle Drake
+  en cache, axes lacet/tangage alternés). **Bac technique DOCUMENTÉ** (option sanctionnée par le
+  prompt : le `spatial_revolute` ne porte pas les rotations constantes inter-joints de l'URDF iiwa
+  exact ⟹ pas une reproduction URDF-fidèle ; table A21 FIDÈLE/CHOISI dans l'en-tête du YAML).
+- **2 joints poignet VERROUILLÉS à 0** ({cos:1,sin:0}) ⟹ 5 DOF actifs. **Piégeage PROXIMAL**
+  (φ=lacet base) : corps certifié = link 2, extrémité proximale dans le mur sur toute la bande de
+  lacet et tout tangage ; joints distaux PASSIFS pour la paire (actifs {0,1,2}). Limites usine iiwa
+  ⊂ (−π,π), box actifs ±70° / passifs ±157°, affichés en degrés (A25).
+- **Vérité-terrain dense AVANT certification** (règle 9) : start/goal libres ; **0 libre dans la dalle
+  / 40 000 échantillons seedés** ; deux composantes ; contrôle négatif (mur descellé) → UNDECIDED.
+- Certifie **PROOF, 8 feuilles, verify exact OK, `n_reresolve_failed`=0**.
+
+**Fait — Fix viz (non-sacré) joints verrouillés** : `export_interactive_html` supposait tous les
+joints débloqués (S2b n'avait pas de lock) — 1re scène verrouillée visualisée. Corrigé : la FK JS
+mappe le vecteur s débloqué (n=5) sur la chaîne complète (joint verrouillé = angle fixe), les joints
+verrouillés affichés « 🔒 VERROUILLÉ à X° » sans curseur. Régression S2b OK.
+
+**Fait — [V5] artefacts** (`benchmarks/figures/S9d_V5/`) : interactif HTML (curseurs aux noms
+physiques, butées=limites, fantômes, boutons d'évasion à verdict, locks annoncés) + coupes C-space
+(s0,s1)/(s0,s2). **« VALIDÉ S9-V5 » reçu de Stéphane.**
+
+**Fait — Tâche 3 : calibration** (`scripts/calibrate_g2.py`, `DECISION-G2.md` §3) :
+- Famille iiwa n=3,4,5,6 (locks décroissants, actifs {0,1,2} fixes) : **feuilles=8 CONSTANT**,
+  coût/feuille réduit=766 CONSTANT, coût/feuille PLEIN explose 766→93 878 ⟹ **réduction A30 ×122
+  à 6-DOF** (≈×5/dim passive). `n_reresolve_failed`=0 partout. Certif 0,34→3,26 s (le n complet
+  n'est vu que par la re-résolution pleine-dim du certificat à l'export, soundness S8).
+- **A30 PAR-PAIRE proximale vs distale (1re mesure réelle)** sur variante deux-corps (n=7) : paire
+  proximale link 2 = {0,1,2} → 766 lignes LP vs 18 814 en global ({0,1,2,3,4}) ⟹ **×24,6**. La scène
+  livrée n'a qu'UN corps (dit honnêtement : par-paire ≡ global sur elle ; le levier se mesure sur la
+  variante deux-corps).
+- **Benchmark canonique régénéré arbre PROPRE** (commit `eb134e7`, `git_dirty=false`,
+  `benchmarks/results/20260612T233416Z/`) : **S3 4-DOF = moteur 0,043 s + verify 0,041 s** ;
+  S4 iiwa 8 feuilles.
+
+**Fait — Tâche 4 : `DECISION-G2.md` (GO)** :
+- **Verdict G2' VERT** : 5-6 DOF PROOF, vérifié exact, sur **laptop CPU sans GPU**, 5-DOF ≈1 s /
+  6-DOF ≈3,9 s, 8 feuilles, A32=0 — marge ×1000 sous 1 h, ×1250 sous 10⁴ feuilles.
+- **Comparaison Li-Dantam** chiffres **vérifiés à la source** (rule 9/A28, PDF arXiv:2406.04795 lu) :
+  RTX 4070 + i9-13900K, scènes 6-DoF « moins d'1 minute en moyenne », manifold triangulé validé par
+  collision-checker FLOTTANT. Positionnement honnête (PAS de course apples-to-apples, lignée « pas de
+  ×400 ») : même frontière DOF qu'eux sur CPU, certificat d'une autre NATURE (exactement re-vérifiable).
+- **Recommandation GO** + insight de scope : *les déconnexions certifiables sont proximales ⟹ peu de
+  dims actives ⟹ coût suit les dims actives, pas le DOF* ⟹ S10 doit choisir un flagship 7-DOF à
+  piégeage PROXIMAL. **EN ATTENTE : revue supervision puis SIGNATURE Stéphane avant S10.**
+
+**Décisions / amendements** : CLAUDE.md **v1.11** (D33-D35) commit doc `00d114f`. Pas de changement
+SPEC (la scène utilise l'existant ; le `spatial_revolute` ne couvre pas l'URDF iiwa exact — noté
+comme dette éventuelle S10/S11 si un reviewer l'exige, hors-scope go/no-go).
+
+**Pièges** :
+- **iiwa exact non exprimable en `spatial_revolute`** : l'URDF iiwa a des rotations constantes
+  inter-joints (frames tournés) que le modèle offset+axe ne porte pas. Mappage exact ⟹ formulation
+  POE ou extension de verify.py (sacré). Écarté ⟹ bac technique iiwa-LIKE documenté (table A21).
+- **Citation « RA-L 2023 » du prompt = lapsus pour IJRR 2023** (SAGE 10.1177/02783649231154674) ;
+  le scaling GPU est arXiv:2406.04795 (2024). Vérifié, corrigé dans DECISION-G2.md.
+- **Viz cassée sur scène verrouillée** (1re du genre) : FK JS et curseurs supposaient tout débloqué.
+- **3 dims actives à 5-6 DOF** : ce n'est PAS un cherry-pick mais intrinsèque (un piège distal serait
+  défait par la redondance ⟹ pas une déconnexion). Si un cas S9b exige ≥4 dims actives, re-mesurer.
+
+**Décompte exact (sortie S9d)** : `make test` = **189 passed, 0 skipped, 0 warnings**, ~204 s
+(178 S9a + 9 locked + 1 a32 + 1 s4_iiwa_bin = 189). **Pas de flake cette session** (`test_parallel_speedup`
+vert ; D34 : aucun re-run isolé nécessaire). `verify.py` = 499 lignes (sacré, intact cette session).
+
+**Diffs CLAUDE.md** (règle 14) : header v1.11 + changelog D33-D35 + règle 8 (arbre propre) + S9 sortie
+(discipline flake, calibration par-paire) + État S9c ✅ — commit doc `00d114f`.
+
+**Prochaine étape** : **revue supervision de DECISION-G2.md, puis SIGNATURE de Stéphane (§6) AVANT
+toute ouverture de S10.** Ensuite : **S9b** (portefeuille de cas d'usage, validation VUE Stéphane,
+choix du flagship — A20 non négociable) puis **S10** (flagship 7-DOF à piégeage PROXIMAL). Si la
+supervision juge G2' rouge : mitigations SPEC §9.1, pivot décidé avec Stéphane.
