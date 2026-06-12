@@ -13,13 +13,17 @@ Soundness contract (rule 1): this suite is the scene-level negative control of t
 scene pipeline (scenes.py / cli.py); witness/engine/verify are unchanged in S6, their
 own negative controls (test_witness, test_putinar_sign, test_verify) still stand.
 """
+import copy
+import os
 from fractions import Fraction as F
 
 import numpy as np
 import pytest
 
 import regref
-from cnp import certificate as cert, engine, scenes
+from cnp import certificate as cert, engine, scenes, verify
+
+SCENES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scenes")
 
 
 # --------------------------------------------------------------------------- #
@@ -150,3 +154,76 @@ def test_micro_canal_caught_by_certifier_missed_by_grid():
     assert res.verdict != "PROOF"                        # the certifier is not fooled
     with pytest.raises(ValueError):
         cert.make_certificate(scene, res)
+
+
+# --------------------------------------------------------------------------- #
+# Spatial exact verifier (G3'b, S9): verify.py now re-derives the 3-D FK from the
+# cert's joint offsets/axes. It must REJECT any cert whose declared geometry breaks
+# the collision proof — i.e. the joints are genuinely consumed, not rubber-stamped.
+# --------------------------------------------------------------------------- #
+
+@pytest.fixture(scope="module")
+def spatial_cert():
+    scene, budget = scenes.load(os.path.join(SCENES, "S2b_spatial3.yaml"))
+    res = engine.solve(scenes.build_problem(scene, max_depth=budget.max_depth),
+                       axis=budget.axis, budget=budget.engine_budget())
+    c = cert.make_certificate(scene, res, verify_loop=True)
+    ok, _ = verify.verify(c)
+    assert ok                                            # honest cert verifies exactly
+    return scene, c
+
+
+def _first_collision(c):
+    return next(lf for lf in c["leaves"] if lf["status"] == "collision")
+
+
+def test_spatial_verifier_consumes_the_joint_geometry(spatial_cert):
+    """A wrong axis or a large offset shift breaks the collision proof => REJECT.
+    Proof that verify.py actually re-derives the 3-D FK from the joints (not ignoring
+    them): mutate the geometry and the stored lambda/mu no longer bound g - mu*T."""
+    _, base = spatial_cert
+
+    def rejected(mut):
+        c = copy.deepcopy(base)
+        mut(c)
+        ok, _ = verify.verify(c)
+        return not ok
+
+    # j0 yaw axis +z flipped to +y: the whole chain rotates differently.
+    assert rejected(lambda c: c["robot"]["joints"][0].__setitem__("axis", ["0", "1", "0"]))
+    # j1 lifted far up in z so the distal segment clears the wall band.
+    assert rejected(lambda c: c["robot"]["joints"][1].__setitem__("offset", ["0", "0", "5"]))
+    # a non-unit axis makes the Rodrigues numerator unsound -> refused outright.
+    assert rejected(lambda c: c["robot"]["joints"][2].__setitem__("axis", ["0", "2", "0"]))
+
+
+def test_spatial_verifier_rejects_corrupted_multipliers(spatial_cert):
+    """The usual witness/partition mutations, on a SPATIAL cert."""
+    _, base = spatial_cert
+
+    def rejected(mut):
+        c = copy.deepcopy(base)
+        mut(c)
+        return not verify.verify(c)[0]
+
+    def bust_lambda(c):
+        lf = _first_collision(c)
+        lf["lambda"][0][next(iter(lf["lambda"][0]))] = "7"
+
+    assert rejected(bust_lambda)                                  # sum_k lambda_k != 1
+    assert rejected(lambda c: _first_collision(c).__setitem__("mu",
+                    ["-1"] + _first_collision(c)["mu"][1:]))      # mu < 0
+    assert rejected(lambda c: c["leaves"].pop())                 # partition no longer tiles
+    assert rejected(lambda c: _first_collision(c).update(status="outside"))  # mislabelled
+
+
+def test_spatial_cross_check_catches_a_geometry_swap(spatial_cert):
+    """Two-layer defence: a small offset perturbation yields a cert that is INTERNALLY a
+    valid proof (verify.verify accepts — it certifies whatever robot the cert declares),
+    but scene_matches_cert ties it to the authored scene and catches the joint swap."""
+    scene, base = spatial_cert
+    c = copy.deepcopy(base)
+    c["robot"]["joints"][1]["offset"] = ["0", "0", "1/4"]        # was 3/10
+    assert verify.verify(c)[0]                                    # internally still a proof
+    assert not scenes.scene_matches_cert(scene, c)[0]            # but not THIS scene
+    assert scenes.scene_matches_cert(scene, base)[0]            # honest cert matches

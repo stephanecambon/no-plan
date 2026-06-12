@@ -7,9 +7,12 @@ Three commands, three honest verdicts (CLAUDE.md rules 5/6, annotation A17):
     - **PROOF**       — engine proved the disconnection AND the independent exact
                         verifier (:mod:`cnp.verify`) re-checked the certificate;
     - **ENGINE-PROOF** — the engine proved it, but exact verification is unavailable
-                        for this scene (a non-planar robot before S9, or a leaf that
-                        would not round to an exactly-feasible certificate). ALWAYS
-                        printed with its warning: this is NOT a verified proof;
+                        for this scene (a robot configuration the verifier does not yet
+                        support — e.g. locked joints or q*≠0, which need irrational
+                        Rot(angle) — or a leaf that would not round to an exactly-feasible
+                        certificate). ALWAYS printed with its warning: NOT a verified
+                        proof. Since S9 (G3'b) the planar AND spatial revolute builtins
+                        at q*=0 with no locked joints reach the full PROOF verdict;
     - **UNDECIDED**   — no certificate at the given budget (NOT a proof of feasibility).
 * ``cnp verify <cert.json> [scene.yaml]`` — run the untrusted exact verifier; if a
   scene file is given, also cross-check that the certificate states the same problem.
@@ -95,8 +98,9 @@ def _cmd_certify(args) -> int:
 
     if not _scenes.is_exactly_verifiable(scene):
         print("verdict: ENGINE-PROOF (engine proved the disconnection; the independent "
-              "EXACT verifier does not yet support this robot kind — "
-              f"{scene.robot.kind!r}, exact verification arrives in S9)")
+              "EXACT verifier does not support this scene's robot configuration — "
+              f"{scene.robot.kind!r} with locked joints or q*≠0 needs irrational "
+              "Rot(angle); planar/spatial at q*=0, no locked joints are PROOF since S9)")
         print("  WARNING: this is NOT an exact-arithmetic-verified proof (rule 5).")
         _print_assumptions(scene)
         return 0

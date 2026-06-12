@@ -127,12 +127,20 @@ def test_malformed_scene_raises(mutate):
 # Three verdicts (A17): PROOF / ENGINE-PROOF / UNDECIDED
 # --------------------------------------------------------------------------- #
 
-def test_spatial_scene_is_engine_proof_not_exactly_verifiable():
+def test_spatial_scene_is_now_exactly_verifiable_g3b():
+    """G3'b (S9): the spatial builtin is re-checked by the INDEPENDENT exact verifier
+    (verify.py re-derives the 3-D FK from the cert's offsets/axes), so S2b flips from
+    ENGINE-PROOF to PROOF. The ENGINE-PROOF placeholder ('exact verifier arrives in S9')
+    is retired for spatial scenes."""
     scene, budget = _scene("S2b_spatial3.yaml")
-    assert not scenes.is_exactly_verifiable(scene)            # spatial -> ENGINE-PROOF
+    assert scenes.is_exactly_verifiable(scene)                # spatial -> PROOF now
     res = engine.solve(scenes.build_problem(scene, max_depth=budget.max_depth),
                        axis=budget.axis, budget=budget.engine_budget())
-    assert res.verdict == "PROOF"                              # engine proves it
+    assert res.verdict == "PROOF"
+    c = cert.make_certificate(scene, res, verify_loop=True)
+    assert "joints" in c["robot"]                             # spatial geometry serialized
+    ok, _ = verify.verify(c)
+    assert ok                                                 # re-checked in exact arithmetic
 
 
 @pytest.mark.slow
@@ -146,11 +154,14 @@ def test_cli_certify_then_verify_s1(tmp_path, capsys):
     assert "PROOF" in capsys.readouterr().out
 
 
-def test_cli_certify_spatial_is_engine_proof(capsys):
-    rc = cli.main(["certify", os.path.join(SCENES, "S2b_spatial3.yaml")])
-    out = capsys.readouterr().out
+def test_cli_certify_spatial_is_proof_g3b(tmp_path, capsys):
+    out = tmp_path / "s2b.cert.json"
+    rc = cli.main(["certify", os.path.join(SCENES, "S2b_spatial3.yaml"), "-o", str(out)])
+    txt = capsys.readouterr().out
     assert rc == 0
-    assert "ENGINE-PROOF" in out and "NOT" in out             # warning always present
+    assert "verdict: PROOF" in txt and "ENGINE-PROOF" not in txt   # G3'b: exact now
+    rc = cli.main(["verify", str(out), os.path.join(SCENES, "S2b_spatial3.yaml")])
+    assert rc == 0 and "PROOF" in capsys.readouterr().out
 
 
 @pytest.mark.slow

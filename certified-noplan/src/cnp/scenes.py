@@ -219,13 +219,7 @@ def load(path: str) -> tuple[_cert.Scene, SceneBudget]:
 # --------------------------------------------------------------------------- #
 
 def _spatial_joints(robot: _cert.Robot) -> list:
-    js = []
-    for i, j in enumerate(robot.joints):
-        X = np.eye(4)
-        X[:3, 3] = [float(_cert.Q(x)) for x in j["offset"]]
-        js.append(RevoluteJoint(f"j{i}", X,
-                                np.array([float(_cert.Q(x)) for x in j["axis"]])))
-    return js
+    return _cert._spatial_joints(robot)         # single source of truth (DRY)
 
 
 def _spatial_problem(scene: _cert.Scene, **kw) -> _engine.Problem:
@@ -271,11 +265,16 @@ def _planar_body_fk(scene: _cert.Scene):
 
 
 def is_exactly_verifiable(scene: _cert.Scene) -> bool:
-    """Whether the independent exact verifier (:mod:`cnp.verify`, planar until S9) can
-    re-check this scene: the planar builtin at ``q* = 0`` (SPEC §2 — a q*≠0 needs the
-    irrational Rot(q*); spatial robots arrive with kind ``spatial_revolute`` in S9)."""
-    return (scene.robot.kind == "planar_revolute"
-            and all(v == 0 for v in scene.robot.q_star))
+    """Whether the independent exact verifier (:mod:`cnp.verify`) can re-check this scene
+    in exact arithmetic: a planar (S4) or spatial (S9, G3'b) revolute chain at ``q*=0``
+    with no locked joints (a q*≠0 or a locked joint needs the irrational Rot(angle),
+    refused by the verifier — SPEC §2; iiwa locked-joint support is a follow-up)."""
+    r = scene.robot
+    if r.kind == "planar_revolute":
+        return all(v == 0 for v in r.q_star)
+    if r.kind == "spatial_revolute":
+        return all(v == 0 for v in r.q_star) and not r.locked
+    return False
 
 
 def scene_matches_cert(scene: _cert.Scene, cert: dict) -> tuple[bool, str]:
@@ -298,6 +297,11 @@ def scene_matches_cert(scene: _cert.Scene, cert: dict) -> tuple[bool, str]:
         return fail("q_star differs")
     if cr.get("locked_joints", {}) != {str(k): str(v) for k, v in r.locked.items()}:
         return fail("locked joints differ")
+    if r.kind == "spatial_revolute":
+        sj = [{"offset": [str(_cert.Q(x)) for x in j["offset"]],
+               "axis": [str(_cert.Q(x)) for x in j["axis"]]} for j in (r.joints or [])]
+        if cr.get("joints") != sj:
+            return fail("spatial joints differ")
     cb = cert.get("body", {})
     if int(cb.get("link", -1)) != scene.body_link:
         return fail("body link differs")

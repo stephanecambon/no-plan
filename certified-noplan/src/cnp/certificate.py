@@ -144,15 +144,30 @@ def _planar_joints(robot: Robot) -> list:
     return joints
 
 
+def _spatial_joints(robot: Robot) -> list:
+    """Generic 3-D revolute chain: each joint its own offset (X_pj) and unit axis."""
+    joints = []
+    for i, j in enumerate(robot.joints):
+        X = np.eye(4)
+        X[:3, 3] = [float(Q(x)) for x in j["offset"]]
+        joints.append(RevoluteJoint(f"j{i}", X,
+                                    np.array([float(Q(x)) for x in j["axis"]])))
+    return joints
+
+
 def _body_numerators(scene: Scene):
     """Vertex numerators + common denominator of the moving body (float, via the S1
-    generator FK :class:`cnp.ratfk.SympyRatFK`)."""
-    if scene.robot.kind != "planar_revolute":
-        raise NotImplementedError(f"robot kind {scene.robot.kind!r} not in S4")
-    fk = SympyRatFK(_planar_joints(scene.robot),
-                    locked={k: float(v) for k, v in scene.robot.locked.items()},
-                    q_star=[float(v) for v in scene.robot.q_star])
-    body = fk.body(f"link{scene.body_link}")
+    generator FK :class:`cnp.ratfk.SympyRatFK`). Planar (S4) or spatial (S9, G3'b)."""
+    r = scene.robot
+    if r.kind == "planar_revolute":
+        joints, body_id = _planar_joints(r), f"link{scene.body_link}"
+    elif r.kind == "spatial_revolute":
+        joints, body_id = _spatial_joints(r), scene.body_link
+    else:
+        raise NotImplementedError(f"robot kind {r.kind!r} not supported")
+    fk = SympyRatFK(joints, locked={k: float(v) for k, v in r.locked.items()},
+                    q_star=[float(v) for v in r.q_star])
+    body = fk.body(body_id)
     verts = body.vertex_numerators([[float(c) for c in v] for v in scene.hull_vertices])
     return verts, body.D
 
@@ -357,6 +372,11 @@ def _assemble_certificate(scene: Scene, result: engine.EngineResult,
             "q_star": [str(v) for v in r.q_star],
             "locked_joints": {str(k): str(v) for k, v in r.locked.items()},
             "n": r.n,
+            # spatial_revolute (S9, G3'b): the verifier re-derives FK from these exact
+            # offsets/axes — without them a spatial cert is not independently checkable.
+            **({"joints": [{"offset": [str(Q(x)) for x in j["offset"]],
+                            "axis": [str(Q(x)) for x in j["axis"]]}
+                           for j in r.joints]} if r.joints else {}),
         },
         "kinematics": {"substitution": SUBSTITUTION, "denominator": DENOMINATOR},
         "assumptions": ASSUMPTIONS,

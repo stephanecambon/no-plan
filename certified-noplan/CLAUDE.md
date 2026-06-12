@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.6 — 12 juin 2026 (révision post-S7 ; v1.0..v1.5 dans git).
+Version 1.8 — 12 juin 2026 (révision post-S7/S8 + décision de pilotage ; v1.0..v1.7 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -40,7 +40,18 @@ notre différenciateur = NATURE du certificat (algébrique, exactement revérifi
 murs réutilisables) ; **G3' scindée a/b** (G3'a S7 ✅ scène 4-DOF chiffrée ENGINE-PROOF /
 G3'b S9 vérif exacte spatiale) ; G2'/G4' relus selon A26 ; **règle 9 amendée [A28]** —
 toute référence externe est vérifiée à sa première utilisation ; harness enregistre
-l'état git clean/dirty [A27].
+l'état git clean/dirty [A27]. Changements v1.6 → v1.7 (revue S8, A29-A31, D18-D21) :
+**critère perf reformulé [D18]** — « ≥10× sur S3 » remplacé par « ≥10× de coût/feuille dès
+2 dims passives (mesuré 28×-733×) ET S3 ≥5× bout-en-bout (mesuré 6×) », ✅ acquis, réserve
+S8 levée ; **passivité RATIONNELLE [A29]** (diviser N_k ET D par (1+s_i²) en exact ⟹ détecte
+le roll de S3) et **réduction par-paire des LP de feuille [A30, levier G2']** (passivité =
+propriété de la PAIRE) en ouverture S9 ; **calibration du modèle de coût [A31]**. Changements
+v1.7 → v1.8 (décision de pilotage Stéphane + supervision, D22-D25) : **S9 re-scopée go/no-go
+technique pur** avec sortie **`DECISION-G2.md` signée par Stéphane avant S10** ; **S9b nouvelle
+session** « portefeuille de cas d'usage » (bin-picking / étagère pharma / capot de sûreté,
+validation VU) ; A20 « apparence faisable » RETIRÉ de V5 (déplacé en S9b/V6) ; S10 implémente
+le flagship choisi en S9b, S11 += pack démo des deux autres cas. Détail : entrées « Revue de
+supervision S8 » et « Décision de pilotage » de JOURNAL.md.
 
 ---
 
@@ -227,10 +238,19 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   (cross-check SOS test-only). Soundness re-validée (suite + adversarial, 0 changement de
   verdict). **Honnêteté perf** : le gain back-end seul est ~2× (PAS 10×) ; le ≥10× vient
   de la réduction `(d+1)^k` (mesuré 7× à 1 dim passive → 733× à 4) — sur S3 (1 dim passive
-  détectée) ~6× bout-en-bout. **Le critère « ≥10× vs cvxpy sur S3 » n'est donc PAS atteint
-  au sens littéral** (mesure honnête ~6×, S3 trop petit / 1 seule dim passive détectée) :
-  à arbitrer par la revue (reformuler en « ≥10× dès ≥2 dims passives » ?). Détection plus
-  fine (roll géométriquement passif mais formellement présent) = suite. (voir JOURNAL.md S8.)
+  détectée) ~6× bout-en-bout. **Critère « ≥10× sur S3 » REFORMULÉ par la revue S8 [D18] et
+  ✅ ACQUIS, réserve LEVÉE** : « ≥10× de coût/feuille dès 2 dims passives (mesuré 28×-733×)
+  ET S3 ≥5× bout-en-bout (mesuré 6×) ». Détection rationnelle plus fine (roll de S3) traitée
+  en S9 [A29]. (voir JOURNAL.md S8 + revue S8.)
+- 🟡 **S9a** (coupe de S9, partiel) — **G3'b acquise** : `verify.py` (sacré, 499 lignes)
+  vérifie en arithmétique exacte les chaînes `spatial_revolute` (FK 3-D re-dérivée des
+  `joints` offset/axe du certificat ; axe unitaire exigé). **S2b ET l'ancrage 4-DOF S3
+  passent ENGINE-PROOF → PROOF** (G3'a renforcée). Suite adversariale spatiale + frontière
+  à deux couches (verify interne / cross-check scène) testées ; 170 passed, 0 skip,
+  0 warning ; SPEC v1.5. **Restent pour compléter S9a** : les RÉDUCTIONS — A29 (passivité
+  rationnelle) + A30 (réduction par-paire). **Reste de S9 (= S9c)** : scène 5-6 DOF,
+  calibration feuilles(n), **G2'**, `DECISION-G2.md`, + joints verrouillés dans verify (iiwa).
+  Circuit doc S8→S9 appliqué (header v1.8, S9 re-scopée, S9b insérée). (voir JOURNAL.md S9a.)
 
 ---
 
@@ -373,49 +393,85 @@ plus proche et journaliser.
      fois les workers mono-thread (solder les 20 DeprecationWarning fork) ;
      **élucider les 5 warnings Clarabel** journalisés depuis S0 (résoudre ou
      documenter pourquoi structurellement bénins).
-- Sortie : sur la scène S3 : ≥ 10× plus rapide que cvxpy ; mémoire bornée ;
-  **le peigne 3-DOF certifie avec `axis=oracle` après mitigation (la profondeur
-  n'est plus gaspillée dans la dim passive)** ; aucun changement de verdict sur
-  la suite complète + adversarial (soundness re-validée) ; warnings traités.
+- Sortie [critère perf REFORMULÉ par la revue S8, D18 — réserve levée] : **≥10× de
+  coût de décision par feuille dès 2 dims passives détectées (mesuré 28×-733×) ET
+  S3 ≥5× bout-en-bout (mesuré 6×)** ✅ (l'ancien « ≥10× sur S3 » était un mauvais
+  proxy : S3 n'a qu'1 dim passive détectée ; refus du 10× cosmétique) ; mémoire
+  bornée ; **le peigne 3-DOF certifie avec `axis=oracle` après mitigation (la
+  profondeur n'est plus gaspillée dans la dim passive)** ✅ ; aucun changement de
+  verdict sur la suite complète + adversarial (soundness re-validée) ; warnings
+  traités ✅. **S8 verte (réserve levée).**
 
-### S9 — Scène S4 (bac profond, 5-6 DOF)
+### S9 — Go/no-go technique pur (scène 5-6 DOF, G2' + G3'b) [RE-SCOPÉE, pilotage D22]
 - Entrée : S8 vert. Pré-télécharger les modèles Drake (hors-ligne interdit ici :
-  les tests iiwa sont REQUIS, règle 13).
-- Tâches : iiwa joints verrouillés (7→5 puis 6) ; conception géométrique de la
-  scène bac ; **vue sweep de la scène (A20)** ; vérité-terrain par échantillonnage
-  dense AVANT certification (intention seulement — leçon du micro-canal) ; tuning
-  heuristiques d'axe —
-  NOTE [A10, TRANCHÉ (S6)] : `margin` = défaut pour toute scène nouvelle ;
-  `oracle` = parité de régression uniquement (données : peigne 3-DOF, 736 FAIL
-  oracle vs 54 feuilles margin ; S3 : margin bat l'oracle sur E4, 56 vs 78,
-  perd sur E3, 54 vs 46) — levier anti-explosion n°1 pour G2'. **Fit STRUCTURÉ
-  [A19]** : pénaliser/zéroter les coeffs des dims passives détectées (par
-  sensibilité) au fit φ — leçon S6 : lstsq surajuste un degré-2 parasite sur la
-  dim passive s2 ⟹ φ tordu ⟹ UNDECIDED. Micro-tâche : mesurer feuilles(n) sur la
-  même scène à n = 3,4,5,6 joints débloqués (distinguer dims actives/passives)
-  pour ajuster l'exposant empirique du modèle de coût.
-- **[V5] Validation visuelle — OBLIGATOIRE AVANT TOUT RUN LONG** :
-  **artefact PRINCIPAL = `cnp show scenes/S4_bac.yaml --interactive` (HTML, A24)** ;
-  + coupes 2D du C-space échantillonné (paires de joints les plus actives) +
-  vue sweep (A20) en compléments.
-  Vérifier : (0) **[A20] la scène a l'air FAISABLE — goal proche/visible, la vue
-  sweep montre pourquoi on croirait passer** (scène-VITRINE, NON NÉGOCIABLE — A23) ;
-  (1) le bac enferme réellement
-  l'objet cible et la caisse avant bloque l'accès frontal — c'est bien le
-  scénario « inatteignable sans retirer la caisse » qu'on veut PROUVER ;
-  (2) start (home) et goal (prise) visuellement sans collision ; (3) sur les
-  coupes C-space, la zone collision sépare plausiblement start de goal. Réponse
-  « VALIDÉ S9-V5 » = autorisation de lancer les runs longs.
-- Sortie : **G2'** — S4 certifiée < 1 h, < 10⁴ feuilles, verify OK ; **V5
-  validée**. SI ROUGE : session(s) mitigations SPEC §9.1 avant S10 — point de
-  pivot du projet, le journaliser comme tel ; la décision de re-scope se prend
-  avec Stéphane, pas dans Claude Code.
+  les tests iiwa sont REQUIS, règle 13). **Coupes autorisées (règle 8) si le contexte
+  sature** : **S9a** (réductions A29/A30 + **G3'b**) / **S9c** (scène + G2' +
+  `DECISION-G2.md`). État S9a : **G3'b LIVRÉE** (verify spatial, S2b+S3 → PROOF) ;
+  **réductions A29/A30 restantes**.
+- Tâches d'ouverture [revue S8, D19/D20] :
+  1. **[A29] passivité RATIONNELLE** : diviser N_k ET D par (1+s_i²) en exact ; si tout
+     divise, simplifier et marquer le joint passif (le roll de S3 est géométriquement
+     passif mais le dénominateur commun par link l'habille d'un (1+s2²) que le détecteur
+     tensoriel garde). Test bonus (non-porte) : S3 ≥10× bout-en-bout.
+  2. **[A30, LE levier G2'] réduction par-paire des LP de feuille** : la passivité est une
+     propriété de la PAIRE — pour une paire sur le link k, tous les joints en aval de k
+     sont passifs POUR CE LP. Réduire chaque LP de feuille aux dims actives de SA paire
+     (le choix d'axe de partition reste sur l'union des actifs). **Même architecture de
+     soundness que S8** : réduction au chemin de DÉCISION seulement, certificat re-résolu
+     en pleine dim, `verify.py` (sacré) arbitre en pleine dim ⟹ une réduction buggée ne
+     peut produire au pire qu'un ENGINE-PROOF. Tests (règle 1) : t_réduit==t_plein par
+     paire, 0 changement de verdict, adversarial re-vert.
+  3. **G3'b** [LIVRÉE S9a] : `spatial_revolute` dans verify.py (FK 3-D exacte re-dérivée
+     des `joints`) ⟹ scènes spatiales q*=0 sans joint verrouillé = PROOF. **Reste pour
+     l'iiwa** : support des joints VERROUILLÉS dans verify (Rot(angle) rationnelle exacte,
+     format cos/sin §4) — sous le plafond 500 lignes (sinon point à arbitrer).
+- Tâches scène : iiwa joints verrouillés (7→5 puis 6) ; **scène choisie pour la
+  COMPARABILITÉ** — si les scènes 5/6-DOF des papiers scaling Li-Dantam (2406.04795 /
+  RA-L 2023) sont descriptibles, en refléter une (reproduction approchée documentée,
+  précédent S7) ; sinon bac technique (choix documenté) ; vérité-terrain par
+  échantillonnage dense AVANT certification (intention seulement — leçon du micro-canal).
+  NOTE [A10, TRANCHÉ (S6)] : `margin` = défaut. **Fit STRUCTURÉ [A19]** : pénaliser/zéroter
+  les coeffs des dims passives détectées au fit φ (leçon S6 : lstsq surajuste un degré-2
+  parasite ⟹ φ tordu ⟹ UNDECIDED).
+- Micro-tâche calibration [A31/D20] : mesurer **feuilles(n) ET coût/feuille** avec la
+  réduction par-paire activée, à n = 3,4,5,6 (distinguer dims actives/passives, globales
+  ET par-paire) ; **livrer la table de calibration du modèle de coût** (feuilles × coût/
+  feuille vs DOF actifs/passifs) — réviser les estimations de temps de la supervision.
+- **[V5] Validation visuelle — OBLIGATOIRE AVANT TOUT RUN LONG** [A20 RETIRÉ de V5,
+  déplacé en S9b/V6 — pilotage D22] :
+  **artefact PRINCIPAL = `cnp show <scene> --interactive` (HTML, A24)** + coupes 2D du
+  C-space échantillonné (paires de joints les plus actives) en complément + **limites
+  articulaires explicites (A25)**.
+  Vérifier : (1) le bac/l'obstacle enferme réellement la cible et bloque l'accès — c'est
+  bien le scénario d'infaisabilité qu'on veut PROUVER ; (2) start (home) et goal
+  visuellement sans collision ; (3) sur les coupes C-space, la zone collision sépare
+  plausiblement start de goal. (NB : « apparence faisable » A20 N'est PLUS un critère ici —
+  S9 est un go/no-go technique, pas une vitrine ; A20 revient non négociable en S9b/V6.)
+  Réponse « VALIDÉ S9-V5 » = autorisation de lancer les runs longs.
+- **Sortie formelle : `DECISION-G2.md`** [pilotage D22] — verdict **G2'** chiffré (S4
+  certifiée < 1 h, < 10⁴ feuilles, verify OK), calibration du modèle de coût, comparaison
+  aux chiffres GPU EXACTS de Li-Dantam, **recommandation GO / NO-GO / RE-SCOPE** ; revue
+  par la supervision puis **SIGNÉE par Stéphane AVANT toute ouverture de S10**. **V5
+  validée**. SI ROUGE : mitigations SPEC §9.1 — point de pivot, journalisé comme tel ;
+  la décision de re-scope se prend avec Stéphane, pas dans Claude Code.
 
-### S10 — Flagship 7-DOF (scène S5)
-- Entrée : G2'.
-- Tâches : scène étagère iiwa complète ; **vue sweep de la scène (A20)** ;
-  extrapolation de budget depuis S9 (feuilles, temps) présentée AVANT de lancer ;
-  runs longs avec checkpoints ; si φ deg ≤2 insuffisant : φ par morceaux
+### S9b — Portefeuille de cas d'usage (session légère) [NOUVELLE, pilotage D23]
+- Entrée : S9 (machinerie G2' acquise ou en vue). Session de CONCEPTION produit, pas de
+  recherche technique. Validation **VUE par Stéphane** (sa matière commerciale Cambon AI).
+- Tâches : pour chacun des trois cas COMPLÉMENTAIRES (trois propositions de valeur du même
+  certificat) — **bin-picking logistique** (élagage prouvé TAMP) / **étagère pharma**
+  (portée 5-7 DOF) / **capot de sûreté · fenêtre opérateur** (auditabilité dossier-de-
+  sûreté) : one-pager (claim, persona, valeur) ; spec de scène YAML (géométrie, robot,
+  limites) ; storyboard des artefacts (figures + interactif, **critères A20 non négociable
+  / A24 / A25**) ; critères d'acceptation. **Choix du cas FLAGSHIP pour S10.**
+- Sortie : trois one-pagers + trois specs de scène + storyboards ; flagship désigné ;
+  validation VUE par Stéphane.
+
+### S10 — Flagship 7-DOF (le cas choisi en S9b) [D24]
+- Entrée : G2' (`DECISION-G2.md` signée) + flagship désigné en S9b.
+- Tâches : **implémenter le flagship choisi en S9b** (scène 7-DOF complète) ; **vue sweep
+  de la scène (A20)** ; extrapolation de budget depuis S9 (feuilles, temps) présentée
+  AVANT de lancer ; runs longs avec checkpoints ; si φ deg ≤2 insuffisant : φ par morceaux
   (théorème composé, amender SPEC).
 - **[V6] Validation visuelle + go/no-go** : **artefact PRINCIPAL = `cnp show
   scenes/S5_iiwa_shelf.yaml --interactive` (HTML, A24)** + budget estimé (temps,
@@ -429,11 +485,13 @@ plus proche et journaliser.
 - Sortie : **G4'** — certificat 7-DOF vérifié exact ; **V6 validée** ; archiver
   certificat + scène + commit en l'état.
 
-### S11 — Visualisation complète et assets (viz.py)
+### S11 — Visualisation complète et assets (viz.py) + pack démo cas d'usage [D24]
 - Entrée : G4' (ou en parallèle après G2' si S10 traîne).
 - Tâches : `cnp viz <cert>` complet (Meshcat : scène, configs, animation de la
   dalle projetée, feuilles en échec si UNDECIDED) ; figures C-space/partition
-  généralisées (coupes pour n>2) ; tables/courbes de benchmark auto-générées.
+  généralisées (coupes pour n>2) ; tables/courbes de benchmark auto-générées ;
+  **[D24] pack démo des DEUX autres cas d'usage de S9b** (certifiés à 5-6 DOF via la
+  machinerie S9) — chacun avec son interactif (A24), ses limites (A25) et son one-pager.
   **[A11, V1]** : rogner ou hachurer la partie hors-dalle des feuilles
   slab-aware et tracer la frontière de dalle {|φ|=δ} sur le panneau partition
   (sans quoi un lecteur croit qu'on certifie de la collision en zone libre).

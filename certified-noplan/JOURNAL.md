@@ -1478,3 +1478,165 @@ Code est autorisé à proposer une coupe S9a (réductions + G3'b) / S9c (scène 
 G2' + DECISION-G2.md) si le contexte sature, au critère partiel le plus proche
 (règle 8).
 
+## 2026-06-12 — Session S9a (Claude Code) — **G3'b : vérification exacte spatiale**
+
+Coupe S9a prise (option explicitement autorisée par la décision de pilotage) : cette
+session livre **G3'b** seul — la moitié « vérifiée exacte » de la scène spatiale — sans
+toucher à la scène 5-6 DOF / G2' / DECISION-G2.md (= S9c, session suivante). Choix motivé :
+(1) c'est le cœur soundness, auto-suffisant, sans dépendance Drake ; (2) il solde le
+placeholder ENGINE-PROOF « exact verification arrives in S9 » posé depuis S6 ; (3) la
+substance technique est non ambiguë (contrairement au volet doc, cf. réserve ci-dessous).
+
+**Entrée** : S8 vert re-confirmé (`make test` = 167 passed, 0 skip, 0 warning ; le seul
+échec observé, `test_parallel_speedup` à 2.92×, est un flake de timing — repasse à 3×+
+isolé, machine chargée juste après une suite de 208 s).
+
+**Fait — G3'b (verify.py spatial)** :
+- **`verify.py` (module sacré) généralisé planaire→spatial sans dépasser 500 lignes**
+  (499). La FK planaire et la FK `spatial_revolute` partagent désormais UNE boucle de
+  chaîne sérielle (`_chain_joints` normalise → `[(offset, axe), ...]` ; `_body_fk` chaîne
+  `Trans(offset_j)·Rot(axe_j, s_j)`). Le planaire est exprimé comme un cas particulier
+  (axe +z, offset `(len_{j-1},0,0)`) ⟹ la généralisation ne RÉGRESSE pas le planaire
+  (S1/S2/E3/E4 inchangés). **Garde de soundness ajoutée** : l'axe doit être UNITAIRE en
+  exact (`Σ axe² = 1`), sinon le numérateur de Rodrigues `(1+s²)I + 2sK + 2s²K²` est faux —
+  refus explicite. Restrictions inchangées et refusées proprement (règle 5) : q*≠0 et
+  joints verrouillés (exigent une Rot(angle) irrationnelle — support iiwa verrouillé = suite).
+- **`certificate.py`** : `_body_numerators` supporte le spatial (SympyRatFK + `_spatial_joints`
+  factorisé ici, scenes délègue → DRY) ; le certificat **sérialise le champ `joints`**
+  (offset/axe rationnels exacts) — sans lui un cert spatial n'est pas re-vérifiable
+  indépendamment.
+- **`scenes.py`** : `is_exactly_verifiable` accepte `spatial_revolute` à q*=0 sans joint
+  verrouillé ; `scene_matches_cert` compare aussi les `joints` (le cross-check scène↔cert
+  attrape un échange de géométrie).
+- **`cli.py`** : message ENGINE-PROOF rendu honnête (plus de « arrives in S9 » périmé ;
+  il ne couvre plus que joints verrouillés / q*≠0).
+- **Effet** : `cnp certify scenes/S2b_spatial3.yaml` → **PROOF** (était ENGINE-PROOF),
+  re-vérifié exact (8 feuilles). **BONUS** : l'**ancrage 4-DOF S3 (`S3_shoulder_elbow`,
+  spatial lui aussi) passe aussi à PROOF exact** — G3'a (ENGINE-PROOF en S7) est de fait
+  RENFORCÉE en preuve algébrique machine-vérifiable. (G3'a reste acquise ; ce gain n'était
+  pas requis.)
+
+**Soundness re-validée (règle 1 — changement de verify.py + chemin cert)** :
+- `make test` complet : **170 passed, 0 skipped, 0 warnings** (167 S8 + 3 tests spatiaux
+  adversariaux). Aucun changement de verdict sur le planaire (régression S1/S2/E3/E4 intacte).
+- **Suite adversariale spatiale ajoutée** (`test_adversarial.py`, soundness suite) : sur les
+  certs S2b ET probée à la main sur S3 — REJET de (axe non unitaire, axe faux qui casse la
+  collision, gros décalage d'offset qui sort le bras de la bande, λ corrompu Σλ≠1, μ<0,
+  feuille retirée → pavage cassé, collision mal-étiquetée « outside »). **Vérifié que l'axe
+  de j0 est GÉNUINEMENT consommé** par la FK de verify (numérateurs différents z vs x ; 3
+  axes sur 5 rejetés — pas un rubber-stamp).
+- **Frontière de soundness à deux couches confirmée et testée** : une petite perturbation
+  d'offset produit un cert qui reste INTERNE-valide (verify.verify l'accepte — il certifie
+  le robot que le cert DÉCLARE), mais `scene_matches_cert` le rejette contre la scène
+  auteur (« spatial joints differ »). verify = validité interne ; cross-check = ancrage à
+  la scène. Le cert honnête passe les deux.
+
+**Pièges / décisions** :
+- **Module sacré à 502 lignes après le 1er jet** → comprimé à **499** (commentaires
+  resserrés, pas de logique retirée). Le plafond `< 500` (règle 4) tient ; mais le support
+  des joints VERROUILLÉS (iiwa S9c, format cos/sin §4) coûtera des lignes — il faudra
+  soit factoriser, soit acter une révision de la limite AVEC la supervision (à signaler).
+- **Accepter un cert à géométrie modifiée n'est PAS un bug** : c'est le contrat de verify
+  (validité interne). Tracé explicitement par les tests pour ne pas le « corriger » par
+  erreur un jour.
+
+**Décompte exact (sortie S9a)** : `make test` = **170 passed, 0 skipped, 0 warnings**,
+~205 s. `verify.py` = 499 lignes (< 500 ✓).
+
+**Diffs SPEC** (règle 12) : header v1.4→**v1.5** ; §5 (FK spatiale supportée) ; §4 (champ
+`joints` au schéma) ; §6 (ENGINE-PROOF re-cadré). **Diffs CLAUDE.md** : circuit doc S8→S9
+appliqué en fin de session (voir ci-dessous).
+
+**RÉSERVE DOC — LEVÉE en cours de session.** À mon ouverture, la « Revue de supervision S8 »
+n'était pas dans le repo (D18-D21/A29-A31/v1.7/arbitrage ≥10× introuvables ; dernière entrée
+= la décision de pilotage). J'ai refusé d'appliquer D22-D25 à l'aveugle (ils figeraient un
+v1.7 fantôme + un re-scope autour d'annotations absentes) et de les inventer (A28). Stéphane
+a ALORS versé la revue S8 au journal (entrée datée 2026-06-12, en fin de fichier). Réserve
+levée : (a) critère « ≥10× sur S3 » REFORMULÉ et ✅ acquis (D18, « ≥10× dès 2 dims passives
+mesuré 28×-733× ET S3 ≥5× bout-en-bout mesuré 6× ») ⟹ S8 pleinement verte ; (b) v1.7 = revue
+S8 (D21), v1.8 = pilotage (D25) ⟹ plus de fantôme ; (c) A29 (passivité rationnelle), A30
+(réduction par-paire = levier G2'), A31 (calibration) définis. **Circuit doc appliqué** :
+CLAUDE.md header v1.6→**v1.8** (changelog v1.6→v1.7 D18-D21 + v1.7→v1.8 D22-D25) ; S8 sortie
++ État ✅ (D18) ; section S9 réécrite go/no-go intégrant A29/A30/A31 + G3'b (D19/D20/D22) ;
+section S9b insérée (D23) ; S10/S11 ajustés (D24). Repo = unique source de vérité (A16).
+(NB ordre du journal : la revue S8 a été ajoutée après cette entrée S9a ; non réordonnée
+physiquement — les dates lèvent l'ambiguïté.)
+
+**S9a est PARTIELLE.** La décision de pilotage définit S9a = « **réductions + G3'b** » ;
+les « réductions » sont précisément **A29 + A30** (D19). Cette session a livré **G3'b** (+ le
+bonus S3→PROOF). **Restent pour compléter S9a** : A29 (division exacte de N_k ET D par
+(1+s_i²) ⟹ le roll de S3, géométriquement passif, est enfin détecté) et A30 (réduction
+par-paire des LP de feuille — passivité = propriété de la PAIRE, tous les joints en aval du
+link de la paire passifs POUR CE LP ; même architecture de soundness : décision seulement,
+certificat re-résolu pleine dim, verify intact). Tests requis (règle 1) : t_réduit==t_plein
+par paire, 0 changement de verdict, adversarial re-vert.
+
+**Prochaine étape** : (1) **A29 + A30** (compléter S9a, les réductions — moteur/witness, chemin
+de décision uniquement). (2) **S9c** : scène 5-6 DOF (iiwa, modèles Drake pré-téléchargés),
+calibration feuilles(n) avec réduction par-paire (A31/D20), **G2'**, `DECISION-G2.md` signée.
+Note iiwa : G3'b ne couvre pas encore les joints VERROUILLÉS dans verify (Rot(angle)
+rationnelle, format cos/sin §4) — à livrer en S9c (iiwa verrouille 1-2 joints ; tenue sous
+500 lignes à vérifier, sinon point à arbitrer).
+
+## 2026-06-12 — Revue de supervision S8 (claude.ai) — **arbitrage ≥10×, A29-A31**
+
+**Arbitrage de la réserve « ≥10× vs cvxpy sur S3 » : critère REFORMULÉ, réserve
+LEVÉE, S8 verte.** Le critère d'origine était un mauvais proxy posé par la
+supervision ; ce qu'il protégeait (« les LP de feuille assez bon marché pour
+G2' ») est livré au-delà de l'attendu : réduction (d+1)^k mesurée 7×/28×/133×/
+733× sur 1-4 dims passives, t_réduit == t_plein (aucune décision ne bascule),
+balayage oracle aplati 8/12/20/36 → 8/8/8/8, peigne certifié en oracle (critère
+nommé ✅). Nouveau critère acté : « coût de décision par feuille ≥10× dès
+2 dims passives détectées (mesuré 28×-733×) ET S3 ≥5× bout-en-bout (mesuré
+6×) ». Mention spéciale à la culture de mesure : cold-start cvxpy démasqué,
+refus du 10× cosmétique (lignée du refus du « ×400 » en S7).
+
+**Architecture de soundness saluée** : réduction sur le chemin de DÉCISION
+uniquement, certificat re-résolu en pleine dimension, verify.py intact et
+arbitre en pleine dim, projection qui REFUSE un axe dont le polynôme dépend —
+une réduction buggée ne peut produire au pire qu'un ENGINE-PROOF, jamais un
+faux PROOF. C'est la manière canonique d'optimiser un système certifié.
+Warnings 25 → 0 par résolution (forkserver, rendu viable par highspy) ou
+explication confinée (Clarabel = oracle SOS test-only), pas par masquage.
+
+**Annotations** :
+- [A29 — ouverture S9] Passivité RATIONNELLE : le roll de S3 est géométriquement
+  passif mais N et D portent tous deux le facteur (1+s2²) (dénominateur commun
+  par link) ⟹ détecteur tensoriel le garde. Correction : division exacte de
+  N_k ET D par (1+s_i²) ; si tout divise, simplifier et marquer passif. Bonus
+  attendu (non-porte) : S3 passe largement le 10× bout-en-bout.
+- [A30 — S9, LE levier G2'] La passivité est une propriété de la PAIRE, pas du
+  problème : pour une paire sur le link k, tous les joints en aval de k sont
+  passifs POUR CE LP. Implémenter la réduction par-paire au niveau de chaque LP
+  de feuille (le choix d'axe de partition reste sur l'union des actifs). Même
+  architecture de soundness (décision seulement, certificat pleine dim). Sur la
+  scène bac, les paires proximales verraient 5^6 → 5^2-5^3 lignes ; les 733×
+  mesurés à 4 dims passives en sont l'aperçu.
+- [A31] Modèle de coût : réviser les estimations de temps (tableau de
+  supervision du 11/06) à S9 avec les données réduction + micro-tâche
+  feuilles(n) maintenue ; distinguer dims actives/passives détectées
+  (globales ET par-paire).
+
+**Diffs à appliquer par Code en ouverture de S9 (CLAUDE.md du repo)** :
+- D18 [arbitrage] Section S8 : critère « ≥10× sur S3 » remplacé par le critère
+  reformulé ci-dessus, marqué ✅ avec renvoi à cette revue ; État : S8 ✅
+  (réserve levée).
+- D19 [A29+A30] Section S9, tâches d'ouverture : (a) passivité rationnelle
+  (division exacte par (1+s_i²)) + test S3 ≥10× en bonus ; (b) réduction
+  par-paire des LP de feuille (active dims = chaîne du link de la paire),
+  tests : t_réduit == t_plein par paire, aucun changement de verdict,
+  adversarial re-vert (règle 1).
+- D20 [A31] Section S9, micro-tâche feuilles(n) : ajouter la mesure du coût
+  par feuille avec réduction par-paire activée ; livrer la table de calibration
+  du modèle de coût (feuilles × coût/feuille vs DOF actifs/passifs).
+- D21 Header : version 1.7, changelog « v1.6→v1.7 (revue S8, A29-A31) :
+  critère perf reformulé (arbitrage) ; passivité rationnelle + réduction
+  par-paire en ouverture S9 ; calibration du modèle de coût ».
+
+**Prochaine étape** : S9 — ouverture D18-D21 + A29/A30, puis scène S4 bac
+(5-6 DOF iiwa), G3'b (`spatial_revolute` dans verify.py), porte G2', V5
+(checklist avec point (0) « apparence faisable » non négociable + artefact
+interactif A24 + limites A25). Stéphane : préférence de scénario-vitrine
+(bin-picking logistique / étagère pharma / cellule capot) à exprimer AVANT la
+conception de scène.
+

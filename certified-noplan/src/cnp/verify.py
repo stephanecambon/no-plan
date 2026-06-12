@@ -19,8 +19,7 @@ What it checks, all in exact rationals (SPEC §2 theorem):
         multipliers satisfy  sum_k lambda_k == 1 (exact identity),  Bernstein(lambda_k)
         >= 0,  mu_j >= 0,  and  Bernstein(g_j - mu_j*(delta^2 - phi^2)) >= 0  for every
         obstacle face j, where g_j = b_j*D - a_j . X and X = sum_k lambda_k * N_k is the
-        witness numerator over the per-link common denominator D — with N_k, D
-        recomputed HERE by an independent half-angle FK.
+        witness numerator over the per-link common denominator D (N_k, D recomputed HERE).
 
 SIGN (CLAUDE.md rule 2 / SPEC §2): the verifier itself forms ``g - mu*T`` (subtract)
 from the stored mu — it owns the sign, so a certificate cannot smuggle in the unsound
@@ -225,53 +224,55 @@ def _trans_homog(n: int, x, y, z) -> list:
     return T
 
 
+def _chain_joints(robot: dict) -> list:
+    """Normalized chain ``[(offset (x,y,z), axis (x,y,z)), ...]`` re-derived from the
+    certificate in exact Fractions (no generator code shared). planar_revolute (S4):
+    axis +z, joint i offset ``(len_{i-1},0,0)`` along x. spatial_revolute (S9, G3'b):
+    each joint its own rational offset and a UNIT axis (squares sum to 1 exactly)."""
+    kind = robot["kind"]
+    if kind == "planar_revolute":
+        out, prev = [], Fraction(0)
+        for ln in (Fraction(v) for v in robot["link_lengths"]):
+            out.append(((prev, Fraction(0), Fraction(0)),
+                        (Fraction(0), Fraction(0), Fraction(1))))
+            prev = ln
+        return out
+    if kind == "spatial_revolute":
+        out = []
+        for jt in robot["joints"]:
+            axis = tuple(Fraction(v) for v in jt["axis"])
+            if sum(a * a for a in axis) != 1:
+                _reject("verify: spatial joint axis is not a unit vector (exact)")
+            out.append((tuple(Fraction(v) for v in jt["offset"]), axis))
+        return out
+    _reject(f"verify: unsupported robot kind {kind!r}")
+
+
 def _body_fk(robot: dict, body_link: int):
-    """Recompute (vertex-free) the body link's world pose numerator matrix and the
+    """Recompute (vertex-free) the body link's world pose NUMERATOR matrix and the
     common denominator D, independently, in exact Fraction tensors. Returns (T, D, n).
 
-    S4 supports ``kind == 'planar_revolute'`` (axes +z, links along local x)."""
-    if robot["kind"] != "planar_revolute":
-        _reject(f"verify: unsupported robot kind {robot['kind']!r} (S4: planar only)")
-    link_lengths = [Fraction(v) for v in robot["link_lengths"]]
-    q_star = [Fraction(v) for v in robot["q_star"]]
-    # q* is absorbed into s = tan((q-q*)/2): for UNLOCKED joints the FK-in-s does not
-    # depend on q*. Baking a nonzero q* back needs the constant Rot(q*_i), i.e. exact
-    # cos/sin(q*_i) — irrational in general — so the exact planar verifier supports
-    # q*=0 only and REFUSES nonzero q* rather than trusting it (CLAUDE.md rule 5).
-    # Nonzero q* arrives with the Drake scenes (S9+) carrying rational cos/sin.
-    if any(v != 0 for v in q_star):
-        _reject("verify: nonzero q_star unsupported by the exact planar FK")
-    locked = {int(k): Fraction(v) for k, v in robot.get("locked_joints", {}).items()}
-    n = len(link_lengths) - len(locked)
-    s_of_joint = {}
-    k = 0
-    for j in range(len(link_lengths)):
-        if j not in locked:
-            s_of_joint[j] = k
-            k += 1
+    Planar (S4) and spatial (S9, G3'b) share this serial-chain maths; only the
+    per-joint offset/axis differ. q* absorbed into s (SPEC §2); a nonzero q* or a
+    locked joint needs an irrational Rot(angle), so the verifier REFUSES it (rule 5)."""
+    if any(Fraction(v) != 0 for v in robot["q_star"]):
+        _reject("verify: nonzero q_star unsupported by the exact FK")
+    if robot.get("locked_joints"):
+        _reject("verify: locked joints need exact cos/sin (iiwa scenes, follow-up)")
+    joints = _chain_joints(robot)               # all unlocked: s-index == joint index
+    n = len(joints)
     if n != int(robot["n"]):
-        _reject("verify: robot n disagrees with link/locked counts")
+        _reject("verify: robot n disagrees with joint count")
 
-    axis = (Fraction(0), Fraction(0), Fraction(1))
     T = [[_const_t(n, 1 if i == j else 0) for j in range(4)] for i in range(4)]
-    prev = Fraction(0)
     for j in range(body_link + 1):
-        Xpj = _trans_homog(n, prev, 0, 0)
-        if j in locked:
-            # cos/sin of a locked angle must be supplied as rationals by the cert;
-            # S4 scenes have none, so this branch is exercised only from S9 on.
-            _reject("verify: locked joints require exact cos/sin (not in S4 certs)")
-        else:
-            Rj = _rot_homog(n, s_of_joint[j], axis)
-        T = _matmul_t(_matmul_t(T, Xpj), Rj)
-        prev = link_lengths[j]
+        (ox, oy, oz), axis = joints[j]
+        T = _matmul_t(_matmul_t(T, _trans_homog(n, ox, oy, oz)),
+                      _rot_homog(n, j, axis))
 
-    # Common denominator D = prod over unlocked joints in the chain (0..body_link).
-    D = _const_t(n, 1)
+    D = _const_t(n, 1)                           # D = prod_j (1 + s_j^2) over the chain
     for j in range(body_link + 1):
-        if j not in locked:
-            den = _t_add(_const_t(n, 1), _mono(n, _unit(n, s_of_joint[j], 2), 1))
-            D = _t_mul(D, den)
+        D = _t_mul(D, _t_add(_const_t(n, 1), _mono(n, _unit(n, j, 2), 1)))
     return T, D, n
 
 

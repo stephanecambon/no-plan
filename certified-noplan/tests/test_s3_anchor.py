@@ -2,11 +2,12 @@
 
 ``scenes/S3_shoulder_elbow.yaml`` reproduces the Li-Dantam RSS 2021 §V-B 4-DOF
 shoulder-elbow robot (spherical shoulder + elbow) with an infeasible reaching task.
-The verdict is ENGINE-PROOF (the independent EXACT verifier is planar until S9), so the
-soundness evidence here is: the engine PROVES the disconnection AND a dense seeded
-sample finds 0 free configs in the slab (the S2/S5 ground-truth check — the grid proves
-nothing, rule 9; the engine is the arbiter). A shrunk panel opens a free path and the
-engine must REFUSE (no false certificate).
+Since S9 (G3'b) the independent EXACT verifier supports spatial robots, so this anchor
+now reaches the full **PROOF** verdict (G3'a's ENGINE-PROOF is strengthened to a
+machine-checkable algebraic proof). The dense seeded sample (0 free configs in the slab,
+the S2/S5 ground-truth check) remains as design-intent evidence — the grid proves
+nothing (rule 9); the exact verifier is the arbiter. A shrunk panel opens a free path
+and the engine must REFUSE (no false certificate).
 """
 import copy
 import os
@@ -45,16 +46,19 @@ def _free_in_slab(scene, n_pts, seed=0, n_samples=20):
 
 
 # --------------------------------------------------------------------------- #
-# The anchor scene: ENGINE-PROOF + dense-sampling soundness
+# The anchor scene: exact PROOF (G3'b) + dense-sampling design evidence
 # --------------------------------------------------------------------------- #
 
-def test_s3_is_4dof_spatial_engine_proof():
+def test_s3_is_4dof_spatial_exact_proof():
     scene, budget = _s3()
     assert scene.robot.kind == "spatial_revolute"
     assert scene.robot.n == 4                                  # genuine 4-DOF
-    assert not scenes.is_exactly_verifiable(scene)             # spatial -> ENGINE-PROOF (S9)
+    assert scenes.is_exactly_verifiable(scene)                 # G3'b: spatial -> PROOF
     res = _solve(scene, budget)
     assert res.verdict == "PROOF"                              # engine proves it
+    c = cert.make_certificate(scene, res, verify_loop=True)    # and it verifies exactly
+    from cnp import verify
+    assert verify.verify(c)[0]
 
 
 def test_s3_start_goal_free_and_disconnected():
@@ -75,14 +79,17 @@ def test_s3_dense_300k_zero_free_in_slab():
     assert _free_in_slab(scene, 300_000) == 0
 
 
-def test_s3_cli_certify_is_engine_proof(capsys):
-    rc = cli.main(["certify", os.path.join(SCENES, "S3_shoulder_elbow.yaml")])
-    out = capsys.readouterr().out
+def test_s3_cli_certify_is_exact_proof(tmp_path, capsys):
+    out = tmp_path / "s3.cert.json"
+    rc = cli.main(["certify", os.path.join(SCENES, "S3_shoulder_elbow.yaml"),
+                   "-o", str(out)])
+    txt = capsys.readouterr().out
     assert rc == 0
-    assert "ENGINE-PROOF" in out and "NOT" in out              # warning always present
-    assert "spatial_revolute" in out and "S9" in out           # honest scope note
-    assert "hypotheses" in out and "wrap-around" in out        # A25: assumptions recalled
-    assert "lacet" in out and "70" in out and "coude" in out   # A25: explicit joint limits
+    assert "verdict: PROOF" in txt and "ENGINE-PROOF" not in txt  # G3'b: exact now
+    assert "hypotheses" in txt and "wrap-around" in txt        # A25: assumptions recalled
+    assert "lacet" in txt and "70" in txt and "coude" in txt   # A25: explicit joint limits
+    rc = cli.main(["verify", str(out), os.path.join(SCENES, "S3_shoulder_elbow.yaml")])
+    assert rc == 0 and "PROOF" in capsys.readouterr().out      # independent re-check
 
 
 # --------------------------------------------------------------------------- #

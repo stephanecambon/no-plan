@@ -1,6 +1,11 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
-Version 1.4 — 12 juin 2026 (amendée post-S7 ; v1.0..v1.3 dans git).
+Version 1.5 — 12 juin 2026 (amendée post-S7/S8 ; v1.0..v1.4 dans git).
+Amendement v1.4→v1.5 (acté S9, G3'b) : §5 + §4 (schéma `joints`) + §6 — le vérificateur
+exact indépendant supporte les chaînes `spatial_revolute` (FK 3-D générique re-dérivée
+des offsets/axes exacts du certificat) ; les scènes spatiales à q*=0 sans joint verrouillé
+rendent désormais **PROOF** (et non plus ENGINE-PROOF) — G3'b acquise (S2b et l'ancrage
+4-DOF S3 sont exactement vérifiés).
 Amendement v1.3→v1.4 (acté S8, revue S7 [A26]) : §7 B1 — récit état-de-l'art corrigé
 (Li-Dantam scalent à 5-6 DOF sur GPU, arXiv 2406.04795 vérifié S8 ; notre
 différenciation = NATURE du certificat, pas la borne en DOF).
@@ -140,9 +145,11 @@ que verify recalcule ; le croisement avec un YAML externe arrive en S6).
 {
   "spec_version": "1.2",
   "theorem": "disconnection",
-  "robot": {"kind": "planar_revolute",          // S4 ; "spatial_revolute" en S9+
+  "robot": {"kind": "planar_revolute",          // S4 ; "spatial_revolute" vérifié exact dès S9
             "link_lengths": ["1", "1"], "q_star": ["0", "0"],
             "locked_joints": {"idx": {"cos": "...", "sin": "..."}},  // {} en S4
+            // [S9, spatial_revolute] joints offset/axe exacts, re-dérivés par verify :
+            "joints": [{"offset": ["0","0","0"], "axis": ["0","0","1"]}, ...],  // absent si planaire
             "n": 2},                              // nb de joints débloqués (= #vars s)
   "kinematics": {"substitution": "half_angle_homemade_v1",
                  "denominator": "per_link_prod_1_plus_s2"},
@@ -190,6 +197,14 @@ numpy interdit dans le chemin de preuve, `fractions.Fraction` uniquement) qui :
    fournis, vérifie Σλ ≡ 1, Bernstein(λ_k) ≥ 0, et Bernstein(g − μT) ≥ 0, le tout en exact.
 Le générateur et le vérificateur ne partagent QUE polylin (transformée de Bernstein),
 ré-implémentée en exact dans verify.py (duplication assumée, c'est le but).
+**[amendé S9, G3'b] La FK exacte de verify.py supporte désormais les chaînes
+`spatial_revolute` (génériques 3-D : chaque joint porte son offset rationnel et son axe
+UNITAIRE, vérifié `Σ axe² = 1` exact) en plus du `planar_revolute` — même boucle de
+chaîne sérielle, seuls l'offset/l'axe par joint diffèrent. Le certificat spatial porte
+donc un champ `joints` (offset/axe exacts) que verify re-dérive. Restrictions inchangées
+(refus q*≠0 et joints verrouillés : ils exigent une Rot(angle) irrationnelle — support
+iiwa à joints verrouillés = suite). Conséquence : les scènes spatiales à q*=0 sans joint
+verrouillé rendent **PROOF** (plus ENGINE-PROOF) ; G3'b acquise.
 
 ## 6. Scènes (du jouet au real-world)
 
@@ -204,8 +219,11 @@ phifit/S5 bake son φ rationnel dans la scène), budget (depth max, temps,
 L'enveloppe convexe du corps mobile est **extraite de la géométrie du link** (le
 link planaire = segment `[0,0,0]→[len,0,0]`) si `hull_vertices` n'est pas donné.
 `cnp certify` rend PROOF (vérifié exact) / ENGINE-PROOF (moteur OK, vérif. exacte
-indisponible — spatial avant S9) / UNDECIDED ; `cnp verify cert scene.yaml`
-croise la scène externe ; `cnp show scene.yaml` ouvre une vue Meshcat minimale.
+indisponible — [amendé S9] désormais uniquement les configs hors-portée du vérificateur :
+joints verrouillés ou q*≠0 ; les `spatial_revolute` à q*=0 sans joint verrouillé sont
+PROOF depuis G3'b) / UNDECIDED ; `cnp verify cert scene.yaml` croise la scène externe
+(la comparaison inclut les `joints` offset/axe pour le spatial) ; `cnp show scene.yaml`
+ouvre une vue Meshcat minimale.
 
 - **S1 — planaire 2-DOF « relais »** (portage E3/E4) : 3 obstacles à relais de
   paires. Rôle : régression, tests rapides.
