@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.8 — 12 juin 2026 (révision post-S7/S8 + décision de pilotage ; v1.0..v1.7 dans git).
+Version 1.9 — 12 juin 2026 (révision post-S7/S8 + pilotage + D26 ; v1.0..v1.8 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -51,7 +51,10 @@ technique pur** avec sortie **`DECISION-G2.md` signée par Stéphane avant S10**
 session** « portefeuille de cas d'usage » (bin-picking / étagère pharma / capot de sûreté,
 validation VU) ; A20 « apparence faisable » RETIRÉ de V5 (déplacé en S9b/V6) ; S10 implémente
 le flagship choisi en S9b, S11 += pack démo des deux autres cas. Détail : entrées « Revue de
-supervision S8 » et « Décision de pilotage » de JOURNAL.md.
+supervision S8 » et « Décision de pilotage » de JOURNAL.md. Changement v1.8 → v1.9 (D26) :
+**règle 8 amendée — la clôture de session = commit ET push** (sans push, le journal lu par
+la supervision via GitHub a une session de retard ; le push de clôture lève la règle globale
+« jamais de push sans demande »).
 
 ---
 
@@ -87,7 +90,10 @@ supervision S8 » et « Décision de pilotage » de JOURNAL.md.
 8. **Discipline de session** : une session = un objectif de la liste ci-dessous.
    On n'attaque pas la session N+1 si les critères de sortie de N ne sont pas
    verts. Fin de session : mise à jour de JOURNAL.md (Fait / Décisions / Pièges /
-   Prochaine étape), commit.
+   Prochaine étape), **commit ET push [D26]**. Le push est partie intégrante de la
+   clôture : sans lui, le journal que la supervision lit via GitHub a une session de
+   retard. (D26 lève, pour la clôture de session, la règle globale « jamais de push
+   sans demande » — la clôture EST la demande permanente, actée par Stéphane.)
 9. **Pièges connus à ne pas redécouvrir** : signe de Putinar (règle 2) ; coupes
    dyadiques vs frontières de dalle non dyadiques (⟹ certificat slab-aware
    obligatoire) ; **la grille d'échantillonnage ne fait pas foi** (micro-canal raté

@@ -1640,3 +1640,20 @@ interactif A24 + limites A25). Stéphane : préférence de scénario-vitrine
 (bin-picking logistique / étagère pharma / cellule capot) à exprimer AVANT la
 conception de scène.
 
+## 2026-06-12 — D26 (Stéphane) — **clôture de session = commit ET push**
+
+**Décision** : règle 8 amendée — la clôture d'une session inclut désormais le **push**,
+pas seulement le commit. Motif : la supervision lit le journal via GitHub ; sans push,
+elle a systématiquement une session de retard (constaté à la clôture S9a, commitée
+localement mais non poussée). Le push de clôture **lève**, pour ce cas précis, la règle
+globale de Stéphane « jamais de `git push` sans demande explicite » : la clôture EST la
+demande permanente, actée ici.
+
+**Appliqué (règle 14, décision de supervision journalisée — pas d'initiative de Code)** :
+CLAUDE.md règle 8 (« commit ET push [D26] ») + header v1.8→**v1.9** + changelog. Le commit
+de clôture S9a (`4f5f678`) et ce commit D26 sont poussés vers `origin/main` en clôture.
+
+**Portée** : push uniquement à la clôture de session (état vert, journal à jour). Pas de
+force-push, pas d'amend (règles globales inchangées). La règle globale « jamais de push
+sans demande » reste en vigueur HORS clôture de session.
+
