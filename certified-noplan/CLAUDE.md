@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.9 — 12 juin 2026 (révision post-S7/S8 + pilotage + D26 ; v1.0..v1.8 dans git).
+Version 1.10 — 12 juin 2026 (révision post-S7/S8 + pilotage + D26 + revue S9a-suite ; v1.0..v1.9 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -60,6 +60,11 @@ revérifiable — différenciation par la NATURE du certificat A26, pas par le D
 règle 12, « Amendements en attente : voir S4 » (périmé) supprimé. Diffs SPEC jumeaux du même
 lot : **[D28]** §8 G1' marquée ✅ (acquise S6) ; **[D29]** §1 « l'un des deux verdicts » →
 « l'un des trois verdicts » (PROOF / ENGINE-PROOF / UNDECIDED, cf. §6).
+Changements v1.9 → v1.10 (revue S9a-suite, **[A32]**) : **S9a ✅ COMPLÈTE validée** par
+la supervision ; **[D31]** instrumentation de la dissonance décision↔certificat
+(compteur de re-résolution pleine-dim échouée sur feuille décidée collision, asserté à
+ZÉRO sur les runs S4) ; mesure PAR-PAIRE (proximale vs distale) ajoutée à la table de
+calibration A31. Détail : entrée « Revue de supervision S9a-suite » de JOURNAL.md.
 
 ---
 
@@ -451,10 +456,20 @@ plus proche et journaliser.
   NOTE [A10, TRANCHÉ (S6)] : `margin` = défaut. **Fit STRUCTURÉ [A19]** : pénaliser/zéroter
   les coeffs des dims passives détectées au fit φ (leçon S6 : lstsq surajuste un degré-2
   parasite ⟹ φ tordu ⟹ UNDECIDED).
-- Micro-tâche calibration [A31/D20] : mesurer **feuilles(n) ET coût/feuille** avec la
+- Micro-tâche calibration [A31/D20/**D31**] : mesurer **feuilles(n) ET coût/feuille** avec la
   réduction par-paire activée, à n = 3,4,5,6 (distinguer dims actives/passives, globales
-  ET par-paire) ; **livrer la table de calibration du modèle de coût** (feuilles × coût/
-  feuille vs DOF actifs/passifs) — réviser les estimations de temps de la supervision.
+  ET par-paire) ; **mesure PAR-PAIRE (proximale vs distale) sur la scène bac S4 — première
+  validation réelle du levier A30** ; wall-clock S3 capturé à la régénération du benchmark
+  canonique ; **livrer la table de calibration du modèle de coût** (feuilles × coût/feuille
+  vs DOF actifs/passifs, globales ET par-paire) — réviser les estimations de temps de la
+  supervision.
+- Micro-tâche instrumentation [**A32/D31**] : **compteur/log moteur de re-résolution
+  pleine-dim ÉCHOUÉE sur feuille décidée collision** (dissonance décision↔certificat : le
+  chemin de décision tourne sur la géométrie A29-simplifiée, la re-résolution pleine dim sur
+  la géométrie originale — deux LP sur des polynômes différents ; bénigne au pire — UNDECIDED,
+  jamais un faux PROOF — mais coût silencieux possible à l'échelle). Exposé dans les stats du
+  moteur et le harness ; **asserté/vérifié à ZÉRO sur les runs de la scène S4** (déjà zéro
+  empiriquement sur S3, margin et oracle).
 - **[V5] Validation visuelle — OBLIGATOIRE AVANT TOUT RUN LONG** [A20 RETIRÉ de V5,
   déplacé en S9b/V6 — pilotage D22] :
   **artefact PRINCIPAL = `cnp show <scene> --interactive` (HTML, A24)** + coupes 2D du

@@ -324,6 +324,12 @@ ouvre une vue Meshcat minimale.
    un seul certificat passe sur prémisse fausse ; arithmétique exacte au shipping.
 6. **Antériorité** : revue de littérature sérieuse (pas 2 recherches web) en
    parallèle des sessions S0-S2 — tâche humaine assistée, pas Claude Code.
+   **TRAITÉ (ouverture S9c, claim reformulé)** — revue livrée dans
+   `docs/BIBLIO-ANTERIORITE.md` : voisin le plus proche = Henrion, Miller & Safey El Din
+   2024 (arXiv:2404.06985, déconnexion moment-SOS numérique, ensembles abstraits n ≤ 3) ;
+   claim reformulé « premiers certificats d'infaisabilité de motion planning pour bras
+   articulés *exactement vérifiables a posteriori* par un programme indépendant en
+   arithmétique rationnelle » (formulation EN/FR + interdits de claim dans le fichier).
 
 ## 10. Hors périmètre v1
 

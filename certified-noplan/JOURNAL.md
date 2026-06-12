@@ -1760,3 +1760,63 @@ coupes C-space + limites A25 ; attendre « VALIDÉ S9-V5 ») ; (5) **DECISION-G2
 G2' chiffré, calibration, comparaison chiffres GPU Li-Dantam, GO/NO-GO/RE-SCOPE — revue
 supervision puis SIGNÉE Stéphane avant S10.
 
+## 2026-06-12 — Revue de supervision S9a-suite (claude.ai) — **S9a COMPLÈTE validée, A32**
+
+**Verdict : S9a-suite validée — S9a est COMPLÈTE** (G3'b + réductions A29/A30).
+178 passed, 0 skip, 0 warning ; verify.py 499 lignes, ZÉRO diff (sacré intact) ;
+diff de code confiné à engine.py.
+
+**Au-dessus de l'attendu** :
+1. Le piège A29 compris finement : la division par (1+s_i²) change la VALEUR de t
+   (g rescalé par un facteur ≥ 1, T non divisé ⟹ t plus conservateur) mais préserve
+   le VERDICT ; le test règle 1 « t_réduit == t_plein » est correctement posé À
+   géométrie simplifiée fixée, là où la projection est exacte (propriété S8
+   re-confirmée). Mal compris, ce point aurait produit un test rouge à tort ou un
+   test vide.
+2. Honnêteté A30 : les scènes livrées n'ont qu'UN corps ⟹ A30 ≡ réduction globale
+   sur elles ; le levier réel (paires proximales, 5^6 → 5^2-5^3) reste NON MESURÉ
+   sur scène réelle — infrastructure validée sur un synthétique deux-corps (piège
+   du joint coaxial attrapé et corrigé). Lignée « pas de ×400 ».
+3. Architecture S8 à la lettre : décision sur géométrie simplifiée, certificat
+   re-résolu pleine dim sur la FK de scène ORIGINALE, verify.py arbitre — une
+   réduction buggée coûte des feuilles, jamais une fausse preuve.
+4. Coupe S9c correcte (gates humains V5 + signature DECISION-G2 ⟹ pas d'autonomie
+   possible) ; prérequis règle 10 soldé par avance (iiwa en cache, hors réseau).
+   D26 acté proprement (push de clôture = demande permanente, portée bien bornée).
+
+**Annotation** :
+- [A32 → S9c] Dissonance décision↔certificat à instrumenter : le chemin de
+  décision (géométrie A29-simplifiée) et la re-résolution pleine dim (géométrie
+  originale) sont deux LP sur des polynômes différents ; une feuille décidée
+  « collision » peut en théorie échouer à l'export (bornes Bernstein de tension
+  différente). Conséquence au pire bénigne (UNDECIDED, jamais un faux PROOF),
+  mais coût silencieux possible à l'échelle. Ajouter un compteur/log moteur
+  « re-résolution échouée sur feuille décidée », attendu à ZÉRO sur les runs S9c
+  (déjà zéro empiriquement sur S3, margin et oracle).
+- [Note calibration] Le bonus S3 ~19× est un coût LP (lignes Bernstein 632 vs
+  12 256), correctement étiqueté ; capturer le wall-clock S3 à la régénération du
+  benchmark canonique S9c. La table de calibration A31 inclut explicitement la
+  mesure PAR-PAIRE sur la scène bac (paires proximale vs distale) — c'est la
+  première validation réelle du levier A30.
+
+**Diffs à appliquer par Code en ouverture de S9c (CLAUDE.md du repo)** :
+- D31 [A32] Section S9c (tâches) : ajouter « compteur/log de re-résolution
+  échouée sur feuille décidée (A32), asserté/vérifié à zéro sur les runs de la
+  scène S4 ; mesure par-paire (proximale vs distale) dans la table de
+  calibration A31 ».
+- D32 Header : version 1.10, changelog « v1.9→v1.10 (revue S9a-suite, A32) :
+  S9a ✅ COMPLÈTE validée ; instrumentation dissonance décision↔certificat ;
+  mesure par-paire à la calibration ».
+
+**Prochaine étape** : S9c — joints verrouillés dans verify (pré-arbitrage 600
+lignes en vigueur), scène 5-6 DOF comparabilité, calibration A31 (+ par-paire),
+[V5] avant tout run long, DECISION-G2.md (revue supervision puis signature
+Stéphane avant S10). La revue d'antériorité (risque n°6 SPEC §9) est livrée
+côté supervision : docs/BIBLIO-ANTERIORITE.md à verser au repo (claim du papier
+reformulé — voisin le plus proche : Henrion, Miller & Safey El Din,
+arXiv:2404.06985, déconnexion algébrique moment-SOS sur ensembles abstraits
+n ≤ 3 ; notre différenciation = bras articulés + vérification exacte a
+posteriori). Cible de publication pressentie : RSS 2027 (review amicale d'abord,
+décision de pilotage Stéphane).
+
+
