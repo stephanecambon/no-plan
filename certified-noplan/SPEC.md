@@ -1,6 +1,9 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
 Version 1.5 — 12 juin 2026 (amendée post-S7/S8 ; v1.0..v1.4 dans git).
+Réconciliation doc (ouverture S9, lot de revue S8) : §1 [D29] trois verdicts explicités
+(PROOF / ENGINE-PROOF / UNDECIDED) ; §8 [D28] G1' marquée ✅ (acquise S6). Diffs de doc
+(pas de changement mathématique) — jumeaux des diffs CLAUDE.md D27/D30.
 Amendement v1.4→v1.5 (acté S9, G3'b) : §5 + §4 (schéma `joints`) + §6 — le vérificateur
 exact indépendant supporte les chaînes `spatial_revolute` (FK 3-D générique re-dérivée
 des offsets/axes exacts du certificat) ; les scènes spatiales à q*=0 sans joint verrouillé
@@ -37,11 +40,15 @@ ENGINE-PROOF / UNDECIDED. Marqués « [amendé S<X>] ».
 
 Un outil en ligne de commande qui, pour un robot sériel (chaîne révolute, limites
 articulaires dans (−π, π)), une scène d'obstacles statiques et deux configurations
-start/goal, produit l'un des deux verdicts :
+start/goal, produit [amendé S9, D29] l'un des **trois** verdicts (détaillés §6) :
 
 - **PROOF** : un certificat mathématique, sérialisé et **vérifiable par un programme
   indépendant en arithmétique exacte**, établissant qu'aucune trajectoire continue
   sans collision ne relie start à goal dans les limites articulaires.
+- **ENGINE-PROOF** : le moteur établit la déconnexion mais la vérification exacte
+  indépendante est indisponible pour cette configuration (depuis G3'b : uniquement
+  joints verrouillés ou q*≠0) — TOUJOURS affiché avec son avertissement, jamais
+  présenté comme un PROOF (règle 5).
 - **UNDECIDED** : pas de certificat trouvé au budget donné (ce n'est PAS une preuve
   de faisabilité), avec diagnostic (cellules en échec, visualisation).
 
@@ -278,8 +285,9 @@ ouvre une vue Meshcat minimale.
 - **G0'** ✅ (S0) : parité bac à sable → machine locale (43 tests, t* à 1e-6).
   S1 ✅ (FK rationnelle, parité < 1e-9) et S2 ✅ (témoin 3D, parité E3 < 1e-7,
   isolation back-end HiGHS prouvée) acquis — voir JOURNAL.md.
-- **G1'** : témoin 3D validé vs vérité-terrain échantillonnée sur S2 (3-DOF) ;
-  zéro faux certificat sur la suite adversariale (§9).
+- **G1'** ✅ (S6) [D28] : témoin 3D validé vs vérité-terrain échantillonnée sur S2
+  (3-DOF, peigne certifié end-to-end + vérifié exact, 54 feuilles) ; zéro faux
+  certificat sur la suite adversariale (§9).
 - **G2'** : S4 (5-6 DOF) certifié en < 1 h sur la machine cible, < 10⁴ feuilles.
   SI ÉCHEC : actionner les mitigations §9 avant d'élargir le périmètre. [relu S8 [A26]]
   se lit désormais « frontière GPU 5-6 DOF de Li-Dantam (arXiv 2406.04795) atteinte sur

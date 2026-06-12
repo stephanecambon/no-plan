@@ -51,10 +51,15 @@ technique pur** avec sortie **`DECISION-G2.md` signée par Stéphane avant S10**
 session** « portefeuille de cas d'usage » (bin-picking / étagère pharma / capot de sûreté,
 validation VU) ; A20 « apparence faisable » RETIRÉ de V5 (déplacé en S9b/V6) ; S10 implémente
 le flagship choisi en S9b, S11 += pack démo des deux autres cas. Détail : entrées « Revue de
-supervision S8 » et « Décision de pilotage » de JOURNAL.md. Changement v1.8 → v1.9 (D26) :
-**règle 8 amendée — la clôture de session = commit ET push** (sans push, le journal lu par
-la supervision via GitHub a une session de retard ; le push de clôture lève la règle globale
-« jamais de push sans demande »).
+supervision S8 » et « Décision de pilotage » de JOURNAL.md. Changement v1.8 → v1.9 (D26-D30) :
+**règle 8 amendée — la clôture de session = commit ET push** (D26 ; sans push, le journal lu
+par la supervision via GitHub a une session de retard ; le push de clôture lève la règle
+globale « jamais de push sans demande ») ; **[D27]** « Estimation honnête » re-cadrée
+(re-scope 5-6 DOF = frontière GPU Li-Dantam atteinte sur laptop CPU, certificat exactement
+revérifiable — différenciation par la NATURE du certificat A26, pas par le DOF) ; **[D30]**
+règle 12, « Amendements en attente : voir S4 » (périmé) supprimé. Diffs SPEC jumeaux du même
+lot : **[D28]** §8 G1' marquée ✅ (acquise S6) ; **[D29]** §1 « l'un des deux verdicts » →
+« l'un des trois verdicts » (PROOF / ENGINE-PROOF / UNDECIDED, cf. §6).
 
 ---
 
@@ -167,8 +172,7 @@ la supervision via GitHub a une session de retard ; le push de clôture lève la
     SPEC.md (exemples actés en S1-S2 : s = tan((q−q*)/2) avec q* de référence au
     lieu de tan(θ/2) ; dénominateur commun PAR LINK ; exposant p=1 suffisant), la
     session qui acte la divergence AMENDE SPEC.md dans le même commit, avec mention
-    « amendé en S<X> ». Une spec fausse est pire que pas de spec. Amendements en
-    attente : voir S4.
+    « amendé en S<X> ». Une spec fausse est pire que pas de spec.
 
 13. **Aucun skip silencieux aux sorties de session (NOUVEAU).** `make test` peut
     skipper des tests réseau au quotidien, mais les critères de sortie d'une
@@ -534,5 +538,8 @@ plus proche et journaliser.
 S0-S2 ont tenu en 3 sessions nominales, ce qui est encourageant mais ne prédit
 pas S9-S10 (les sessions à risque de recherche : explosion de feuilles, degré de
 φ). 13 sessions nominales + 2-4 de contingence. Si G2' est rouge après
-mitigations : re-scope avec Stéphane (résultat-titre à 5-6 DOF, toujours
-au-delà de l'état de l'art rigoureux à 4) plutôt que forcer.
+mitigations : re-scope avec Stéphane plutôt que forcer. **[D27] Re-scope à 5-6 DOF =
+frontière GPU de Li-Dantam (arXiv 2406.04795) atteinte sur laptop CPU avec un
+certificat exactement revérifiable — résultat fort, différencié par la NATURE du
+certificat (A26), pas par le DOF** (le récit « seuls au-delà de 4-DOF » est périmé,
+cf. SPEC §7 B1).
