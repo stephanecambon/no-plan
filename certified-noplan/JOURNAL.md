@@ -2318,3 +2318,77 @@ daté** dans `DECISION-G2.md` (le corps signé n'est pas réécrit au-delà de D
 **Prochaine étape** : tâches L0a/L0b (livrables seuls si saturation ; L1 ⟹ S9f-bis), puis addendum
 §3d-bis daté, clôture (commit ET push). Annoncée ensuite : **S9b** (portefeuille de cas d'usage,
 flagship choisi en connaissance de la frontière re-mesurée).
+
+## 2026-06-13 — Session S9f (Claude Code, AUTONOME) — re-sonde du mur : « mur k=5 » RÉFUTÉ, frontière re-mesurée
+
+Session autonome (le GO signé est inchangé ; S9f *précise* la frontière). État vert d'ouverture :
+191 passed. Ouverture doc (circuit A16) commit séparé `93ef10d` (revue S9e + pilotage S9f, D42-D44).
+
+**Fait — L0a (diagnostic + re-mesure)** :
+- **Cause de terminaison du run k=5 de S9e DIAGNOSTIQUÉE** : pas le budget (10⁴ feuilles / 30 min
+  jamais atteints) mais un **TROISIÈME plafond silencieux `Problem.max_depth=16`**. Instrumentation
+  ajoutée (`src/cnp/engine.py`, chemin sériel, diagnostics-only hors décision) : `EngineResult.stats
+  ["termination"]` ∈ {certified, depth_exhausted, budget_leaves, budget_time} + `max_depth_reached`/
+  `max_depth_limit`. Le k=5 S9e = `depth_exhausted` (16/16) : 26 collision déjà certifiées + 10 FAIL.
+- **Scène S9e k=5 NON ÉTANCHE** : à profondeur relevée + budget réel le certificateur REFUSE
+  SAINEMENT — l'obstacle (bbox de 4 000 échantillons ALÉATOIRES de la portée + marge 0,02)
+  sous-couvre la portée aux COINS ; configs libres dans la dalle (extrémité du link hors boîte de
+  ~0,008-0,04), manquées par la vérité-terrain 8 000 uniforme (règle 9). UNDECIDED y était SAIN.
+- **Re-mesure sur scènes PROUVÉES ÉTANCHES** (`build_scene_sealed` : obstacle scellé par bornes de
+  Bernstein `h = max_cp bcN_cp/bcD_cp` ⟹ `X_i ≤ h` sur la bande, prouvé par linéarité ; vérité-terrain
+  dense + biaisée-coins ré-assertée 0 libre) : **affine certifie PROOF + verify EXACT + A32=0 de k=3
+  à k=7** (feuilles 2-4, `certified`). **PAS de mur affine à k=5.** Coût = LP UNIQUE (d+1)^k
+  (×4,99/dim : 766→3 782→18 814→93 878→469 006), feuilles quasi-constantes. **k=8** (~2,3 M lignes) =
+  UNDECIDED `budget_time` (un SEUL LP dépasse la deadline, 455 s/2 feuilles ; **frontière de COÛT-LP,
+  pas de certifiabilité** ; scène prouvée étanche).
+
+**Fait — L0b (anomalie quadratic)** : pas d'anomalie. LP quadratic k=5 = **19 479 l. / 49 col.**,
+construit 0,04 s + résolu **0,32 s** ; LP le plus lent d'un run ENTIER = **1,32 s**. Le « >150 s » de
+S9e était le RUN quadratic complet (**331 résolutions LP** via lookahead `axis=margin`) sur la scène
+**LEAKY** (ne certifie à AUCUN degré — même cause qu'en L0a). Sealed quadratic certifie aussi (PROOF,
+4 feuilles, 7,9 s).
+
+**Fait — L1 (Bernstein anisotrope) : NE PAIE PAS (mesuré négatif)** : degrés PAR AXE des polys de
+face **UNIFORMES = 3** (bench k=5,6,7 ET scène réelle S4) ⟹ `∏(dᵢ+1) = 4^k = (DPAD=3+1)^k`, ratio
+**1,00×**. Seul levier de lignes = **degré de φ** : φ linéaire stocké à `phi_degree=2` ⟹ DPAD eff=4 ⟹
+5^k ; φ tendu deg 1 ⟹ DPAD=3 ⟹ 4^k, gain **(5/4)^k** (×3,0 @k5 → ×4,8 @k7, toujours PROOF). Choix de
+PARAMÈTRE de scène (s'évanouit pour φ quadratique), **pas l'anisotropie** ⟹ laissé **option non-défaut**.
+**Aucune modif de witness.py / verify.py** (invariants stricts tenus : verify.py INTACT 499 l. zéro
+diff, format cert inchangé, A29/A30 intacts).
+
+**Fait — sortie** : `DECISION-G2.md` **§3d-bis daté** (SUPERSÈDE le point k=5 du §3d ; corps signé non
+réécrit au-delà de D42 ; §5.3/§2 gardent leur texte S9e historique) ; figure
+`benchmarks/figures/S9f_wall/cost_vs_active_dims.png` ; résultats datés `benchmarks/results/
+20260613T014131Z/wall_resonde_S9f.json` (commit + git_dirty, règle 7). Scripts `wall_resonde_S9f.py`,
+`run_resonde_S9f.py`, `make_wall_figure_S9f.py` ; test `tests/test_resonde_S9f.py` (6 tests :
+instrumentation termination, sealed PROOF+verify k=3,4,5, leak-vs-seal déterministe, anisotrope 1,0×).
+
+**Décisions** :
+- L1 anisotrope NON-DÉFAUT (mesuré : degrés isotropes ⟹ 0 gain ; le levier réel = degré de φ tendu,
+  un choix de scène). Pas d'implémentation anisotrope (négatif documenté, comme prévu par la tâche).
+- Instrumentation `termination`/`max_depth_reached` versée en PERMANENCE (chemin sériel, stats only,
+  soundness-neutre) — un UNDECIDED expose désormais SA cause.
+- Corps signé de DECISION-G2 non édité au-delà de D42 ; l'addendum §3d-bis porte la correction
+  (jamais réécrire l'historique signé).
+
+**Pièges** :
+- **Le « mur k=5 » était un ARTEFACT de mesure** (max_depth=16 + scène leaky), pas une limite du
+  témoin affine. Double leçon : (a) un UNDECIDED doit exposer SA cause (instrumenté) ; (b) une scène
+  synthétique « bbox d'un échantillon ALÉATOIRE de la portée » n'est PAS étanche aux coins (la bbox
+  sous-couvre une portée courbe ; la convexité ne sauve pas) ⟹ **sceller par bornes de Bernstein**.
+- **k=8 UNDECIDED ≠ infaisable** (SPEC §6) : frontière de coût-LP (un LP > deadline), scène étanche.
+- Le gain (5/4)^k de φ tendu **s'évanouit** pour une barrière réellement quadratique — ne pas généraliser.
+- Bench **dirty-tree** assumé (`git_dirty=true` dans le JSON) : bench exploratoire seedé, reproductible.
+
+**Décompte exact (sortie S9f)** : `make test` = **197 passed, 0 skipped, 0 warnings**, ~222 s
+(191 S9e + 6 `test_resonde_S9f.py`). **Pas de flake** (`test_parallel_speedup` vert ; D34 : aucun
+re-run isolé nécessaire). `verify.py` 499 l. INTACT (aucune modif src hors `engine.py` instrumentation).
+
+**Diffs CLAUDE.md** (règle 14) : header v1.13 + changelog D42-D44 + tâche/État S9f — appliqués au
+commit doc d'ouverture `93ef10d`. Clôture (ce commit) : `src/cnp/engine.py` (instrumentation
+termination), scripts + test + figure + results, `DECISION-G2.md` §3d-bis.
+
+**Prochaine étape** : **S9b** (portefeuille de cas d'usage : bin-picking logistique / étagère pharma /
+capot de sûreté ; one-pagers, specs YAML, storyboards A20 non négociable/A24/A25, **flagship 7-DOF à
+piégeage PROXIMAL** choisi EN CONNAISSANCE de la frontière re-mesurée : *pas de mur affine k≤7, coût
+= LP unique (d+1)^k, frontière pratique = taille du LP ~470k lignes à k=7*). Validation VUE par Stéphane.

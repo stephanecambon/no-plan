@@ -466,18 +466,39 @@ class _Ctx:
         self.deadline = (None if self.budget.max_time_s is None
                          else time.monotonic() + self.budget.max_time_s)
         self.n_lp = 0
+        # S9f instrumentation (L0a, diagnostics only — never on the decision path):
+        # which ceiling actually stopped the refinement, so an UNDECIDED can be told
+        # apart as "budget" (the real wall) vs "depth_exhausted" (max_depth too low,
+        # NOT the budget — the S9e k=5 case) vs "certified".
+        self.max_depth_reached = start_depth
+        self.budget_reason: str | None = None
 
     def budget_hit(self) -> bool:
         if self.budget.max_leaves is not None and len(self.leaves) >= self.budget.max_leaves:
+            self.budget_reason = "budget_leaves"
             return True
         if self.deadline is not None and time.monotonic() >= self.deadline:
+            self.budget_reason = "budget_time"
             return True
         return False
+
+    def termination(self) -> str:
+        """Why the serial refinement stopped (S9f, diagnostics): ``certified`` (no open
+        cell), ``budget_leaves`` / ``budget_time`` (the genuine wall — budget spent), or
+        ``depth_exhausted`` (cells hit ``max_depth`` while still undecided — a depth
+        ceiling, NOT the budget; raising ``max_depth`` would refine further)."""
+        if self.budget_reason is not None:
+            return self.budget_reason
+        if any(lf.status == "FAIL" for lf in self.leaves):
+            return "depth_exhausted"
+        return "certified"
 
 
 def _recurse(ctx: _Ctx, cell, depth):
     """Process ``cell`` at ``depth``; append leaves. Returns ``True`` iff the whole
     subtree is certified (outside/collision everywhere)."""
+    if depth > ctx.max_depth_reached:
+        ctx.max_depth_reached = depth
     if ctx.budget_hit():
         ctx.failed.append(cell)
         ctx.leaves.append(Leaf(cell, "undecided"))
@@ -769,7 +790,10 @@ def solve(problem: Problem, budget: Budget | None = None, axis: str = "oracle",
     if n_workers <= 1 and checkpoint_dir is None:
         ctx = _Ctx(problem, budget, axis, backend, 0)
         _recurse(ctx, tuple(tuple(c) for c in problem.box), 0)
-        stats = _stats(ctx.leaves, ctx.n_lp, time.monotonic() - t0, problem, n_workers)
+        stats = _stats(ctx.leaves, ctx.n_lp, time.monotonic() - t0, problem, n_workers,
+                       termination=ctx.termination(),
+                       max_depth_reached=ctx.max_depth_reached,
+                       max_depth_limit=problem.max_depth)
         return EngineResult(_verdict(ctx.failed), ctx.leaves, ctx.failed, stats)
 
     # --- frontier-based path (parallel and/or checkpointed) ---

@@ -154,6 +154,85 @@ d'usage exigeant ≥5 dims actives est un point de pivot (re-scope avec Stéphan
 
 ---
 
+## 3d-bis. Re-sonde du mur (S9f, AUTONOME — 13 juin 2026) — **SUPERSÈDE le point k=5 du §3d**
+
+Session S9f (Claude Code, autonome ; le verdict GO signé est inchangé — S9f *précise* la
+frontière). Reproductible : `python scripts/run_resonde_S9f.py` (sealed scenes, seedé) ;
+figure `benchmarks/figures/S9f_wall/cost_vs_active_dims.png` ; résultats datés +
+commit + `git_dirty` dans `benchmarks/results/` (règle 7). **Quatre constats : L0a (diagnostic +
+scène non étanche), re-mesure étanche, L0b (quadratic), L1 (anisotrope).**
+
+**(1) L0a — le « mur k=5 » de S9e était un ARTEFACT, pas un mur du témoin affine.** Deux causes
+cumulées, diagnostiquées :
+- **Plafond de profondeur silencieux.** Le run k=5 de S9e s'est arrêté à 48 feuilles / 45 s non
+  pas par budget (10⁴ feuilles / 30 min jamais atteints) mais par un **TROISIÈME plafond,
+  `Problem.max_depth=16`** — désormais exposé dans `EngineResult.stats["termination"]`
+  (= `depth_exhausted`, `max_depth_reached=16/16` ; instrumentation S9f). 10 cellules straddling
+  la dalle ont touché la profondeur 16 ⟹ feuilles FAIL ⟹ UNDECIDED. Le budget réel n'a jamais
+  été dépensé.
+- **Scène non étanche.** À profondeur relevée et budget réel, le certificateur **REFUSE
+  SAINEMENT** la scène k=5 de S9e : son obstacle WALL est la **boîte englobante de 4 000
+  échantillons ALÉATOIRES** de la portée du dernier link + marge 0,02, qui **sous-couvre la
+  portée aux COINS** de l'espace de config (autres joints ≈ ±0,25). Des configs libres survivent
+  dans la dalle (extrémité du link hors boîte de ~0,008 à 0,04) ; la vérité-terrain uniforme à
+  8 000 échantillons les manque (les coins sont de mesure infime), **le certificateur les trouve**
+  (règle 9 : la grille ne fait pas foi). ⟹ la scène k=5 de S9e **n'est PAS une déconnexion
+  étanche** ; UNDECIDED y était le verdict SAIN, pas une insuffisance du témoin affine.
+
+**(2) Re-mesure sur des déconnexions PROUVÉES ÉTANCHES.** Famille reconstruite avec un obstacle
+**scellé par bornes de Bernstein** (chaque face `h = max_cp bcN_cp/bcD_cp` ⟹ `X_i ≤ h` sur TOUTE
+la bande, *prouvé* par linéarité de Bernstein), vérité-terrain dense + **biaisée-coins**
+ré-assertée (0 libre / dalle), start/goal libres. **Le témoin affine certifie CHAQUE k mesuré** :
+
+| k actif | verdict | feuilles | **cause de terminaison** | coût/feuille (lignes, schéma livré DPAD=4) | moteur s | verify exact | A32 |
+|---|---|---|---|---|---|---|---|
+| **3** | **PROOF** | 2 | certified | 766     | 0,1  | **OK** | 0 |
+| **4** | **PROOF** | 2 | certified | 3 782   | 0,2  | **OK** | 0 |
+| **5** | **PROOF** | 4 | certified | 18 814  | 1,6  | **OK** | 0 |
+| **6** | **PROOF** | 4 | certified | 93 878  | 11,2 | **OK** | 0 |
+| **7** | **PROOF** | 2 | certified | 469 006 | 72,3 | **OK** | 0 |
+| **8** | **UNDECIDED** (budget_time) | 2 | budget_time | ~2,3 M | 455 (≫ deadline) | — | — |
+
+**Il n'y a PAS de mur du schéma affine en dims actives dans la plage mesurée (k≤7 : PROOF +
+verify EXACT + A32=0).** Le coût n'est **pas** une explosion de feuilles : feuilles **2-4
+quasi-constantes** ; c'est la taille d'**UN LP**, **(d+1)^k** (×4,99/dim mesuré : 766→3 782→
+18 814→93 878→469 006). La vraie **frontière PRATIQUE** est la taille du LP unique : ~470k lignes
+à k=7 (PROOF, ~95 s total) ; à **k=8 (~2,3 M lignes) la résolution d'UN SEUL LP dépasse le budget
+temps** (UNDECIDED `budget_time` : 455 s pour 2 feuilles, deadline dépassée *pendant* une résolution
+LP unique — la scène reste prouvée étanche, vérité-terrain 0 libre). C'est une **frontière de
+COÛT-LP, pas de certifiabilité** (point à paralléliser / réduire la taille du LP — A30 n'aide pas
+ici, toutes dims actives), et k=8 = UNDECIDED-sur-budget reste ≠ infaisable (SPEC §6).
+
+**(3) L0b — pas d'anomalie quadratic.** Le LP quadratic à k=5 mesuré : **19 479 lignes / 49
+colonnes**, **construit en 0,04 s, résolu en 0,32 s** ; le LP le plus lent sur un run ENTIER =
+**1,32 s**. Le « >150 s » de S9e était le **run quadratic complet** (331 résolutions LP via le
+lookahead `axis=margin`) sur la scène **LEAKY** (qui ne certifie à AUCUN degré — même cause qu'en
+(1)). Sur la scène scellée, quadratic certifie aussi (PROOF, 4 feuilles, 7,9 s). *(DPAD effectif=4
+piloté par `2·d_φ` ; cf. (4).)*
+
+**(4) L1 — Bernstein anisotrope : NE PAIE PAS (mesuré, laissé en option non-défaut).** Degrés
+PAR AXE des polynômes de face mesurés sur le bench (k=5,6,7) **ET sur la scène réelle S4** :
+**UNIFORMES = 3 sur tous les axes actifs** (chaque joint rotoïde contribue degré 2 à N et D, +1
+pour λ affine). ⟹ `∏(dᵢ+1) = 4^k = (3+1)^k` : **aucun gain anisotrope (ratio 1,00×)**. Le seul
+levier de lignes est le **degré de φ** : le bench stocke φ (lacet, *linéaire*) à `phi_degree=2`
+⟹ `2·d_φ=4` ⟹ DPAD effectif=4 ⟹ **5^k** ; φ tendu à son degré réel 1 ⟹ DPAD=3 ⟹ **4^k**, mesuré
+**(5/4)^k de gain** (×3,0 à k=5 → ×4,8 à k=7, scènes toujours PROOF). C'est un **choix de
+PARAMÈTRE de scène** (et il s'évanouit pour une barrière réellement quadratique), **pas**
+l'anisotropie. L'anisotrope reste donc **non-défaut**.
+
+**Position re-mesurée du mur** : *aucun mur du schéma affine en dims actives mesuré (k≤7 PROOF +
+verify exact)*. La montée en dims actives coûte **(d+1)^k par LP** à feuilles quasi-constantes
+(pour les déconnexions proximales-style de cette famille). La frontière est la **taille du LP
+unique** (~470k lignes à k=7 ; ~2,3 M à k=8). **Verdict GO inchangé — re-sonde RENFORÇANTE** :
+(a) la machinerie est SOUND (elle a refusé une non-déconnexion que l'échantillonnage déclarait
+déconnectée — exactement règles 1/9) ; (b) le régime (d+1)^actif est confirmé, et le point
+« une dim active au-dessus d'Henrion et al. » passe de k=4 à **k≥7** (avec la ceinture A37
+« cadres différents ») ; (c) **S10 reste à piégeage PROXIMAL** (peu de dims actives) pour rester
+sous la frontière LP. Les chiffres S9e du §3d restent l'historique (jamais réécrit) ; ce §3d-bis
+porte le résultat.
+
+---
+
 ## 4. Comparaison à Li-Dantam — positionnement, PAS une course
 
 Chiffres **vérifiés à la source** (rule 9/A28) dans **Li & Dantam, « Scaling Motion Planning
