@@ -216,8 +216,8 @@ témoin adaptatif) ; point de pivot journalisé ; re-scope décidé **avec Stép
 
 ## 6. Signatures
 
-- [ ] **Supervision (claude.ai)** — revue : _______________________  date : __________
-- [ ] **Stéphane Cambon** — SIGNATURE (requise avant toute ouverture de S10) : _______________________  date : __________
+- [x] **Supervision (claude.ai)** — revue : revue S9e du 13/06/2026 (cf. JOURNAL)  date : 2026-06-13
+- [x] **Stéphane Cambon** — SIGNATURE : Stéphane Cambon  date : 2026-06-13
 
 Reproductibilité : `python scripts/calibrate_g2.py` (table §3) ;
 `benchmarks/results/20260612T233416Z/` (timings canoniques, `calibration.json`) ;
