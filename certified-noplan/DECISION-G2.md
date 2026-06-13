@@ -38,15 +38,24 @@ ne déplacent que des points au-delà du link 2).
 **0 point libre dans la dalle sur 40 000 échantillons seedés** ; libre des deux côtés (deux
 composantes) ; contrôle négatif (mur descellé) ⟹ **UNDECIDED, jamais de faux certificat**.
 
-**Lecture honnête (le point central, non un angle mort).** La scène n'a que **3 dimensions
-actives** {lacet, tangage épaule, coude} alors qu'elle a 5-6 DOF : les joints distaux sont
-*prouvés passifs* pour la paire de collision. Ce n'est **pas** un cas favorable trié sur le
-volet — c'est une **propriété intrinsèque des déconnexions certifiables** : prouver une
-déconnexion exige de piéger un corps que le bras ne peut pas déplacer, donc un corps
-**proximal**, donc peu de joints actifs. Un piégeage distal serait défait par la redondance
-(leçon S5/S6/S7) et ne serait pas une déconnexion. **Conséquence stratégique** : sur
-exactement la classe de problèmes qui sont certifiables, le coût suit les **dims actives**,
-pas le **DOF total** — la montée en DOF est quasi gratuite (table §3).
+**Gate visuel [V5, D38] : VALIDÉ.** « VALIDÉ S9-V5 » donné par Stéphane (S9d) sur l'artefact
+interactif A24 (`cnp show scenes/S4_iiwa_bin.yaml --interactive`, joints verrouillés annoncés,
+butées = limites A25, fantômes start/goal, boutons d'évasion à verdict) + coupes C-space — l'œil
+humain a validé l'INTENTION de la scène (le certificat, lui, fait foi sur la vérité mathématique).
+
+**Lecture honnête (le point central, non un angle mort) [amendé A35].** La scène n'a que **3
+dimensions actives** {lacet, tangage épaule, coude} alors qu'elle a 5-6 DOF : les joints distaux
+sont *prouvés passifs* pour la paire de collision. Ce n'est **pas** un cas favorable trié sur le
+volet, mais ce n'est PAS non plus une « propriété intrinsèque des déconnexions » (formulation
+trop forte, corrigée) : des déconnexions à dims actives ÉLEVÉES existent (ex. un bras entier
+franchissant une fenêtre étroite — la collision dépend alors de tous les joints). C'est un
+**effet de SÉLECTION de NOTRE schéma** (barrière scalaire bas-degré φ + dalle) : les
+déconnexions que ce schéma certifie **à bas coût** sont celles où un corps **proximal** est
+piégé (un bras ne peut pas le déplacer ⟹ peu de joints actifs) ; un piégeage distal serait
+défait par la redondance (leçon S5/S6/S7). **Conséquence stratégique** : sur la classe que
+notre schéma certifie à bas coût, le coût suit les **dims actives**, pas le **DOF total** — la
+montée en DOF y est quasi gratuite (table §3). Le régime à dims actives élevées est MESURÉ au
+§3d (bench du mur) ; la portée de coût (d+1)^actif est énoncée comme limite assumée au §5.3.
 
 ---
 
@@ -95,14 +104,56 @@ Benchmark canonique régénéré sur arbre **propre** (commit `eb134e7`, `git_di
 `benchmarks/results/20260612T233416Z/` : **S3 (4-DOF) = moteur 0,043 s + verify exact 0,041 s**.
 (S1 46 feuilles 0,48 s ; S2-peigne 54 feuilles 1,36 s ; S4 iiwa 8 feuilles 0,15 s.)
 
+### 3d. Le MUR de scaling en dimensions ACTIVES (pilotage Stéphane — mesurer la limite)
+
+Là où §3a-c font varier les dims PASSIVES (gratuites), ce bench fait varier les dims
+**ACTIVES** k — le régime cher du §5.3, mesuré au lieu d'être supposé. Famille synthétique
+(`scripts/wall_bench.py`) : chaîne k-joints dont le corps certifié est le **dernier link** (sa
+géométrie dépend de TOUS les joints ⟹ k dims actives DÉTECTÉES par `pair_views`, asserté, aucun
+padding passif) ; barrière φ=lacet de base ; obstacle dimensionné à la portée du dernier link
+sur la bande ⟹ dalle entièrement en collision. **Chaque k est une VRAIE déconnexion** (vérité-
+terrain dense seedée AVANT certif : start/goal libres, **0 libre dans la dalle / 8 000**, libre
+des deux côtés). Budget plafonné 10⁴ feuilles / 30 min. Mesuré le 13 juin 2026, commit `81aeefe`
++ working tree (`git_dirty=true` — bench exploratoire ; reproductible : `python scripts/wall_bench.py`,
+seedé). `lam_degree=affine` (le schéma livré).
+
+| k actif | verdict | feuilles | coût/feuille (lignes Bernstein) | moteur s | certif s | verify s | A32 |
+|---|---|---|---|---|---|---|---|
+| **3** | **PROOF** | 2  | 766    | 0,12 | 0,03 | 0,01 | 0 |
+| **4** | **PROOF** | 2  | 3 782  | 0,21 | 0,10 | 0,05 | 0 |
+| **5** | **UNDECIDED** (structurel) | 48 | 18 814 | 45,1 | — | — | — |
+
+**Lecture honnête (confronter, pas confirmer l'hypothèse)** :
+- **Coût/feuille ×(d+1)≈5 par dim active CONFIRMÉ** : 766 → 3 782 → 18 814 (×4,94 puis ×4,97).
+  Ici **coût réduit ≡ coût plein** (toutes les dims sont actives — rien à réduire pour A30 ; c'est
+  le sens du bench : isoler le coût des dims ACTIVES, là où A18/A30 n'aident pas).
+- **k=4 est le plus haut point CERTIFIÉ** (PROOF + verify exact, ~0,36 s, A32=0) : une dimension
+  active **au-dessus** du voisin algébrique le plus proche (Henrion et al. 2024, ensembles
+  abstraits n≤3) — claim mesurable pour le papier.
+- **Le mur est à k=5**, et c'est un **UNDECIDED STRUCTUREL, pas de budget** : 48 feuilles (≪ 10⁴),
+  45 s (≪ 30 min) — le moteur termine sans certifier, le **témoin affine est insuffisant**, pas le
+  budget. Sonde unique (pilotage) : `lam_degree=quadratic` à k=5 ⟹ **un SEUL LP de feuille dépasse
+  150 s** (le degré du témoin gonfle encore (d+1)^k) ⟹ l'escalade de degré **ne franchit PAS le mur
+  à bas coût**. Honnêteté : UNDECIDED ≠ « faisable » (SPEC §6) ; la vérité-terrain dense SUGGÈRE que
+  la déconnexion k=5 est réelle, mais l'échantillon ne fait pas foi (leçon micro-canal) — on dit
+  donc « notre schéma affine ne la prouve pas au budget », pas « elle est infaisable ».
+
+**Conclusion pour le dossier** : le régime à dims actives élevées N'est PLUS « non mesuré,
+probablement cher » (§5.3) — il est mesuré : **bas coût et certifié jusqu'à k=4, mur du schéma
+affine à k=5**. Figure log `benchmarks/figures/S9e_wall/cost_vs_active_dims.png`. C'est la portée
+honnête à énoncer dans le papier (régime (d+1)^actif), et la frontière au-delà de laquelle un cas
+d'usage exigeant ≥5 dims actives est un point de pivot (re-scope avec Stéphane).
+
 ---
 
 ## 4. Comparaison à Li-Dantam — positionnement, PAS une course
 
 Chiffres **vérifiés à la source** (rule 9/A28) dans **Li & Dantam, « Scaling Motion Planning
 Infeasibility Proofs », arXiv:2406.04795, 2024** (PDF lu cette session ; le journal antérieur
-est **IJRR 2023**, SAGE 10.1177/02783649231154674 — *le « RA-L 2023 » du prompt est un lapsus
-pour IJRR 2023, à corriger*) :
+est **IJRR 2023**, SAGE 10.1177/02783649231154674 — *[à vérifier, A36] les deux références
+existent et NE sont PAS le même papier : IJRR 42(10) 2023 (sampling-and-learning proofs, journal)
+ET RA-L 8(12):8303-8310 2023 (triangulation de Coxeter, le prédécesseur DIRECT du GPU 2406.04795) ;
+cf. docs/BIBLIO-ANTERIORITE.md. Ne pas « corriger » l'une en l'autre — A28 vaut dans les deux sens*) :
 
 | | **Li-Dantam 2024 (arXiv:2406.04795)** | **certified-noplan (nous, S9d)** |
 |---|---|---|
@@ -135,10 +186,13 @@ pour IJRR 2023, à corriger*) :
    en secondes sur CPU, 8 feuilles, A32=0.
 2. **Le levier qui porte la montée en DOF est mesuré et réel** : ×122 (global) et ×24,6
    (par-paire proximal) — la machinerie A18/A29/A30 transforme un coût (d+1)ⁿ en (d+1)^actif.
-3. **L'insight de scope est solide** : les déconnexions certifiables sont proximales ⟹ peu de
-   dims actives ⟹ le DOF total n'est pas le driver de coût. **S10 doit choisir un flagship
-   7-DOF à piégeage PROXIMAL** (case haute d'étagère inatteignable, capot de sûreté) pour
-   rester dans ce régime — c'est une consigne de conception, pas une limite.
+3. **L'insight de scope est solide ET borné [amendé A35]** : les déconnexions que NOTRE schéma
+   certifie à BAS COÛT sont proximales (effet de sélection, §2) ⟹ peu de dims actives ⟹ le DOF
+   total n'y est pas le driver de coût. **S10 doit choisir un flagship 7-DOF à piégeage PROXIMAL**
+   (case haute d'étagère inatteignable, capot de sûreté) pour rester dans ce régime — c'est une
+   **consigne de conception ET une limite de portée ASSUMÉE**, à énoncer telle quelle dans le
+   papier : *le régime de coût est (d+1)^{dims actives} ; la classe proximale est notre portée
+   à bas coût ; le régime à dims actives élevées est cher* (mesuré au §3d, bench du mur).
 
 **Caveats portés au dossier (pas des bloquants)** :
 - La scène S4 est un **bac technique iiwa-LIKE documenté** (table A21 dans le YAML :
@@ -149,9 +203,11 @@ pour IJRR 2023, à corriger*) :
   un reviewer l'exige** ; hors-scope d'un go/no-go technique.
 - Box des joints actifs limité à ±70° (limite douce de cellule ⊂ limites usine ±120/±170°) :
   le théorème prouve la déconnexion **dans ce box**, affiché en degrés (A25). Honnête.
-- Pas de scène à **dims actives élevées** (le risque d'explosion §9.1) — par construction
-  (cf. insight). Si un cas d'usage S9b exige une déconnexion à ≥4 dims actives, **re-mesurer**
-  (le facteur (d+1)^actif jouerait alors contre nous) ; ce serait le vrai point de pivot.
+- Le régime à **dims actives élevées** (le risque d'explosion §9.1) est désormais **MESURÉ**
+  (§3d, bench du mur, pilotage Stéphane) et non plus « non mesuré, probablement cher » :
+  **certifié à bas coût jusqu'à k=4 dims actives (~0,36 s), mur du schéma affine à k=5**
+  (UNDECIDED structurel ; coût/feuille ×≈5 par dim active). Un cas d'usage S9b exigeant une
+  déconnexion à **≥5 dims actives** est donc le vrai point de pivot (re-scope avec Stéphane).
 
 **SI la supervision juge ROUGE** : mitigations SPEC §9.1 (heuristique d'axe, sparsité, degré
 témoin adaptatif) ; point de pivot journalisé ; re-scope décidé **avec Stéphane**.

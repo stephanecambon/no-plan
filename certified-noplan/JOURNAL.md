@@ -2175,3 +2175,70 @@ DECISION-G2)** :
   proximale = effet de sélection ; références 2023 [à vérifier] ; V5
   consignée ; bench du mur en dims actives (S9e) versé à DECISION-G2 ».
   (Remplace le D39 de la revue — un seul bump de version pour le lot.)
+
+## 2026-06-13 — Session S9e (Claude Code) — **application revue DECISION-G2 + bench du mur en dimensions ACTIVES (§3d) — en attente signature Stéphane**
+
+S9e applique la revue de supervision DECISION-G2 (GO endossé sous amendements A35-A36) et
+MESURE le régime à dims actives élevées (pilotage Stéphane : « apporter des mesures aux
+limitations »). La version SIGNÉE de DECISION-G2.md sera celle produite ici (avec le §3d).
+
+**Ouverture doc (circuit A16, commit doc séparé `81aeefe`)** :
+- [A33] `git status` : seules les 2 déposes temporaires (pas de modif pré-existante parasite,
+  contrairement à S9c/S9d). Reviews appendées (DECISION-G2 puis pilotage mur), temporaires supprimés.
+- D41 header CLAUDE.md **v1.12** + changelog combiné ; D40 tâche S9e au plan + État S9d ✅ / S9e.
+
+**Fait — application de la revue (D36-D38 dans DECISION-G2.md)** :
+- **D36 [A35]** §2 : « propriété intrinsèque des déconnexions » (trop fort) → **effet de SÉLECTION
+  de notre schéma** (barrière scalaire bas-degré + dalle) : les déconnexions qu'IL certifie à bas
+  coût sont proximales ; des déconnexions à dims actives élevées existent. §5.3 : « consigne de
+  conception ET **limite de portée assumée** » (régime (d+1)^actif à énoncer dans le papier).
+- **D37 [A36]** §4 : « lapsus RA-L→IJRR » → **[à vérifier], les deux références existent** (IJRR
+  42(10) 2023 learning proofs ET RA-L 8(12):8303-8310 2023 Coxeter, prédécesseur du GPU 2406.04795 ;
+  cf. BIBLIO-ANTERIORITE) ; A28 vaut dans les deux sens.
+- **D38 [V5]** : V5 consignée dans DECISION-G2.md §2 (« VALIDÉ S9-V5 » donné par Stéphane en S9d ;
+  était déjà au journal S9d — la réserve de process portait sur le document, close ici).
+
+**Fait — Tâche : bench du mur en dimensions ACTIVES** (`scripts/wall_bench.py`, DECISION-G2.md §3d) :
+- Famille synthétique : chaîne k-joints, corps certifié = **dernier link** ⟹ sa géométrie dépend de
+  TOUS les joints ⟹ **k dims actives DÉTECTÉES** (asserté `pair_views`, aucun padding passif).
+  Barrière φ=lacet base ; obstacle dimensionné à la portée du dernier link sur la bande.
+- **Chaque k est une VRAIE déconnexion** (vérité-terrain dense seedée AVANT certif : start/goal
+  libres, **0 libre dans la dalle / 8 000**, libre des deux côtés). Budget plafonné 10⁴ feuilles/30 min.
+- **Résultats (affine, le schéma livré)** :
+  | k | verdict | feuilles | coût/feuille | moteur s |
+  | 3 | PROOF | 2 | 766 | 0,12 |
+  | 4 | **PROOF** | 2 | 3 782 | 0,21 (≈0,36 s total, verify OK, A32=0) |
+  | 5 | **UNDECIDED structurel** | 48 | 18 814 | 45,1 |
+- **Coût/feuille ×(d+1)≈5 par dim active CONFIRMÉ** (×4,94 puis ×4,97) — hypothèse confrontée, pas
+  juste supposée. Ici **réduit ≡ plein** (toutes dims actives, rien à réduire pour A30 — c'est le sens
+  du bench). **k=4 = plus haut point certifié** (une dim active au-dessus d'Henrion et al. n≤3 abstrait).
+- **Mur à k=5 = UNDECIDED STRUCTUREL, PAS de budget** : 48 feuilles (≪10⁴), 45 s (≪30 min) ⟹ témoin
+  affine insuffisant. Sonde unique (pilotage) : `quadratic` à k=5 ⟹ **un seul LP de feuille > 150 s**
+  ⟹ l'escalade de degré ne franchit pas le mur à bas coût. Figure log
+  `benchmarks/figures/S9e_wall/cost_vs_active_dims.png`.
+- Test rapide `tests/test_wall_bench.py` (k=3,4) : vraie déconnexion + PROOF + verify + A32=0, lock-in
+  des chiffres cités au §3d.
+
+**Décisions / amendements** : CLAUDE.md **v1.12** (D36-D41) commit doc `81aeefe`. DECISION-G2.md §5.3
+cite désormais la mesure (« certifié jusqu'à k=4, mur à k=5 ») à la place de « non mesuré ».
+
+**Pièges** :
+- **k=5 UNDECIDED ≠ infaisable** (SPEC §6) : la vérité-terrain dense SUGGÈRE la déconnexion réelle,
+  mais l'échantillon ne fait pas foi (micro-canal) ⟹ formulé « notre schéma affine ne la prouve pas
+  au budget », jamais « infaisable ».
+- **Bench dirty-tree** assumé (`git_dirty=true`, commit `81aeefe` + working tree) : bench exploratoire,
+  reproductible seedé (règle 7 : un bench dirty doit le DIRE — c'est dit au §3d).
+- **réduit ≡ plein dans ce bench** : normal (toutes dims actives) — ne pas confondre avec une panne
+  d'A30 ; A30 agit sur les dims PASSIVES (S9d §3a-c), ce bench isole les ACTIVES.
+- Quadratic à k=5 : un seul LP a dépassé 150 s (process tué) — donnée, pas échec.
+
+**Décompte exact (sortie S9e)** : `make test` = **191 passed, 0 skipped, 0 warnings**, ~203 s
+(189 S9d + 2 `test_wall_bench.py`). **Pas de flake** (`test_parallel_speedup` vert ; D34 : aucun
+re-run isolé nécessaire). `verify.py` 499 l. intact (aucun changement src cette session ; tout en
+scripts/ + tests/ + docs).
+
+**Diffs CLAUDE.md** (règle 14) : header v1.12 + changelog D36-D41 + tâche/État S9e — commit doc `81aeefe`.
+
+**Prochaine étape** : **revue supervision rapide du §3d, puis SIGNATURE de Stéphane sur DECISION-G2.md**
+(version avec le §3d) → ouverture **S9b** (portefeuille de cas d'usage, A20 non négociable, validation
+VUE Stéphane, choix flagship) puis **S10** (flagship 7-DOF, piégeage PROXIMAL — rester sous le mur k=5).
