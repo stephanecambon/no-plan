@@ -2392,3 +2392,53 @@ termination), scripts + test + figure + results, `DECISION-G2.md` §3d-bis.
 capot de sûreté ; one-pagers, specs YAML, storyboards A20 non négociable/A24/A25, **flagship 7-DOF à
 piégeage PROXIMAL** choisi EN CONNAISSANCE de la frontière re-mesurée : *pas de mur affine k≤7, coût
 = LP unique (d+1)^k, frontière pratique = taille du LP ~470k lignes à k=7*). Validation VUE par Stéphane.
+
+## 2026-06-13 — Revue de supervision S9f (transcrite par Claude Code, circuit A16) — re-sonde ENDOSSÉE, [A38] D45-D46
+
+Revue par la supervision (claude.ai) de la session S9f (« mur k=5 » réfuté, frontière re-mesurée).
+Verdict : **re-sonde ENDOSSÉE — renforçante** (la machinerie a REFUSÉ sainement une non-déconnexion
+que l'échantillonnage uniforme déclarait déconnectée : règles 1/9 exactement ; le régime (d+1)^actif
+est confirmé ; le point « une dim active au-dessus d'Henrion et al. » passe de k=4 à **k≥7** sous la
+ceinture A37 « cadres différents »). **Le GO signé reste inchangé** (S9f précise la frontière, ne
+rejoue pas la porte). Deux retouches de PRÉCISION au corps de `DECISION-G2.md` (document SIGNÉ : on
+n'en réécrit pas l'historique au-delà des retouches actées — circuit A16, addendum + renvois inline).
+
+**Note d'ouverture (D33, règle 8)** : le temporaire `JOURNAL-append-revue-S9f.md` annoncé en tâche
+d'ouverture S9b **n'a PAS été déposé** dans le working tree. Seul `JOURNAL-append-pilotage-S9f.md`
+(untracked) y était — **dépôt tardif** (postérieur à la clôture S9f `51d5081`) dont le **contenu est
+DÉJÀ journalisé** (entrée « Pilotage S9f » ci-dessus, transcrite du prompt en ouverture S9f, cf. sa
+propre note D33). Constaté explicitement, jamais absorbé en silence : ce temporaire est **supprimé**
+comme doublon périmé (rien à absorber) et la présente revue est **transcrite depuis le prompt de
+session S9b** (source autoritaire, comme le pilotage S9f l'avait été — précédent documenté).
+
+**[A38] Deux précisions sur `DECISION-G2.md` (aucun chiffre changé)** :
+- **[A38-1]** §3d-bis « Position re-mesurée du mur » : « les déconnexions *proximales-style* de cette
+  famille » est imprécis — le bench du mur certifie le dernier link (TOUTES dims actives, *pas*
+  proximal). Le descripteur exact de ce qui rend la famille certifiable est la **barrière simple**
+  (φ scalaire bas-degré + dalle), pas la proximalité. ⟹ « cette famille **à barrière simple** ».
+- **[A38-2]** §3d-bis point k=8 : rendre la **deadline EXPLICITE**. Le k=8 (engine-only,
+  `run_resonde_S9f.py:engine_only`, `max_time_s=300`) a une deadline de **300 s** ; un solve LP est
+  **atomique (non-préemptible)**, donc la garde budget ne se déclenche qu'au RETOUR du LP, à 455 s
+  ⟹ `budget_time`. (« 455 s ≫ deadline » devient « 455 s ≫ deadline de 300 s ».)
+
+**Conséquence pour S9b (calibrage du choix de flagship)** : la frontière re-mesurée n'étant PLUS un
+mur affine mais la **taille du LP unique** (~470k lignes à k=7, PROOF), un piège proximal (~3 dims
+actives, LP minuscule, ~8 feuilles, secondes) est trivialement sous la frontière. **Le flagship n'a
+donc plus à être proximal par CONTRAINTE de faisabilité — il l'est par PERTINENCE** (les vrais cas
+le sont). Critère de choix S9b = **récit + valeur**, la faisabilité étant acquise pour tout proximal.
+
+**Diffs doc appliqués en ouverture S9b (circuit A16, commit doc séparé)** :
+- **D45** `DECISION-G2.md` : (a) renvoi inline « *[supersédé par §3d-bis : pas de mur k≤7 ; frontière
+  = taille du LP]* » à la fin du §2 ET au §5 item 3 (le « §5.3 » référencé) ; (b) A38-1 reformulation
+  §3d-bis ; (c) A38-2 deadline 300 s explicitée §3d-bis. Corps signé non réécrit au-delà ; chiffres
+  S9e/S9f inchangés.
+- **D46** `CLAUDE.md` : header **v1.14** + changelog A38 (re-sonde endossée ; deux précisions de
+  précision DECISION-G2 ; calibrage du choix de flagship S9b = récit + valeur).
+
+**État vert (ré-vérifié ouverture S9b)** : `make test` = **197 passed, 0 skipped, 0 warnings** (~219 s),
+pas de flake (`test_parallel_speedup` vert ; D34 : aucun re-run isolé). Arbre propre hors le temporaire
+périmé supprimé. `git status` propre vérifié [A33], commits de clôture S9f `51d5081` + doc `93ef10d` poussés.
+
+**Prochaine étape** : corps de S9b (portefeuille : 3 one-pagers + 3 specs YAML chargeables + sanity-checks
+de plausibilité + storyboards + ≥1 figure/cas + PORTFOLIO.md avec reco flagship argumentée), puis **GATE**
+(validation VUE + choix flagship par Stéphane). Clôture (commit ET push) APRÈS validation.

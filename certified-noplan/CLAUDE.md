@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.13 — 13 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e ; v1.0..v1.12 dans git).
+Version 1.14 — 13 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f ; v1.0..v1.13 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -87,6 +87,15 @@ cadres différents** » sur le claim vs Henrion et al. (nécessaire-et-suffisant
 vs suffisant sur bras articulés) ; **[D44]** tâche **S9f** (re-sonde du mur, L0 diagnostic + L1
 Bernstein anisotrope) insérée au plan, **S9b glisse** après S9f. La signature de Stéphane vaut avec
 les retouches D42 actées. Détail : entrées « Revue de supervision S9e » + « Pilotage S9f » de JOURNAL.md.
+Changements v1.13 → v1.14 (revue S9f **[A38]**, D45-D46) : **re-sonde du mur ENDOSSÉE — renforçante**
+(le « mur k=5 » était un artefact : max_depth=16 silencieux + scène leaky ; sur scènes prouvées étanches,
+PAS de mur affine k≤7 — PROOF + verify exact ; frontière = taille du LP unique (d+1)^k, ~470k l. à k=7) ;
+**[A38-1]** §3d-bis « proximales-style » → « famille à **barrière simple** » (le bench certifie le dernier
+link, toutes dims actives — *pas* proximal) ; **[A38-2]** deadline k=8 explicitée (300 s ; solve LP atomique
+⟹ overrun à 455 s) ; **[D45]** renvois inline de supersession au §2/§5.3 de `DECISION-G2.md` (corps signé non
+réécrit) ; **[D46]** header v1.14 + ce changelog. **Calibrage S9b** : flagship choisi par RÉCIT + VALEUR (la
+faisabilité d'un piège proximal est acquise — LP minuscule, secondes). Détail : entrée « Revue de supervision
+S9f » de JOURNAL.md.
 
 ---
 

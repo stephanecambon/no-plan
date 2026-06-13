@@ -56,6 +56,7 @@ défait par la redondance (leçon S5/S6/S7). **Conséquence stratégique** : sur
 notre schéma certifie à bas coût, le coût suit les **dims actives**, pas le **DOF total** — la
 montée en DOF y est quasi gratuite (table §3). Le régime à dims actives élevées est MESURÉ au
 §3d (bench du mur) ; la portée de coût (d+1)^actif est énoncée comme limite assumée au §5.3.
+*[supersédé par §3d-bis : pas de mur k≤7 ; frontière = taille du LP]*
 
 ---
 
@@ -191,15 +192,17 @@ ré-assertée (0 libre / dalle), start/goal libres. **Le témoin affine certifie
 | **5** | **PROOF** | 4 | certified | 18 814  | 1,6  | **OK** | 0 |
 | **6** | **PROOF** | 4 | certified | 93 878  | 11,2 | **OK** | 0 |
 | **7** | **PROOF** | 2 | certified | 469 006 | 72,3 | **OK** | 0 |
-| **8** | **UNDECIDED** (budget_time) | 2 | budget_time | ~2,3 M | 455 (≫ deadline) | — | — |
+| **8** | **UNDECIDED** (budget_time) | 2 | budget_time | ~2,3 M | 455 (≫ deadline 300 s) | — | — |
 
 **Il n'y a PAS de mur du schéma affine en dims actives dans la plage mesurée (k≤7 : PROOF +
 verify EXACT + A32=0).** Le coût n'est **pas** une explosion de feuilles : feuilles **2-4
 quasi-constantes** ; c'est la taille d'**UN LP**, **(d+1)^k** (×4,99/dim mesuré : 766→3 782→
 18 814→93 878→469 006). La vraie **frontière PRATIQUE** est la taille du LP unique : ~470k lignes
 à k=7 (PROOF, ~95 s total) ; à **k=8 (~2,3 M lignes) la résolution d'UN SEUL LP dépasse le budget
-temps** (UNDECIDED `budget_time` : 455 s pour 2 feuilles, deadline dépassée *pendant* une résolution
-LP unique — la scène reste prouvée étanche, vérité-terrain 0 libre). C'est une **frontière de
+temps** (UNDECIDED `budget_time` : 455 s pour 2 feuilles ; **deadline explicite [A38-2] = 300 s**
+`run_resonde_S9f.py:engine_only(max_time_s=300)`, dépassée *pendant* une résolution LP unique — un
+solve LP est **atomique (non-préemptible)**, la garde budget ne se déclenche qu'au retour du LP à
+455 s — la scène reste prouvée étanche, vérité-terrain 0 libre). C'est une **frontière de
 COÛT-LP, pas de certifiabilité** (point à paralléliser / réduire la taille du LP — A30 n'aide pas
 ici, toutes dims actives), et k=8 = UNDECIDED-sur-budget reste ≠ infaisable (SPEC §6).
 
@@ -222,7 +225,8 @@ l'anisotropie. L'anisotrope reste donc **non-défaut**.
 
 **Position re-mesurée du mur** : *aucun mur du schéma affine en dims actives mesuré (k≤7 PROOF +
 verify exact)*. La montée en dims actives coûte **(d+1)^k par LP** à feuilles quasi-constantes
-(pour les déconnexions proximales-style de cette famille). La frontière est la **taille du LP
+(pour cette famille à barrière simple — *descripteur exact [A38-1] : barrière φ scalaire bas-degré +
+dalle ; ce bench certifie le DERNIER link, toutes dims actives, donc PAS proximal*). La frontière est la **taille du LP
 unique** (~470k lignes à k=7 ; ~2,3 M à k=8). **Verdict GO inchangé — re-sonde RENFORÇANTE** :
 (a) la machinerie est SOUND (elle a refusé une non-déconnexion que l'échantillonnage déclarait
 déconnectée — exactement règles 1/9) ; (b) le régime (d+1)^actif est confirmé, et le point
@@ -280,6 +284,7 @@ cf. docs/BIBLIO-ANTERIORITE.md. Ne pas « corriger » l'une en l'autre — A28 v
    **consigne de conception ET une limite de portée ASSUMÉE**, à énoncer telle quelle dans le
    papier : *le régime de coût est (d+1)^{dims actives} ; la classe proximale est notre portée
    à bas coût ; le régime à dims actives élevées est cher* (mesuré au §3d, bench du mur).
+   *[supersédé par §3d-bis : pas de mur k≤7 ; frontière = taille du LP]*
 
 **Caveats portés au dossier (pas des bloquants)** :
 - La scène S4 est un **bac technique iiwa-LIKE documenté** (table A21 dans le YAML :
