@@ -2242,3 +2242,79 @@ scripts/ + tests/ + docs).
 **Prochaine étape** : **revue supervision rapide du §3d, puis SIGNATURE de Stéphane sur DECISION-G2.md**
 (version avec le §3d) → ouverture **S9b** (portefeuille de cas d'usage, A20 non négociable, validation
 VUE Stéphane, choix flagship) puis **S10** (flagship 7-DOF, piégeage PROXIMAL — rester sous le mur k=5).
+
+---
+
+## 2026-06-13 — Revue de supervision S9e / §3d (claude.ai) — **GO confirmé, signature supervision, A37**
+
+**Verdict : §3d endossé, GO CONFIRMÉ.** Cohérence interne exacte (766→3 782→
+18 814 = ×4,94/×4,97, modèle (d+1)^k confronté et tenu) ; k=4 = plus haut
+point PROOF + vérifié exact du projet ; mur localisé à k=5 avec double sonde
+(affine + quadratic) ; discipline intacte (UNDECIDED ≠ infaisable, dirty-tree
+déclaré, chiffres lock-in par test). Les amendements D36-D38 sont appliqués
+conformément à la revue. **Signature supervision : ACQUISE (cette revue,
+13/06/2026). La signature de Stéphane sur DECISION-G2.md (§6) ouvre S9b.**
+
+**Annotation [A37] — deux retouches textuelles, à appliquer en ouverture de
+S9b (une ligne chacune, non bloquantes pour la signature)** :
+1. §3d : « UNDECIDED STRUCTUREL » est un cran trop affirmatif. La subdivision
+   Bernstein converge en théorie ⟹ à raffinement infini, l'affine pourrait
+   certifier si la barrière existe ; ce qui est mesuré est un **mur PRATIQUE**
+   (« non certifié à coût raisonnable, ni en affine ni en quadratic »).
+   Reformuler ainsi ET journaliser la cause exacte de terminaison du run k=5
+   (profondeur max ? marges stagnantes ? — une ligne au §3d).
+2. §3d : le claim « une dim active au-dessus de Henrion et al. (n≤3) »
+   gagne la ceinture « dans des cadres différents » : eux = schéma
+   nécessaire-et-suffisant sur ensembles abstraits ; nous = schéma suffisant
+   sur bras articulés. La comparaison est légitime mais doit être formulée
+   pour survivre à un reviewer — possiblement Henrion lui-même.
+
+**Diffs à appliquer par Code en ouverture de S9b** :
+- D42 [A37] DECISION-G2.md §3d : « structurel » → « pratique » + cause de
+  terminaison du run k=5 explicitée + ceinture « cadres différents » sur le
+  claim vs Henrion et al. (Les chiffres et la recommandation GO sont
+  inchangés ; la version signée par Stéphane vaut avec ces retouches actées.)
+- D43 Header : version 1.13, changelog « v1.12→v1.13 (revue S9e, A37) :
+  GO confirmé et signé ; mur k=5 requalifié pratique ; claim Henrion
+  ceinturé ; ouverture S9b ».
+
+**Prochaine étape** : Stéphane SIGNE DECISION-G2.md §6 → **S9b** (portefeuille
+de cas d'usage : bin-picking logistique / étagère pharma / capot de sûreté ;
+one-pagers, specs YAML, storyboards A20 non négociable/A24/A25, critères
+d'acceptation, choix du FLAGSHIP 7-DOF — à piégeage proximal, sous le mur
+k=5 ; validation VUE par Stéphane). En parallèle, la supervision démarre le
+squelette du papier (format RSS) intégrant : claim reformulé (biblio), insight
+proximal (effet de sélection), modèle de coût (d+1)^actif, figure du mur,
+note au relecteur.
+
+## 2026-06-13 — Pilotage S9f (Claude Code, AUTONOME) — re-sonde du mur en dimensions actives
+
+Session **autonome** (pas de gate humain). Le verdict **GO** de `DECISION-G2.md` est
+**SIGNÉ et inchangé** quel que soit le résultat de S9f : S9f *précise* la frontière, elle ne
+rejoue pas la porte. [A33] `git status` propre vérifié à l'ouverture ; commit de signature de
+Stéphane `06824ce` présent. État vert ré-vérifié : `make test` = **191 passed, 0 skipped,
+0 warnings** (~210 s), pas de flake (`test_parallel_speedup` vert ; D34 : aucun re-run isolé).
+
+**Note d'ouverture (D33, règle 8)** : le dépôt temporaire `JOURNAL-append-pilotage-S9f.md`
+annoncé en tâche d'ouverture **n'a PAS été déposé** dans le working tree (seul
+`JOURNAL-append-revue-S9e.md` y était, [A33]). Constaté explicitement, jamais absorbé en
+silence : le pilotage S9f est **transcrit ici depuis le prompt de session** (source autoritaire).
+
+**Tâches S9f** : **L0a** diagnostic de la cause de terminaison du run k=5 + re-run à profondeur
+élevée et budget RÉEL (10⁴ feuilles / 30 min) ; **L0b** anomalie du LP quadratic >150 s à k=5 ;
+**L1** Bernstein anisotrope (degré par axe ; chemin de DÉCISION seulement ; invariants stricts —
+verify.py intact, format cert inchangé) ; **sortie** table du mur re-mesurée + **addendum §3d-bis
+daté** dans `DECISION-G2.md` (le corps signé n'est pas réécrit au-delà de D42), verdict GO inchangé.
+
+**Diffs doc appliqués en ouverture (circuit A16, commit doc séparé)** :
+- **D42 [A37]** `DECISION-G2.md` §3d : « UNDECIDED STRUCTUREL » → « **pratique** » + cause de
+  terminaison du run k=5 documentée (placeholder renvoyant à l'addendum §3d-bis S9f) + ceinture
+  « **dans des cadres différents** » sur le claim vs Henrion et al. (chiffres et recommandation GO
+  inchangés ; la version signée vaut avec ces retouches actées par la revue S9e).
+- **D43** Header `CLAUDE.md` **v1.13** + changelog englobant D42-D44 (revue S9e A37 : GO confirmé
+  et signé ; mur k=5 requalifié ; claim Henrion ceinturé ; ouverture S9b/S9f).
+- **D44** Plan `CLAUDE.md` : tâche **S9f** insérée (re-sonde du mur, L0/L1) ; **S9b glisse** après S9f.
+
+**Prochaine étape** : tâches L0a/L0b (livrables seuls si saturation ; L1 ⟹ S9f-bis), puis addendum
+§3d-bis daté, clôture (commit ET push). Annoncée ensuite : **S9b** (portefeuille de cas d'usage,
+flagship choisi en connaissance de la frontière re-mesurée).

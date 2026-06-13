@@ -121,7 +121,7 @@ seedé). `lam_degree=affine` (le schéma livré).
 |---|---|---|---|---|---|---|---|
 | **3** | **PROOF** | 2  | 766    | 0,12 | 0,03 | 0,01 | 0 |
 | **4** | **PROOF** | 2  | 3 782  | 0,21 | 0,10 | 0,05 | 0 |
-| **5** | **UNDECIDED** (structurel) | 48 | 18 814 | 45,1 | — | — | — |
+| **5** | **UNDECIDED** (pratique — *re-sondé S9f, cf. §3d-bis*) | 48 | 18 814 | 45,1 | — | — | — |
 
 **Lecture honnête (confronter, pas confirmer l'hypothèse)** :
 - **Coût/feuille ×(d+1)≈5 par dim active CONFIRMÉ** : 766 → 3 782 → 18 814 (×4,94 puis ×4,97).
@@ -129,14 +129,22 @@ seedé). `lam_degree=affine` (le schéma livré).
   le sens du bench : isoler le coût des dims ACTIVES, là où A18/A30 n'aident pas).
 - **k=4 est le plus haut point CERTIFIÉ** (PROOF + verify exact, ~0,36 s, A32=0) : une dimension
   active **au-dessus** du voisin algébrique le plus proche (Henrion et al. 2024, ensembles
-  abstraits n≤3) — claim mesurable pour le papier.
-- **Le mur est à k=5**, et c'est un **UNDECIDED STRUCTUREL, pas de budget** : 48 feuilles (≪ 10⁴),
-  45 s (≪ 30 min) — le moteur termine sans certifier, le **témoin affine est insuffisant**, pas le
-  budget. Sonde unique (pilotage) : `lam_degree=quadratic` à k=5 ⟹ **un SEUL LP de feuille dépasse
-  150 s** (le degré du témoin gonfle encore (d+1)^k) ⟹ l'escalade de degré **ne franchit PAS le mur
-  à bas coût**. Honnêteté : UNDECIDED ≠ « faisable » (SPEC §6) ; la vérité-terrain dense SUGGÈRE que
-  la déconnexion k=5 est réelle, mais l'échantillon ne fait pas foi (leçon micro-canal) — on dit
-  donc « notre schéma affine ne la prouve pas au budget », pas « elle est infaisable ».
+  abstraits n≤3) — claim mesurable pour le papier. **Ceinture [A37] : dans des cadres DIFFÉRENTS**
+  (eux = schéma *nécessaire-et-suffisant* sur ensembles abstraits ; nous = schéma *suffisant* sur
+  bras articulés) ; la comparaison est légitime mais à formuler pour survivre à un reviewer
+  (possiblement Henrion lui-même). *(S9f re-mesure ce point : cf. §3d-bis.)*
+- **Le mur est à k=5** (mesure S9e), et c'est un **UNDECIDED PRATIQUE, pas de budget** : 48 feuilles
+  (≪ 10⁴), 45 s (≪ 30 min) — le moteur termine sans certifier au témoin affine. **Cause de
+  terminaison [A37] : à documenter exactement** — la subdivision Bernstein converge en théorie (à
+  raffinement infini l'affine pourrait certifier si la barrière existe), donc ce qui est mesuré est
+  un mur **pratique** (« non certifié à coût raisonnable »), pas structurel. Sonde unique (pilotage) :
+  `lam_degree=quadratic` à k=5 ⟹ **un SEUL LP de feuille dépasse 150 s**. Honnêteté : UNDECIDED ≠
+  « faisable » (SPEC §6) ; la vérité-terrain dense SUGGÈRE que la déconnexion k=5 est réelle, mais
+  l'échantillon ne fait pas foi (leçon micro-canal) — on dit « notre schéma affine ne la prouve pas
+  au budget », pas « elle est infaisable ».
+  **⚠ Re-sondé en S9f (cause de terminaison EXACTE + budget réel + profondeur relevée) : voir
+  l'ADDENDUM §3d-bis daté, qui SUPERSÈDE ce point k=5.** Le corps signé n'est pas réécrit au-delà de
+  cette retouche (D42) ; les chiffres S9e ci-dessus restent l'historique, l'addendum porte le résultat.
 
 **Conclusion pour le dossier** : le régime à dims actives élevées N'est PLUS « non mesuré,
 probablement cher » (§5.3) — il est mesuré : **bas coût et certifié jusqu'à k=4, mur du schéma

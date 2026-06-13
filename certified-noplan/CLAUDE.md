@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.12 — 13 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2 ; v1.0..v1.11 dans git).
+Version 1.13 — 13 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e ; v1.0..v1.12 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -79,6 +79,14 @@ conception ET **limite de portée assumée** (régime de coût (d+1)^actif à é
 deux, cf. BIBLIO-ANTERIORITE) ; **[D38]** V5 consignée ; **[D40]** bench du mur en dims actives
 (S9e) versé à DECISION-G2.md §3d. Détail : entrées « Revue DECISION-G2 » + « pilotage mur » de
 JOURNAL.md.
+Changements v1.12 → v1.13 (revue S9e **[A37]** + pilotage S9f, **D42-D44**) : **GO confirmé et
+SIGNÉ** (Stéphane 13/06 + supervision S9e du §3d) ; **[D42]** DECISION-G2.md §3d : mur k=5
+requalifié « **pratique** » (la subdivision Bernstein converge en théorie ⟹ pas « structurel ») +
+cause de terminaison à documenter (placeholder → addendum §3d-bis S9f) + ceinture « **dans des
+cadres différents** » sur le claim vs Henrion et al. (nécessaire-et-suffisant sur ensembles abstraits
+vs suffisant sur bras articulés) ; **[D44]** tâche **S9f** (re-sonde du mur, L0 diagnostic + L1
+Bernstein anisotrope) insérée au plan, **S9b glisse** après S9f. La signature de Stéphane vaut avec
+les retouches D42 actées. Détail : entrées « Revue de supervision S9e » + « Pilotage S9f » de JOURNAL.md.
 
 ---
 
@@ -306,12 +314,20 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   constant / coût-feuille réduit 766 constant vs plein →93 878 (réduction A30 ×122 à 6-DOF), par-paire
   ×24,6 ; **G2' VERT** ; **`DECISION-G2.md` = GO** (revue supervision endossée sous amendements
   A35-A36). **189 passed, 0 skip, 0 warning** ; CLAUDE.md v1.11. (voir JOURNAL.md S9d + revue DECISION-G2.)
-- 🔄 **S9e** (coupe de S9, en cours) — **bench du mur en dimensions ACTIVES** (pilotage Stéphane :
+- ✅ **S9e** (coupe de S9) — **bench du mur en dimensions ACTIVES** (pilotage Stéphane :
   « apporter des mesures aux limitations ») : famille synthétique paramétrée par k = dims actives
   DÉTECTÉES (k=3,4,5(,6)), chaque point une VRAIE déconnexion (vérité-terrain dense AVANT certif),
   budget plafonné (10⁴ feuilles/30 min ⟹ UNDECIDED-budget = donnée) ; confronte l'hypothèse coût
   ×(d+1)^actif. **Sortie : DECISION-G2.md §3d « scaling wall »** (la version SIGNÉE par Stéphane).
-  Application de la revue (D36-D38). Puis : signature → **S9b**.
+  Application de la revue (D36-D38). **Revue S9e [A37] : GO confirmé et signé** (mur k=5 requalifié
+  « pratique », claim Henrion ceinturé — D42).
+- 🔄 **S9f** (coupe de S9, AUTONOME — pas de gate humain ; le GO signé est inchangé) — **re-sonde du
+  mur en dimensions ACTIVES** : **L0** diagnostic de la cause de terminaison du run k=5 (instrumentation
+  `termination` dans `EngineResult.stats`) + re-run à profondeur relevée et budget RÉEL ; **L0b**
+  anomalie du LP quadratic ; **L1** Bernstein anisotrope (degré par axe ; chemin de DÉCISION seulement ;
+  verify.py INTACT, format cert inchangé). **Sortie : addendum §3d-bis daté** dans DECISION-G2.md (le
+  corps signé n'est pas réécrit au-delà de D42), verdict GO inchangé. Puis : **S9b** (en connaissance de
+  la frontière re-mesurée). (D42-D44, v1.13 ; voir JOURNAL.md « Pilotage S9f ».)
 
 ---
 
