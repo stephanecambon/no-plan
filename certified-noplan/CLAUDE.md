@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.11 — 12 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c ; v1.0..v1.10 dans git).
+Version 1.12 — 13 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2 ; v1.0..v1.11 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -71,6 +71,14 @@ A32 livrée) ; **[D33]** arbre git PROPRE vérifié à l'ouverture, modification
 journalisée (règle 8) ; **[D34]** discipline de flake aux tests requis (consigné + re-run
 isolé ; `test_parallel_speedup` isolé si la suite vient de charger la machine).
 Détail : entrée « Revue de supervision S9c » de JOURNAL.md.
+Changements v1.11 → v1.12 (revue DECISION-G2 + pilotage mur, **[A35-A36]**, D36-D41) : **GO
+endossé sous amendements** ; **[A35]** portée proximale = **effet de SÉLECTION** de notre schéma
+(barrière scalaire bas-degré + dalle), pas propriété intrinsèque des déconnexions — consigne de
+conception ET **limite de portée assumée** (régime de coût (d+1)^actif à énoncer dans le papier) ;
+**[A36]** références Li-Dantam 2023 « [à vérifier] » (IJRR 42(10) ET RA-L 8(12) existent toutes
+deux, cf. BIBLIO-ANTERIORITE) ; **[D38]** V5 consignée ; **[D40]** bench du mur en dims actives
+(S9e) versé à DECISION-G2.md §3d. Détail : entrées « Revue DECISION-G2 » + « pilotage mur » de
+JOURNAL.md.
 
 ---
 
@@ -293,6 +301,17 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   bruyant, asserté ZÉRO sur S3). **188 passed, 0 skip, 0 warning** ; CLAUDE.md v1.10. **Reste de S9
   (= S9d)** : scène iiwa 5-6 DOF, calibration (+ par-paire), **G2'**, `DECISION-G2.md` signée, **V5**
   (gate humain). (voir JOURNAL.md S9c + revue S9c.)
+- ✅ **S9d** (coupe de S9) — **scène S4 iiwa-like bac profond 5-DOF** (piège PROXIMAL, 2 joints
+  verrouillés ; bac technique documenté A21) ; **V5 VALIDÉE** (Stéphane) ; **calibration** feuilles=8
+  constant / coût-feuille réduit 766 constant vs plein →93 878 (réduction A30 ×122 à 6-DOF), par-paire
+  ×24,6 ; **G2' VERT** ; **`DECISION-G2.md` = GO** (revue supervision endossée sous amendements
+  A35-A36). **189 passed, 0 skip, 0 warning** ; CLAUDE.md v1.11. (voir JOURNAL.md S9d + revue DECISION-G2.)
+- 🔄 **S9e** (coupe de S9, en cours) — **bench du mur en dimensions ACTIVES** (pilotage Stéphane :
+  « apporter des mesures aux limitations ») : famille synthétique paramétrée par k = dims actives
+  DÉTECTÉES (k=3,4,5(,6)), chaque point une VRAIE déconnexion (vérité-terrain dense AVANT certif),
+  budget plafonné (10⁴ feuilles/30 min ⟹ UNDECIDED-budget = donnée) ; confronte l'hypothèse coût
+  ×(d+1)^actif. **Sortie : DECISION-G2.md §3d « scaling wall »** (la version SIGNÉE par Stéphane).
+  Application de la revue (D36-D38). Puis : signature → **S9b**.
 
 ---
 

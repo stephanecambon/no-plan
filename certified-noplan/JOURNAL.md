@@ -2062,3 +2062,116 @@ vert ; D34 : aucun re-run isolé nécessaire). `verify.py` = 499 lignes (sacré,
 toute ouverture de S10.** Ensuite : **S9b** (portefeuille de cas d'usage, validation VUE Stéphane,
 choix du flagship — A20 non négociable) puis **S10** (flagship 7-DOF à piégeage PROXIMAL). Si la
 supervision juge G2' rouge : mitigations SPEC §9.1, pivot décidé avec Stéphane.
+
+## 2026-06-13 — Revue de supervision DECISION-G2.md (claude.ai) — **GO endossé sous amendements, A35-A36**
+
+**Verdict : GO endossé.** Les cinq exigences G2' sont tenues avec ~3 ordres de
+grandeur de marge (PROOF + verify exact, 8 feuilles, 1,0-3,9 s CPU, A32=0).
+Cohérence interne vérifiée : 766 lignes = (d+1)³ à 3 dims actives (d=4 = DPAD) ;
+facteurs ×4,9/×24,6/×122,6 ≈ ×(d+1) par dim passive — le modèle de coût se
+recoupe exactement. Point central validé : **le théorème quantifie sur le box
+5-6 dimensionnel COMPLET** (les dims passives sont couvertes par la preuve, pas
+exclues d'elle) — la passivité est un levier de coût, pas une restriction de
+portée. C'est la ligne de défense correcte du papier contre « du 3-DOF
+déguisé », à conserver telle quelle.
+
+**Au-dessus de l'attendu** : la « lecture honnête » du §2 (nommer soi-même que
+la scène n'a que 3 dims actives, au lieu de le laisser découvrir à un
+reviewer) ; la mesure par-paire ×24,6 honnêtement étiquetée « variante
+deux-corps » (la scène livrée n'a qu'un corps) ; le refus explicite du
+« ×15 » dans la comparaison Li-Dantam (lignée pas-de-×400) ; les chiffres GPU
+re-vérifiés à la source (A28).
+
+**Amendements requis avant signature (textuels, dans DECISION-G2.md)** :
+- [A35 → §2] « propriété intrinsèque des déconnexions certifiables » est TROP
+  FORT : des déconnexions à dims actives élevées existent (ex. bras entier
+  franchissant une fenêtre étroite — collision dépendant de tous les joints).
+  L'énoncé correct : les déconnexions que NOTRE schéma (barrière scalaire
+  bas-degré + dalle) certifie à bas coût sont proximales — effet de sélection
+  de la méthode, à aligner sur le caveat 5.3. La force commerciale demeure
+  (murs/bacs/étagères/capots = proximaux) ; la formulation du papier en dépend.
+- [A35 → §5.3] « consigne de conception, pas une limite » → « consigne de
+  conception ET limite de portée assumée, à énoncer dans le papier » : le
+  régime ≥4 dims actives est non mesuré et probablement cher ((d+1)^actif) ;
+  c'est le vrai point de pivot, déjà identifié, à ne pas euphémiser.
+- [A36 → §4] Le « lapsus RA-L 2023 → IJRR 2023 » est marqué [à vérifier] au
+  lieu d'affirmé : d'après docs/BIBLIO-ANTERIORITE.md, IJRR 42(10) 2023
+  (learning proofs, journal) ET RA-L 8(12):8303-8310 2023 (Coxeter — le
+  prédécesseur direct du GPU 2406.04795) existent tous deux. A28 vaut dans les
+  deux sens : ne pas « corriger » une référence juste.
+
+**Réserve de process — V5** : aucune trace de « VALIDÉ S9-V5 » dans le
+document. Le gate protège l'intention de la scène par l'œil de Stéphane, pas
+le temps machine. À clore AVANT signature : interactif A24
+(`cnp show scenes/S4_iiwa_bin.yaml --interactive`) + coupes C-space + limites
+A25, checklist (joints verrouillés annoncés ; bac enfermant ; start/goal
+libres ; mur séparateur sur les coupes). Si V5 a été validée en session sans
+être consignée : la consigner (l'absence au journal est le défaut, pas
+l'absence de validation).
+
+**Diffs à appliquer par Code (CLAUDE.md + DECISION-G2.md du repo)** :
+- D36 [A35] DECISION-G2.md §2 et §5.3 : reformulations ci-dessus ; ajouter au
+  §5 la consigne papier « énoncer le régime de coût (d+1)^actif et la classe
+  proximale comme portée ».
+- D37 [A36] DECISION-G2.md §4 : note « RA-L 2023 vs IJRR 2023 : [à vérifier],
+  les deux références existent (cf. BIBLIO-ANTERIORITE) » à la place de
+  l'affirmation de lapsus.
+- D38 [V5] Journal S9d : statut V5 consigné (validée + date, ou exécutée
+  maintenant) ; aucun gate humain ne reste implicite dans un dossier de
+  décision signé.
+- D39 Header CLAUDE.md : version 1.12, changelog « v1.11→v1.12 (revue
+  DECISION-G2, A35-A36) : GO endossé sous amendements ; portée proximale =
+  effet de sélection énoncé ; références Li-Dantam 2023 à re-vérifier ;
+  V5 consignée ».
+
+**Signature supervision** : revue faite, GO endossé conditionnellement aux
+diffs D36-D38 et à la clôture de V5. La signature de Stéphane sur
+DECISION-G2.md vaut ouverture de S9b (portefeuille de cas d'usage) puis S10
+(flagship 7-DOF, piégeage proximal).
+
+## 2026-06-13 — Décision de pilotage (Stéphane + supervision) — **bench du mur en dimensions actives (S9e)**
+
+**Décision de Stéphane** : « il faut être clair et apporter des mesures aux
+limitations ». Le régime à dimensions actives élevées — la limite de portée
+identifiée par DECISION-G2 §5.3 et la phrase la plus faible du dossier
+(« non mesuré, probablement cher ») — est MESURÉ avant signature, pas reporté
+à S10. La version signée de DECISION-G2 contient la table du mur.
+
+**Contenu — bench exploratoire du mur (S9e, avec l'application de la revue)** :
+- Famille SYNTHÉTIQUE de déconnexions paramétrée par k = nombre de dimensions
+  actives RÉELLEMENT DÉTECTÉES (vérifié par `pair_views`/`passive_dims`, pas
+  déclaré), k = 3, 4, 5 (6 si le point k=5 tient en < 30 min).
+- Les scènes n'ont pas à être réalistes : l'objet mesuré est le coût
+  (d+1)^actif, pas la plausibilité de la scène. En revanche chaque scène doit
+  être une VRAIE déconnexion (vérité-terrain dense seedée : start/goal libres,
+  0 libre dans la dalle, libre des deux côtés) — concevoir une déconnexion à
+  k dims actives est lui-même difficile (la redondance défait les pièges) ;
+  si une construction à k donné n'aboutit pas, le documenter est un résultat.
+- Mesures par k : feuilles, coût/feuille (lignes Bernstein, réduit A30 et
+  plein), wall-clock certif + verify, n_reresolve_failed (A32, attendu 0),
+  verdict. Budget PLAFONNÉ et journalisé (ex. 10⁴ feuilles / 30 min par
+  point) : **un UNDECIDED-sur-budget est une donnée, pas un échec** — c'est
+  la position du mur. Distinguer si possible UNDECIDED-budget
+  d'UNDECIDED-structurel (degré du témoin affine insuffisant : noter si
+  `quadratic` débloque, sans en faire une étude).
+- Sortie : table « scaling wall » versée dans DECISION-G2 (nouveau §3d) +
+  remplacement au §5.3 de « non mesuré » par le chiffre ; figure optionnelle
+  coût(k) en log pour le papier.
+
+**Lecture attendue (hypothèses à confronter, pas à confirmer)** : ×(d+1)≈5 par
+dim active sur le coût/feuille (extrapolation de la calibration G2') ⟹ k=4
+devrait passer en secondes-minutes, k=5 être le premier point dur. Si k=4
+passe : on a monté d'un cran en dims actives par rapport à Henrion et al.
+(n≤3 abstrait) — claim mesurable pour le papier. Si k=5 sature : la figure
+du mur remplace l'aveu vague et fixe honnêtement la frontière.
+
+**Diffs à appliquer par Code (CLAUDE.md du repo, avec D36-D39 de la revue
+DECISION-G2)** :
+- D40 [bench mur] Insérer la tâche S9e ci-dessus (bench k=3,4,5(,6)) dans le
+  plan, entre S9d et S9b ; DECISION-G2.md gagne un §3d « scaling wall » et le
+  §5.3 cite la mesure ; la signature de Stéphane porte sur cette version.
+- D41 Header : version 1.12 (englobe D36-D41), changelog « v1.11→v1.12
+  (revue DECISION-G2 + pilotage mur) : GO endossé sous amendements ; portée
+  proximale = effet de sélection ; références 2023 [à vérifier] ; V5
+  consignée ; bench du mur en dims actives (S9e) versé à DECISION-G2 ».
+  (Remplace le D39 de la revue — un seul bump de version pour le lot.)
