@@ -1,0 +1,65 @@
+# S9b — usecase « capot de sûreté · fenêtre opérateur » : certificat EXACT recomptable (dossier de sûreté).
+#
+# RÉCIT. Une cellule robotisée 7-DOF travaille derrière un capot de sûreté (guard panel) percé
+# d'une fenêtre opérateur. Question de sûreté fonctionnelle (ISO 10218 / 13849, analyse de
+# risque) : « le bras peut-il, depuis sa zone home, atteindre la zone opérateur en traversant
+# le plan du capot ? » La fenêtre est VISIBLE et la zone opérateur PROCHE (apparence faisable,
+# A20) — l'intuition dit « il y a un passage ». Le certificat prouve que NON : le segment
+# proximal épaule-coude (link 2) est bloqué par le panneau plein du capot sur toute la bande de
+# lacet, et aucune articulation distale ne l'en sort. VALEUR PROPRE : ce n'est pas « croyez le
+# pipeline de planification » (collision-checker flottant, non recomptable) — c'est un certificat
+# ALGÉBRIQUE que l'auditeur RECOMPTE en arithmétique exacte (cnp verify, <500 l. stdlib), pièce
+# versable telle quelle au dossier de sûreté. L'organisme notifié re-vérifie, il ne fait pas
+# confiance. Différenciateur S9f/A26 : la NATURE du certificat (exactement re-vérifiable).
+#
+# PIÉGEAGE PROXIMAL EXPLICITE. Corps certifié = link 2 (épaule-coude). Joints prouvés PASSIFS
+# pour la paire (link 2, GUARD_PANEL) : j3,j4,j5,j6 (DÉBLOQUÉS, libres ±3 ≈ ±143°) — en aval du
+# link 2, le moteur ne branche jamais dessus (A18), LP de feuille = 3 dims ACTIVES {0,1,2} (A30).
+# Coût attendu = (d+1)^3 ≈ 766 lignes/feuille, ~8 feuilles, secondes (frontière S9f). Estimation,
+# PAS un run : la certification est S11 (pack démo des deux cas non-flagship).
+#
+# ROBOT — 7 axes générique (bac technique documenté, A21). FIDÈLE : chaîne 7 joints, axes
+# lacet/tangage alternés, limites usine ⊂(−π,π). CHOISI : offsets rationnels, frames simplifiés,
+# le capot, la boîte de travail (±70° actifs, ±143° passifs). NB : modèle non-URDF (le builtin ne
+# porte pas les rotations inter-joints) — à trancher en S11 si l'organisme notifié l'exige.
+#
+# NOTE FENÊTRE OPÉRATEUR (apparence faisable, A20) : le panneau GUARD_PANEL est le plein du capot
+# (x in [2/25,8/25]) ; la « fenêtre » est l'espace LIBRE au-dessus (z > 7/10) et sur les côtés
+# (|y| > 4/25), par où la zone opérateur est visible — c'est ce qui rend la scène feasible-looking.
+# Le storyboard sweep (S11) montrera le bras semblant viser la fenêtre ; la preuve : le segment
+# proximal, lui, reste pris dans le plein du capot, fenêtre ou pas.
+#
+# PLAUSIBILITÉ (PAS une certification — scripts/usecase_sanity.py) : start/goal libres ; 0 libre
+# dans la dalle (uniforme ET biaisé-coins) ; libre des deux côtés. Certification exacte = S11.
+robot:
+  kind: spatial_revolute
+  q_star: ["0","0","0","0","0","0","0"]
+  joints:
+    - {offset: ["0","0","0"],        axis: ["0","0","1"]}   # j0 base yaw       (z)  ACTIVE
+    - {offset: ["0","0","3/10"],     axis: ["0","1","0"]}   # j1 shoulder pitch (y)  ACTIVE
+    - {offset: ["3/10","0","0"],     axis: ["0","1","0"]}   # j2 elbow pitch    (y)  ACTIVE  -> body
+    - {offset: ["3/10","0","0"],     axis: ["0","0","1"]}   # j3 forearm roll   (z)  passif (libre)
+    - {offset: ["3/10","0","0"],     axis: ["0","1","0"]}   # j4 wrist pitch    (y)  passif (libre)
+    - {offset: ["1/5","0","0"],      axis: ["0","0","1"]}   # j5 wrist roll     (z)  passif (libre)
+    - {offset: ["161/2000","0","0"], axis: ["0","1","0"]}   # j6 flange pitch   (y)  passif (libre)
+
+body:
+  link: 2                                                   # segment épaule-coude (proximal)
+  hull_vertices: [["0","0","0"], ["3/10","0","0"]]
+
+obstacles:
+  GUARD_PANEL:                # plein du capot de sûreté : x in [2/25,8/25], y in [-4/25,4/25], z in [-1/20,7/10]
+    hrep:
+      A: [["1","0","0"], ["0","1","0"], ["0","0","1"], ["-1","0","0"], ["0","-1","0"], ["0","0","-1"]]
+      b: ["8/25", "4/25", "7/10", "-2/25", "4/25", "1/20"]
+
+phi: {degree_per_var: 2, coeffs: {"1,0,0,0,0,0,0": "1"}}    # phi = s0 (base yaw)
+delta: "1/10"
+
+# boîte P en s-space (un [lo,hi] par joint débloqué). q = 2*arctan(s) :
+#   actifs 0,1,2 : s in [-7/10,7/10] (q in +-70 deg) ; passifs 3,4,5,6 : s in [-3,3] (q in +-143 deg)
+box:     [["-7/10","7/10"], ["-7/10","7/10"], ["-7/10","7/10"], ["-3","3"], ["-3","3"], ["-3","3"], ["-3","3"]]
+start_s: ["-3/5", "0", "0", "0", "0", "0", "0"]
+goal_s:  ["3/5", "0", "0", "0", "0", "0", "0"]
+pairs: ["GUARD_PANEL"]
+budget: {max_depth: 24, axis: margin}

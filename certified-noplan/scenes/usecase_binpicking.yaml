@@ -1,0 +1,56 @@
+# S9b — usecase « bin-picking logistique » : élagage PROUVÉ d'une branche TAMP infaisable.
+#
+# RÉCIT. Un bras industriel 6 axes (cobot logistique, classe UR/ABB) dépalettise un bac
+# profond. Un planificateur TAMP (task-and-motion) explore une branche : « saisir le colis au
+# FOND du bac par cette approche ». La paroi frontale du bac est pleine et haute ; le colis est
+# VISIBLE et proche (apparence faisable, A20). Sans preuve, le planificateur ESSAIE la branche,
+# échantillonne des milliers de configurations, et finit en TIMEOUT sans savoir si la branche
+# est infaisable ou juste difficile. Le certificat tranche : le segment proximal épaule-coude
+# (link 2) doit traverser la paroi frontale et ne le peut pas — sur toute la bande de lacet, et
+# aucun jeu des poignets distaux ne l'en sort. VALEUR : le planificateur ÉLAGUE la branche avec
+# une PREUVE (« ce colis est inatteignable sans retirer d'abord la paroi »), pas un timeout.
+#
+# PIÉGEAGE PROXIMAL EXPLICITE. Corps certifié = link 2 (épaule-coude). Joints prouvés PASSIFS
+# pour la paire (link 2, CRATE_WALL) : j3,j4,j5 (poignet, DÉBLOQUÉS, libres ±3 ≈ ±143°) — en aval
+# du link 2, le moteur ne branche jamais dessus (A18), LP de feuille = 3 dims ACTIVES {0,1,2}
+# (A30). Coût attendu = (d+1)^3 ≈ 766 lignes/feuille, ~8 feuilles, secondes (frontière S9f).
+# Estimation, PAS un run : la certification est S11 (pack démo des deux cas non-flagship).
+#
+# ROBOT — 6 axes générique (bac technique documenté, A21). FIDÈLE : chaîne 6 joints, axes
+# lacet/tangage alternés, limites usine ⊂(−π,π). CHOISI : offsets rationnels, frames simplifiés,
+# la paroi du bac, la boîte de travail (±70° actifs, ±143° passifs). NB : pas le modèle URDF
+# exact d'un UR (le builtin ne porte pas les rotations inter-joints) — à trancher en S11 si exigé.
+#
+# PLAUSIBILITÉ (PAS une certification — scripts/usecase_sanity.py) : start/goal libres ; 0 libre
+# dans la dalle (uniforme ET biaisé-coins) ; libre des deux côtés. Certification exacte = S11.
+robot:
+  kind: spatial_revolute
+  q_star: ["0","0","0","0","0","0"]
+  joints:
+    - {offset: ["0","0","0"],        axis: ["0","0","1"]}   # j0 base yaw       (z)  ACTIVE
+    - {offset: ["0","0","3/10"],     axis: ["0","1","0"]}   # j1 shoulder pitch (y)  ACTIVE
+    - {offset: ["3/10","0","0"],     axis: ["0","1","0"]}   # j2 elbow pitch    (y)  ACTIVE  -> body
+    - {offset: ["3/10","0","0"],     axis: ["0","0","1"]}   # j3 forearm roll   (z)  passif (libre)
+    - {offset: ["3/10","0","0"],     axis: ["0","1","0"]}   # j4 wrist pitch    (y)  passif (libre)
+    - {offset: ["1/5","0","0"],      axis: ["0","0","1"]}   # j5 wrist roll     (z)  passif (libre)
+
+body:
+  link: 2                                                   # segment épaule-coude (proximal)
+  hull_vertices: [["0","0","0"], ["3/10","0","0"]]
+
+obstacles:
+  CRATE_WALL:                 # paroi frontale du bac profond : x in [2/25,8/25], y in [-1/10,1/10], z in [-1/20,31/50]
+    hrep:
+      A: [["1","0","0"], ["0","1","0"], ["0","0","1"], ["-1","0","0"], ["0","-1","0"], ["0","0","-1"]]
+      b: ["8/25", "1/10", "31/50", "-2/25", "1/10", "1/20"]
+
+phi: {degree_per_var: 2, coeffs: {"1,0,0,0,0,0": "1"}}      # phi = s0 (base yaw)
+delta: "1/10"
+
+# boîte P en s-space (un [lo,hi] par joint débloqué). q = 2*arctan(s) :
+#   actifs 0,1,2 : s in [-7/10,7/10] (q in +-70 deg) ; passifs 3,4,5 : s in [-3,3] (q in +-143 deg)
+box:     [["-7/10","7/10"], ["-7/10","7/10"], ["-7/10","7/10"], ["-3","3"], ["-3","3"], ["-3","3"]]
+start_s: ["-3/5", "0", "0", "0", "0", "0"]
+goal_s:  ["3/5", "0", "0", "0", "0", "0"]
+pairs: ["CRATE_WALL"]
+budget: {max_depth: 24, axis: margin}

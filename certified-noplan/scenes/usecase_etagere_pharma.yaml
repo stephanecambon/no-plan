@@ -1,0 +1,61 @@
+# S9b — usecase « étagère pharma » : portée 7-DOF certifiée (FLAGSHIP candidat S10).
+#
+# RÉCIT. Un bras redondant 7-DOF (classe iiwa) doit atteindre un casier HAUT d'une étagère
+# de stockage pharmaceutique ; un panneau plein (séparateur de baie / flanc d'étagère) sépare
+# la baie « home » de la baie cible. La cible est PROCHE et VISIBLE (apparence faisable, A20) ;
+# l'intuition dit « un bras à 7 axes, redondant, trouvera bien un chemin ». Le certificat prouve
+# le contraire : le SEGMENT PROXIMAL épaule-coude (link 2) est piégé derrière le panneau sur
+# toute la bande de lacet de base, et AUCUNE articulation des 4 joints distaux ne l'en sort
+# (ils ne déplacent que des points AU-DELÀ du link 2). La redondance, qui « devrait » aider,
+# ne sert à rien : c'est la valeur de la preuve (portée certifiée, pas échantillonnée).
+#
+# PIÉGEAGE PROXIMAL EXPLICITE (la consigne de conception S9b). Corps certifié = link 2
+# (épaule-coude). Joints prouvés PASSIFS pour la paire (link 2, SHELF_PANEL) : j3,j4,j5,j6
+# (tous DÉBLOQUÉS, libres sur ±3 ≈ ±150°) — leur géométrie est en aval du link 2, le moteur
+# ne branche jamais dessus (A18) et le LP de feuille tombe aux 3 dims ACTIVES {0,1,2} (A30).
+# Coût attendu = (d+1)^3 ≈ 766 lignes/feuille, ~8 feuilles, secondes (frontière re-mesurée S9f :
+# pas de mur affine k≤7, frontière = taille du LP ; un piège à 3 dims actives est trivialement
+# sous la frontière). Estimation, PAS un run : la certification est S10.
+#
+# ROBOT — iiwa-LIKE (bac technique documenté, A21 ; le builtin spatial_revolute ne porte pas
+# les rotations inter-joints constantes de l'URDF iiwa exact — précédent S4/S7, à trancher en
+# S10/S11 si un reviewer l'exige). FIDÈLE : chaîne 7 joints, axes lacet/tangage alternés (S-R-S),
+# limites usine ⊂(−π,π). CHOISI : offsets arrondis en rationnels, frames inter-joints simplifiés,
+# le panneau, la boîte de travail (±70° actifs, ±150° passifs).
+#
+# PLAUSIBILITÉ (PAS une certification — voir scripts/usecase_sanity.py) : start/goal libres ;
+# 0 libre dans la dalle |s0|<=delta (uniforme ET biaisé-coins, leçon S9f) ; libre des deux côtés.
+# Certification exacte (cnp certify + cnp verify) = S10.
+robot:
+  kind: spatial_revolute
+  q_star: ["0","0","0","0","0","0","0"]
+  joints:
+    - {offset: ["0","0","0"],        axis: ["0","0","1"]}   # j0 base yaw       (z)  ACTIVE
+    - {offset: ["0","0","3/10"],     axis: ["0","1","0"]}   # j1 shoulder pitch (y)  ACTIVE
+    - {offset: ["3/10","0","0"],     axis: ["0","1","0"]}   # j2 elbow pitch    (y)  ACTIVE  -> body
+    - {offset: ["3/10","0","0"],     axis: ["0","0","1"]}   # j3 forearm roll   (z)  passif (libre)
+    - {offset: ["3/10","0","0"],     axis: ["0","1","0"]}   # j4 wrist pitch    (y)  passif (libre)
+    - {offset: ["1/5","0","0"],      axis: ["0","0","1"]}   # j5 wrist roll     (z)  passif (libre)
+    - {offset: ["161/2000","0","0"], axis: ["0","1","0"]}   # j6 flange pitch   (y)  passif (libre)
+
+body:
+  link: 2                                                   # segment épaule-coude (proximal)
+  hull_vertices: [["0","0","0"], ["3/10","0","0"]]
+
+obstacles:
+  SHELF_PANEL:                # panneau plein de baie : x in [2/25,8/25], y in [-3/25,3/25], z in [-1/20,1]
+    hrep:
+      A: [["1","0","0"], ["0","1","0"], ["0","0","1"], ["-1","0","0"], ["0","-1","0"], ["0","0","-1"]]
+      b: ["8/25", "3/25", "1", "-2/25", "3/25", "1/20"]
+
+phi: {degree_per_var: 2, coeffs: {"1,0,0,0,0,0,0": "1"}}    # phi = s0 (base yaw)
+delta: "1/10"
+
+# boîte P en s-space (un [lo,hi] par joint débloqué). q = 2*arctan(s) :
+#   actifs 0,1,2 : s in [-7/10,7/10]  (q in +-70 deg, cellule douce ⊂ limites usine +-170/+-120)
+#   passifs 3,4,5,6 : s in [-3,3]     (q in +-143 deg, ⊂ limites usine) -> "n'importe où"
+box:     [["-7/10","7/10"], ["-7/10","7/10"], ["-7/10","7/10"], ["-3","3"], ["-3","3"], ["-3","3"], ["-3","3"]]
+start_s: ["-3/5", "0", "0", "0", "0", "0", "0"]
+goal_s:  ["3/5", "0", "0", "0", "0", "0", "0"]
+pairs: ["SHELF_PANEL"]
+budget: {max_depth: 24, axis: margin}

@@ -2442,3 +2442,66 @@ périmé supprimé. `git status` propre vérifié [A33], commits de clôture S9f
 **Prochaine étape** : corps de S9b (portefeuille : 3 one-pagers + 3 specs YAML chargeables + sanity-checks
 de plausibilité + storyboards + ≥1 figure/cas + PORTFOLIO.md avec reco flagship argumentée), puis **GATE**
 (validation VUE + choix flagship par Stéphane). Clôture (commit ET push) APRÈS validation.
+
+## 2026-06-18 — Session S9b (Claude Code, GATÉE) — portefeuille de cas d'usage ; FLAGSHIP = étagère pharma (validé VUE)
+
+Session de **SPÉCIFICATION et STORYBOARD**, pas de preuve : aucun run de certification long, aucun
+`make_certificate`. Gate **validation VUE** par Stéphane (sa matière commerciale Cambon AI). État vert
+d'ouverture **et** de clôture : `make test` = **197 passed, 0 skipped, 0 warnings** (clôture 210,4 s),
+pas de flake (`test_parallel_speedup` vert ; D34 : aucun re-run isolé). Ouverture doc circuit A16 commit
+séparé `a9e99b3` (revue S9f, D45-D46, v1.14 ; cf. entrée « Revue de supervision S9f »).
+
+**Fait** :
+- **3 one-pagers calibrés** `docs/usecases/{binpicking,etagere_pharma,capot_surete}.md` : claim PROUVE /
+  NE PROUVE PAS (lignée « pas de ×400 », pas de « +N dim ») ; persona (qui paie) ; valeur PROPRE au cas
+  (bin-picking = élagage TAMP prouvé ; pharma = portée 7-DOF certifiée robuste à la redondance ; capot =
+  certificat exact RECOMPTABLE pour dossier de sûreté).
+- **3 specs YAML CHARGEABLES** `scenes/usecase_*.yaml` (parsent, `python -m cnp show … --interactive` OK).
+  **Piégeage proximal explicite** : corps = link 2, joints distaux **prouvés passifs** ⟹ **3 dims actives**
+  `{0,1,2}` détectées par `pair_views`. bin-picking **6-DOF** (`CRATE_WALL`) ; pharma **7-DOF tous joints
+  libres** (`SHELF_PANEL`) ; capot **7-DOF** (`GUARD_PANEL`). Obstacles en H-rep exacte (objets réels :
+  paroi de bac / panneau de baie / capot — PAS une bbox d'échantillons aléatoires, leçon S9f).
+- **Sanity-check de PLAUSIBILITÉ** (pas une certification) `scripts/usecase_sanity.py` : start/goal libres ;
+  **0 libre dans la dalle** sur 30 000 **uniformes** ET 30 000 **biaisés-coins** (leçon S9f) ; **libre des
+  deux côtés**. Les **3 PLAUSIBLES** (étiqueté « certification = S10 flagship / S11 les deux autres »).
+- **3 figures C-space** `benchmarks/figures/S9b_usecases/*.png` via `scripts/make_usecase_figures.py` : mur
+  de collision séparant home/cible, **tentative d'évasion** (détour par le haut) plongeant dans le mur
+  (apparence faisable **A20**), **limites en degrés** en encadré (**A25**).
+- **`docs/usecases/PORTFOLIO.md`** : tableau comparatif (cas, DOF, dims actives, valeur, secteur, force du
+  certificat, difficulté de conception) + reco flagship ARGUMENTÉE.
+
+**Décisions** :
+- **FLAGSHIP S10 = étagère pharma** (7-DOF, piégeage proximal, 3 dims actives). **Code recommande,
+  Stéphane TRANCHE** (validation VUE 18/06 : « je suis ta reco »). Critère = **récit + valeur** (faisabilité
+  proximale acquise pour les trois d'après S9f : pas de mur k≤7, frontière = taille du LP). Les deux autres
+  (bin-picking, capot) → **S11** (pack démo, D24).
+- **[D33]** Temporaire `JOURNAL-append-pilotage-S9f.md` (dépôt **tardif**, postérieur à la clôture S9f,
+  contenu déjà journalisé) **supprimé** comme doublon périmé ; `JOURNAL-append-revue-S9f.md` attendu jamais
+  déposé ⟹ revue S9f **transcrite du prompt** (source autoritaire, précédent S9f documenté).
+- Les trois cas restent à **k=3** (classe proximale à bas coût). Variante **4 dims actives** (piège
+  avant-bras link 3, pour le capot) **tentée** : scellement à la main **fiddly** (tangages balayant large,
+  séparation gauche/dalle/droite non franche) ⟹ laissée **future work** (conforme S9f : k≥4 faisable mais
+  exige un scellement Bernstein soigné, `build_scene_sealed`, réservé S10/S11). **Résultat documenté, pas
+  un échec.**
+
+**Pièges** :
+- `cnp show --png` est **planar-only** ; pour une scène SPATIALE la figure = C-space (`save_cspace_figure`)
+  ou interactif HTML (A24). L'interactif A24 complet est **storyboardé** ici, **construit en S10/S11** (pas
+  bâti ×3 en S9b — coupe assumée).
+- `collision_oracle` teste **TOUS** les obstacles de la scène (pas seulement `pairs`) ; sans effet sur la
+  plausibilité (ajouter un obstacle n'ajoute que de la collision).
+- Un panneau **trop large** peut avaler start/goal ⟹ collision (vérifié : capot y=±4/25 OK, start/goal
+  restent libres). Toujours re-tester start/goal après élargissement d'un obstacle.
+
+**Décompte exact (clôture S9b)** : `make test` = **197 passed, 0 skipped, 0 warnings** (210,4 s). **Aucune
+modif src** (engine/witness/verify intacts) — S9b = scripts + scènes + docs uniquement. `test_scenes.py`
+ne globbe pas `scenes/` (réfère des scènes nommées) ⟹ les `usecase_*.yaml` n'entrent pas dans la suite.
+
+**Diffs CLAUDE.md** (règle 14) : **aucun en clôture S9b** (le header v1.14 + changelog A38, D46, ont été
+appliqués à l'ouverture doc `a9e99b3`, circuit A16).
+
+**Prochaine étape** : **S10 — flagship étagère pharma** (scène 7-DOF, possiblement renommée
+`scenes/S5_iiwa_shelf.yaml` selon DoD/V6) : **G4'** (certificat 7-DOF vérifié exact), **V6** avec **A20 non
+négociable** (apparence faisable — goal proche/visible, sweep montrant pourquoi on croirait passer) ; budget
+présenté **AVANT** le run ; artefact principal **interactif A24** ; **A25** limites partout ; `cnp certify`
+→ PROOF + `cnp verify` → OK, **A32=0**, vérité-terrain dense seedée ré-assertée (règle 9).
