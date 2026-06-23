@@ -64,7 +64,7 @@ livrées dans `benchmarks/figures/S9b_usecases/`.
 2. **Il vise la porte G4' / la Definition of Done telles qu'écrites.** La DoD et S10/V6
    pointent déjà un **flagship 7-DOF d'étagère** (`scenes/S5_iiwa_shelf.yaml`, « case haute
    inatteignable »). Recommander l'étagère pharma **aligne** le portefeuille sur le jalon déjà
-   anticipé (S10 finalisera la scène — possiblement en renommant `usecase_etagere_pharma.yaml`).
+   anticipé *(fait en S10 : `usecase_etagere_pharma.yaml` → `scenes/S5_iiwa_shelf.yaml`)*.
 
 3. **La valeur la plus directement monétisable et explicable à un non-spécialiste.** « Enveloppe
    de portée **certifiée** (pas échantillonnée) pour dimensionner une cellule » se vend en une

@@ -142,8 +142,16 @@ def _cmd_show(args) -> int:
 
     scene, _ = _scenes.load(args.scene)
     if args.interactive is not None:            # self-contained interactive HTML (A24)
+        active = None                           # the distal-redundancy escape needs active dims
+        if scene.robot.kind == "spatial_revolute":
+            try:
+                from . import engine as _engine
+                prob = _scenes.build_problem(scene)
+                active = _engine._global_active(_engine.pair_views(prob), prob)
+            except Exception:                   # viz must never fail on an engine hiccup
+                active = None
         path = _viz.export_interactive_html(scene, args.interactive,
-                                            title=f"scene {args.scene}")
+                                            title=f"scene {args.scene}", active_dims=active)
         print(f"interactive HTML written to {path} (open it in a browser; no server)")
         return 0
     if args.png is not None:                    # 2-D top-down figure (planar), no server

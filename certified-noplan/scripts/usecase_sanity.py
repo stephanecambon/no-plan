@@ -14,7 +14,7 @@ Checks (all seeded, reproducible):
   - free on BOTH sides of the slab (a genuine two-component disconnection, not a dead end).
 A scene that does NOT pass is a RESULT, not a failure: it is reported, not hidden.
 
-Run: ``python scripts/usecase_sanity.py scenes/usecase_etagere_pharma.yaml`` (add ``--aabb``
+Run: ``python scripts/usecase_sanity.py scenes/usecase_binpicking.yaml`` (add ``--aabb``
 to also print the certified body's world bounding box over the slab — used to size obstacles).
 """
 from __future__ import annotations

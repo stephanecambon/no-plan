@@ -277,7 +277,7 @@ outil montre l'INTENTION ; la preuve est le certificat (le moteur, pas l'œil �
  <div class="btns">
   <button onclick="play('yaw')">Tentative : passage direct (lacet)</button>
   <button onclick="play('pitch')">Tentative : passer par-dessus (tangage)</button>
-  <button onclick="play('around')">Tentative : contourner (roll/coude)</button>
+  <button onclick="play('distal')">Tentative : contourner via les distaux (redondance)</button>
   <button onclick="setS(SC.start_s)">→ start</button>
   <button onclick="setS(SC.goal_s)">→ goal</button>
   <span id="attempt"></span>
@@ -289,8 +289,9 @@ outil montre l'INTENTION ; la preuve est le certificat (le moteur, pas l'œil �
        <span class="sw" style="border-color:#333"></span>bras supérieur libre &nbsp;
        <span class="sw" style="border-color:#bbb"></span>avant-bras (affichage seul)</div>
   <div>Chaque vue déclare ce qu'elle montre (A24). « Par-dessus » échoue par HAUTEUR DU
-  MUR (sommet panneau &gt; portée du bras, visible côté) ; « contourner » échoue car le
-  corps ne dépend pas du roll/coude (passifs).</div>
+  MUR (sommet panneau &gt; portée du bras, visible côté) ; « contourner via les distaux »
+  échoue car le corps proximal certifié ne dépend PAS des joints distaux (passifs) — la
+  redondance ne le libère pas (thèse du flagship).</div>
  </div>
 </div>
 <script>
@@ -316,15 +317,16 @@ function fkChain(s){let T=ident(),out=[],si=0;for(let i=0;i<SC.joints.length;i++
   let a = SC.joints[i].locked!=null ? SC.joints[i].locked : 2*Math.atan(s[si++]);
   T=mul(T,rot(SC.joints[i].axis, a));
   out.push(T);}return out;}
-function armPts(s){ // {base, elbow, hand, upper:[base,elbow]}
+function armPts(s){ // base(origine monde) -> shoulder(corps proximal) -> elbow(corps distal) -> hand
   let T=fkChain(s); let L=SC.upper_len;
-  let elbow=ap(T[SC.body_link],[L,0,0]);
+  let shoulder=ap(T[SC.body_link],[0,0,0]);   // proximal end of the certified body (link body_link)
+  let elbow=ap(T[SC.body_link],[L,0,0]);       // distal end of the certified body
   let hand=ap(T[T.length-1],[FORE,0,0]);
-  return {base:[0,0,0], elbow, hand};}
-function collide(s){ // upper arm (base->elbow) vs any panel box
-  let a=armPts(s),N=40;
+  return {base:[0,0,0], shoulder, elbow, hand};}
+function collide(s){ // certified body = segment shoulder->elbow (link body_link); mirrors the Python oracle
+  let a=armPts(s),N=40;                         // N+1=41 samples == collision_oracle(n_samples=41)
   for(let k=0;k<=N;k++){let t=k/N;
-    let p=[a.base[0]+(a.elbow[0]-a.base[0])*t, a.base[1]+(a.elbow[1]-a.base[1])*t, a.base[2]+(a.elbow[2]-a.base[2])*t];
+    let p=[a.shoulder[0]+(a.elbow[0]-a.shoulder[0])*t, a.shoulder[1]+(a.elbow[1]-a.shoulder[1])*t, a.shoulder[2]+(a.elbow[2]-a.shoulder[2])*t];
     for(const b of SC.panels){if(p[0]>=b.lo[0]&&p[0]<=b.hi[0]&&p[1]>=b.lo[1]&&p[1]<=b.hi[1]&&p[2]>=b.lo[2]&&p[2]<=b.hi[2])return true;}}
   return false;}
 // --- projection: world window x[-0.15,0.85] (across) , v[-0.7,0.7] (up); 1 unit=300px ---
@@ -339,7 +341,8 @@ function seg(ctx,p,q,ai,vi,col,w){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginP
   ctx.moveTo(px(p[ai]),py(p[vi]));ctx.lineTo(px(q[ai]),py(q[vi]));ctx.stroke();}
 function drawArm(ctx,s,ai,vi,full,ghost){
   let a=armPts(s),col=collide(s)?"#d62728":(ghost?ghost:"#333");
-  seg(ctx,a.base,a.elbow,ai,vi,col,ghost?3:5);            // UPPER ARM = certified body
+  seg(ctx,a.base,a.shoulder,ai,vi,ghost?ghost:"#aaa",ghost?2:3);  // lower arm (base->shoulder) = display
+  seg(ctx,a.shoulder,a.elbow,ai,vi,col,ghost?3:6);                // UPPER ARM (shoulder->elbow) = CERTIFIED body
   if(full){seg(ctx,a.elbow,a.hand,ai,vi,ghost?ghost:"#bbb",ghost?2:3);} // forearm display
 }
 function drawView(id,ai,vi,full,reach){
@@ -383,6 +386,9 @@ for(let i=0;i<SC.joints.length;i++){let d=document.createElement("div");d.classN
 function play(kind){let path=[],N=24;
  if(kind==='yaw'){for(let k=0;k<=N;k++){let t=k/N;path.push(SC.start_s.map((v,i)=>v+(SC.goal_s[i]-v)*t));}}
  else if(kind==='pitch'){for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0;s[1]=SC.box[1][0]+(SC.box[1][1]-SC.box[1][0])*t;path.push(s);}}
+ else if(kind==='distal' && SC.passive_dims){for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0; // in the band
+   for(const pj of SC.passive_dims){s[pj]=SC.box[pj][0]+(SC.box[pj][1]-SC.box[pj][0])*(0.5-0.5*Math.cos(6.28*t*(1+pj)));} // sweep ALL distal joints (redundancy)
+   path.push(s);}}
  else{for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[0]=0;
    if(s.length>2)s[2]=SC.box[2][0]+(SC.box[2][1]-SC.box[2][0])*t;                       // roll across its limits
    if(s.length>3)s[3]=SC.box[3][0]+(SC.box[3][1]-SC.box[3][0])*0.5*(1-Math.cos(6.28*t)); // elbow within its limits
@@ -390,7 +396,7 @@ function play(kind){let path=[],N=24;
  let free=0,i=0;document.getElementById("attempt").textContent="…";
  let iv=setInterval(()=>{if(i>=path.length){clearInterval(iv);
     let nColl=path.length-free;
-    let lbl={yaw:"passage direct (lacet)",pitch:"passer par-dessus (tangage)",around:"contourner (roll/coude)"}[kind];
+    let lbl={yaw:"passage direct (lacet)",pitch:"passer par-dessus (tangage)",around:"contourner (roll/coude)",distal:"contourner via les distaux (redondance)"}[kind];
     let msg;
     if(kind==='yaw')   // a PATH: blocked iff any pose en route collides (motion interrupted)
       msg = nColl>0 ? ("BLOQUÉ ✗ — "+lbl+" : le trajet traverse "+nColl+"/"+path.length+" poses en collision")
@@ -446,14 +452,19 @@ def limits_caption(scene: _cert.Scene) -> str:
 
 
 def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float = 0.3,
-                            title: str = None) -> str:
+                            title: str = None, active_dims=None) -> str:
     """Export a SELF-CONTAINED interactive HTML (zero dependencies) for a spatial scene
     (A24): joint sliders, two world projections (top x–y for yaw, side x–z for pitch/
     height), live collision of the certified UPPER-ARM body (turns red), labelled
     start/goal ghosts on BOTH views, and buttons that animate the natural escape attempts
-    (yaw swing / over-the-top / around in roll+elbow) and report the verdict. Forward
-    kinematics is recomputed in JS from the scene's joint axes/offsets, so the file needs
-    no server and no libraries. It shows INTENTION; the certificate is the proof (rule 9).
+    (yaw swing / over-the-top / around) and report the verdict. Forward kinematics is
+    recomputed in JS from the scene's joint axes/offsets, so the file needs no server and
+    no libraries. It shows INTENTION; the certificate is the proof (rule 9).
+
+    ``active_dims`` (optional tuple, e.g. ``(0,1,2)`` from ``engine.pair_views``): when given,
+    the third escape attempt sweeps the PASSIVE (distal) joints — demonstrating that no distal
+    setting frees the proximal body ("portée robuste à la redondance"). Without it, that button
+    keeps the legacy roll/elbow sweep.
 
     Returns ``path``. Spatial builtin only (the planar scenes read fine as 2-D figures)."""
     import json
@@ -477,6 +488,9 @@ def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float
     names = _spatial_joint_names(scene)
     lims = joint_limits_deg(scene)                              # (name, lo_deg, hi_deg)
 
+    n = len(scene.box)
+    passive = ([i for i in range(n) if i not in tuple(active_dims)]
+               if active_dims is not None else None)
     data = {
         "joints": joints, "panels": panels, "body_link": scene.body_link,
         "upper_len": float(scene.hull_vertices[-1][0]),
@@ -486,6 +500,8 @@ def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float
         "joint_names": names,
         "limits_deg": [[lo, hi] for _, lo, hi in lims],        # A25: explicit joint limits
         "limits_caption": limits_caption(scene),
+        "active_dims": list(active_dims) if active_dims is not None else None,
+        "passive_dims": passive,                               # distal joints proven passive
     }
     html = (_INTERACTIVE_TEMPLATE
             .replace("__SCENE__", json.dumps(data))

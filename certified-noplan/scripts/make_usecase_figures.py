@@ -16,9 +16,9 @@ from cnp import scenes, viz
 
 OUT = os.path.join("benchmarks", "figures", "S9b_usecases")
 
-CASES = [
+CASES = [   # S11 démo cases ; the pharma flagship was promoted to scenes/S5_iiwa_shelf.yaml
+            # (S10) and gets its own figures via scripts/make_flagship_figures.py.
     ("usecase_binpicking",     "bin-picking logistique (6-DOF) — colis au fond du bac inatteignable"),
-    ("usecase_etagere_pharma", "étagère pharma (7-DOF, FLAGSHIP) — casier haut inatteignable"),
     ("usecase_capot_surete",   "capot de sûreté (7-DOF) — zone opérateur inatteignable"),
 ]
 

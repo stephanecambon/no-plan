@@ -1,4 +1,5 @@
-# S9b — usecase « étagère pharma » : portée 7-DOF certifiée (FLAGSHIP candidat S10).
+# S5 — FLAGSHIP « étagère pharma » : portée 7-DOF CERTIFIÉE (S10, porte G4').
+# (Promu de scenes/usecase_etagere_pharma.yaml, validé VUE en S9b ; géométrie inchangée.)
 #
 # RÉCIT. Un bras redondant 7-DOF (classe iiwa) doit atteindre un casier HAUT d'une étagère
 # de stockage pharmaceutique ; un panneau plein (séparateur de baie / flanc d'étagère) sépare
@@ -7,25 +8,31 @@
 # le contraire : le SEGMENT PROXIMAL épaule-coude (link 2) est piégé derrière le panneau sur
 # toute la bande de lacet de base, et AUCUNE articulation des 4 joints distaux ne l'en sort
 # (ils ne déplacent que des points AU-DELÀ du link 2). La redondance, qui « devrait » aider,
-# ne sert à rien : c'est la valeur de la preuve (portée certifiée, pas échantillonnée).
+# ne sert à rien : c'est la THÈSE du flagship (portée 7-DOF certifiée, robuste à la redondance).
 #
-# PIÉGEAGE PROXIMAL EXPLICITE (la consigne de conception S9b). Corps certifié = link 2
-# (épaule-coude). Joints prouvés PASSIFS pour la paire (link 2, SHELF_PANEL) : j3,j4,j5,j6
-# (tous DÉBLOQUÉS, libres sur ±3 ≈ ±150°) — leur géométrie est en aval du link 2, le moteur
-# ne branche jamais dessus (A18) et le LP de feuille tombe aux 3 dims ACTIVES {0,1,2} (A30).
-# Coût attendu = (d+1)^3 ≈ 766 lignes/feuille, ~8 feuilles, secondes (frontière re-mesurée S9f :
-# pas de mur affine k≤7, frontière = taille du LP ; un piège à 3 dims actives est trivialement
-# sous la frontière). Estimation, PAS un run : la certification est S10.
+# CAS DE BASE G3'b (S9a/SPEC §5). 7-DOF TOUS LIBRES, q*=0, `spatial_revolute` PUR — AUCUN joint
+# verrouillé : le vérificateur exact n'a pas besoin du chemin joints-verrouillés (cos/sin
+# rationnels), il re-dérive la FK des offsets/axes exacts. ⟹ verdict attendu PROOF (verify exact),
+# pas ENGINE-PROOF. **verify.py SACRÉ — zéro diff.**
+#
+# PIÉGEAGE PROXIMAL EXPLICITE. Corps certifié = link 2 (épaule-coude). Joints prouvés PASSIFS
+# pour la paire (link 2, SHELF_PANEL) : j3,j4,j5,j6 (tous DÉBLOQUÉS, libres sur ±3 ≈ ±143°) — leur
+# géométrie est en aval du link 2, le moteur ne branche jamais dessus (A18) et le LP de feuille
+# tombe aux 3 dims ACTIVES {0,1,2} (A30). **Budget prédit** (frontière re-mesurée S9f : pas de
+# mur affine k≤7, frontière = taille du LP) : (d+1)^3 = 4^3 = 766 lignes/LP, ~8 feuilles,
+# certif+verify en secondes, A32=0. Un piège à 3 dims actives est trivialement sous la frontière.
 #
 # ROBOT — iiwa-LIKE (bac technique documenté, A21 ; le builtin spatial_revolute ne porte pas
 # les rotations inter-joints constantes de l'URDF iiwa exact — précédent S4/S7, à trancher en
-# S10/S11 si un reviewer l'exige). FIDÈLE : chaîne 7 joints, axes lacet/tangage alternés (S-R-S),
+# S11 si un reviewer l'exige). FIDÈLE : chaîne 7 joints, axes lacet/tangage alternés (S-R-S),
 # limites usine ⊂(−π,π). CHOISI : offsets arrondis en rationnels, frames inter-joints simplifiés,
-# le panneau, la boîte de travail (±70° actifs, ±150° passifs).
+# le panneau, la boîte de travail (±70° actifs, ±143° passifs).
 #
-# PLAUSIBILITÉ (PAS une certification — voir scripts/usecase_sanity.py) : start/goal libres ;
-# 0 libre dans la dalle |s0|<=delta (uniforme ET biaisé-coins, leçon S9f) ; libre des deux côtés.
-# Certification exacte (cnp certify + cnp verify) = S10.
+# VÉRITÉ-TERRAIN DENSE AVANT CERTIFICATION (règle 9, densité de certification) — voir
+# scripts/flagship_groundtruth.py : start/goal libres ; 0 libre dans la dalle |s0|<=delta
+# (uniforme dense + les 2^7=128 coins des joints, extrêmes distaux explicitement balayés :
+# AUCUN réglage des distaux ne libère le link proximal = la thèse « robuste à la redondance ») ;
+# libre des deux côtés. La preuve fait foi : cnp certify (PROOF) + cnp verify (OK exact), A32=0.
 robot:
   kind: spatial_revolute
   q_star: ["0","0","0","0","0","0","0"]
