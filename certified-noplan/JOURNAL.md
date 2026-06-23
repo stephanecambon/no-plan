@@ -2505,3 +2505,60 @@ appliqués à l'ouverture doc `a9e99b3`, circuit A16).
 négociable** (apparence faisable — goal proche/visible, sweep montrant pourquoi on croirait passer) ; budget
 présenté **AVANT** le run ; artefact principal **interactif A24** ; **A25** limites partout ; `cnp certify`
 → PROOF + `cnp verify` → OK, **A32=0**, vérité-terrain dense seedée ré-assertée (règle 9).
+
+## 2026-06-18 — POINT D'ÉTAPE S10 (Claude Code) — gate V6 ouvert + arbitrage « robot réaliste » À VOIR AVEC LA SUPERVISION
+
+**Pas une clôture.** S10 N'EST PAS certifiée ni close : le gate V6 (humain, AVANT certif) est ouvert et
+Stéphane porte une décision de périmètre à la supervision. Entrée poussée pour revue via GitHub.
+
+**État livré (S10 flagship iiwa-LIKE)** — commit `258fc4d` « S10 — V6 pending » (NON certifié) :
+- Scène `scenes/S5_iiwa_shelf.yaml` (promue de `usecase_etagere_pharma.yaml`), 7-DOF TOUS LIBRES, q*=0,
+  `spatial_revolute` PUR (cas de base G3'b, **verify.py sacré, zéro diff**). Corps link 2 ; `pair_views`
+  ⟹ dims actives {0,1,2}, distaux {3,4,5,6} passifs.
+- Vérité-terrain dense (`scripts/flagship_groundtruth.py`) : 0 libre dalle (120k uniforme + 448 coins),
+  invariance redondance (16 extrêmes distaux tous en collision), libre des 2 côtés.
+- Interactif A24 7 curseurs (1re 7-DOF sans verrou) avec **A24 invariant PROUVÉ** :
+  `tests/test_flagship_interactive.py` — la logique JS (FK+collision) reproduit l'oracle Python EXACTEMENT
+  sous node (0 écart / 466 configs ; skip si node absent). Correction du point proximal du corps dans
+  `viz.export_interactive_html` (collide = shoulder→elbow) ; 3e bouton d'évasion = sweep des distaux
+  (redondance) ; `cnp show` calcule et passe `active_dims`.
+- Figures V6 `benchmarks/figures/S10_flagship/` : C-space (mur séparateur, évasion, limites A25) + sweep
+  (A20). `make test` = **199 passed, 0 skipped, 0 warnings** (197 + 2 flagship).
+
+**Ce qui a soulevé la décision** : à la présentation V6, Stéphane : « on n'a pas une vraie scène 3D avec un
+robot réaliste ? ». Deux axes DISTINCTS à ne pas confondre :
+1. **Cinématique du robot** : la scène certifiée est une chaîne **iiwa-LIKE** simplifiée (bac technique
+   ASSUMÉ, A21 ; offsets arrondis, pas les rotations inter-joints de l'URDF exact). Le **vrai KUKA iiwa
+   URDF** était **explicitement différé** (DECISION-G2 §5 / A21 : « à décider en S10/S11 si un reviewer
+   l'exige » ; hors-scope du go/no-go). Choisir le vrai iiwa MAINTENANT = tirer une session future vers
+   l'avant.
+2. **Rendu** : l'interactif est en projections 2D (vue dessus + côté), pas une vraie 3D rotative. Axe
+   PUREMENT visuel (`viz.py` non sacré), additif et orthogonal à la preuve.
+
+**Décision en attente (à arbitrer Stéphane + supervision)** :
+- **Option A (recommandée par Code)** : NE PAS re-scoper S10. Finir le flagship iiwa-LIKE — valider V6,
+  certifier (PROOF + verify exact, A32=0), clôturer **G4'** (la fidélité URDF reste un caveat documenté,
+  pas un bloquant de porte). Le **vrai iiwa = session dédiée S10-bis**.
+- **Option B** : re-scoper S10 maintenant pour le vrai iiwa URDF (plus long).
+
+**Spike de faisabilité S10-bis (résultat à verser — le vrai iiwa n'est PLUS un pari)** : sondé Drake iiwa7
+ce jour. **La FK de l'iiwa7 à q*=0 est entièrement RATIONNELLE** : translations inter-liens exactes
+(0,1575=63/400 ; 0,183 ; 0,184=23/125 ; 0,2155=431/2000 ; 0,0805=161/2000) ; **rotations inter-liens =
+matrices de permutation signée** (coefficients ∈ {0,±1} ⟺ ±90°/180° ⟹ cos/sin rationnels). ⟹ l'iiwa exact
+**est représentable dans la forme déjà supportée par `verify.py`** (offset + axe unitaire + joints
+verrouillés à cos/sin rationnels, mécanisme S9c), chaque rotation ±90° se décomposant en rotations
+élémentaires x/y/z (groupe octaédrique). **Aucune modif de `verify.py`, aucun irrationnel.** Drake iiwa7
+charge (`package://drake_models/iiwa_description/sdf/iiwa7_no_collision.sdf`) ⟹ référence de parité (méthode
+S1). **Conclusion : S10-bis = construction + parité Drake <1e-9, PAS de la recherche risquée ; verify.py
+INTACT.** Reste à fixer en S10-bis : la convention de composition exacte (rotation variable encadrée par les
+sous-frames X_PF / X_MC du joint — 2 essais de rétro-ingénierie non concluants ce jour, à faire via
+`ratfk.py`, le wrapper Drake RationalFK déjà au repo) et le choix du lien proximal + panneau sur la VRAIE
+géométrie.
+
+**Garde-fous** : `verify.py` sacré dans TOUS les cas ; le flagship iiwa-LIKE est le livrable documenté et
+sanctionné (A21), G4'-valide ; UNDECIDED ≠ infaisable. Le spike n'a écrit AUCUN fichier (sondes Drake +
+`/tmp`) — arbre propre à `258fc4d`.
+
+**Prochaine étape** : arbitrage Stéphane + supervision (Option A vs B). AUCUNE certification lancée, S10 non
+close tant que V6 non validé. Si A : valider S10-V6 → certifier → clôturer G4' → S10-bis (vrai iiwa,
+faisabilité acquise). Si B : re-scoper S10 vers l'iiwa exact (repartir du spike ci-dessus).
