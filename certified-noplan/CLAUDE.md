@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.14 — 13 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f ; v1.0..v1.13 dans git).
+Version 1.15 — 18 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f + arbitrage robot réaliste S10 ; v1.0..v1.14 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -96,6 +96,15 @@ link, toutes dims actives — *pas* proximal) ; **[A38-2]** deadline k=8 explici
 réécrit) ; **[D46]** header v1.14 + ce changelog. **Calibrage S9b** : flagship choisi par RÉCIT + VALEUR (la
 faisabilité d'un piège proximal est acquise — LP minuscule, secondes). Détail : entrée « Revue de supervision
 S9f » de JOURNAL.md.
+Changements v1.14 → v1.15 (arbitrage robot réaliste S10, **[A39]**, D47-D49) : à la présentation V6,
+Stéphane demande « une vraie scène 3D + robot réaliste » ⟹ **Option A recadrée** (Stéphane + supervision) :
+on NE re-scope PAS S10 (finir le flagship **iiwa-LIKE** : V6 → certif → clôture G4', banc sanctionné A21),
+et le **vrai KUKA iiwa devient le flagship d'EN-TÊTE livré en S10-bis** (montée en gamme, pas correction
+d'un faux). **[A39]** flagship d'en-tête papier/deck = vrai iiwa (S10-bis) ; iiwa-LIKE = validation méthodo.
+**[A21 résolu]** spike Drake du 18/06 : FK iiwa7 rationnelle à q\*=0 (rotations inter-liens = permutations
+signées ±90° ⟹ cos/sin rationnels ⟹ forme `verify.py` S9c, INTACT) ⟹ iiwa réel faisable, ni POE ni
+extension de verify ; **[D47]** renvoi inline §5 DECISION-G2.md, **[D48]** section S10-bis insérée au plan,
+**[D49]** ce header+changelog. Détail : entrée « Décision de pilotage — arbitrage robot réaliste » de JOURNAL.md.
 
 ---
 
@@ -569,6 +578,9 @@ plus proche et journaliser.
   validation VUE par Stéphane.
 
 ### S10 — Flagship 7-DOF (le cas choisi en S9b) [D24]
+- **[A39, arbitrage 18/06] EN COURS, V6 ouvert** : flagship = banc **iiwa-LIKE** sanctionné (A21),
+  G4' technique (sans signature). Le **flagship d'EN-TÊTE (papier, deck) = vrai KUKA iiwa, livré en
+  S10-bis** (montée en gamme, pas correction d'un faux). Ne PAS re-scoper S10 (Option A recadrée).
 - Entrée : G2' (`DECISION-G2.md` signée) + flagship désigné en S9b.
 - Tâches : **implémenter le flagship choisi en S9b** (scène 7-DOF complète) ; **vue sweep
   de la scène (A20)** ; extrapolation de budget depuis S9 (feuilles, temps) présentée
@@ -585,6 +597,27 @@ plus proche et journaliser.
   décision cloud avec Stéphane). « VALIDÉ S10-V6 » = autorisation du run flagship.
 - Sortie : **G4'** — certificat 7-DOF vérifié exact ; **V6 validée** ; archiver
   certificat + scène + commit en l'état.
+
+### S10-bis — VRAI KUKA iiwa (flagship d'EN-TÊTE) [A39, arbitrage 18/06]
+Faisabilité acquise (spike Drake 18/06 : FK iiwa7 rationnelle à q\*=0 ⟹ forme `verify.py` S9c, INTACT).
+**Ordre IMPOSÉ — la convention d'abord, la scène ensuite :**
+1. **CONVENTION DE COMPOSITION EXACTE, dé-risquée par PARITÉ DRAKE avant tout travail de scène** :
+   reproduire la FK iiwa7 (offsets rationnels du spike : 63/400, 0,183, 23/125, 431/2000, 161/2000 ;
+   rotations inter-liens = permutations signées décomposées en rotations élémentaires x/y/z du groupe
+   octaédrique) et vérifier la PARITÉ avec Drake `RationalForwardKinematics` (wrapper `ratfk.py` déjà au
+   repo) à **<1e-9 sur ≥1000 configs** (méthode S1). Régler l'encadrement X_PF/X_MC de la rotation variable
+   (2 essais ratés au spike) ICI, contre Drake — pas en aval. Tant que la parité n'est pas <1e-9, NE PAS
+   passer à la scène.
+2. **Géométrie** : choisir le lien proximal certifié + le panneau d'étagère sur la VRAIE géométrie iiwa
+   (corps proximal réel, dims actives RÉELLES via `pair_views` — re-mesurer, ne pas présumer {0,1,2}).
+   Sculpter le piège proximal (apparence faisable A20, guidée par les figures iiwa-LIKE) ; obstacle H-rep
+   EXACT (étanche par construction) ; vérité-terrain dense uniforme + biaisé-coins (S9f).
+3. **verify.py INTACT** (joints à cos/sin rationnels = mécanisme S9c déjà livré ; si une rotation exige
+   autre chose que la forme supportée, STOP et signale — ne devrait pas arriver d'après le spike). **G4'
+   RÉAFFIRMÉE sur le vrai robot** (PROOF + verify exact + A32=0). Interactif A24 + figures du vrai iiwa pour
+   le papier. **Gate V6-bis** (A20 non négociable) sur la scène réelle.
+- Repli : si la convention résiste au-delà du raisonnable, l'iiwa-LIKE certifié en S10 reste le G4' acquis ;
+  S10-bis devient une dette explicite, pas un bloquant.
 
 ### S11 — Visualisation complète et assets (viz.py) + pack démo cas d'usage [D24]
 - Entrée : G4' (ou en parallèle après G2' si S10 traîne).

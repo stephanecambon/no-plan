@@ -293,6 +293,9 @@ cf. docs/BIBLIO-ANTERIORITE.md. Ne pas « corriger » l'une en l'autre — A28 v
   constantes inter-joints de l'URDF iiwa exact — une reproduction URDF-fidèle exigerait soit
   une formulation POE, soit une extension de `verify.py` (sacré) : **à décider en S10/S11 si
   un reviewer l'exige** ; hors-scope d'un go/no-go technique.
+  *[résolu (D47, 18/06) : iiwa réel faisable — spike FK rationnelle q\*=0 (rotations inter-liens =
+  permutations signées ±90° ⟹ cos/sin rationnels ⟹ forme `verify.py` S9c, INTACT, ni POE ni
+  extension) ; livré S10-bis comme flagship d'en-tête (A39)]*
 - Box des joints actifs limité à ±70° (limite douce de cellule ⊂ limites usine ±120/±170°) :
   le théorème prouve la déconnexion **dans ce box**, affiché en degrés (A25). Honnête.
 - Le régime à **dims actives élevées** (le risque d'explosion §9.1) est désormais **MESURÉ**

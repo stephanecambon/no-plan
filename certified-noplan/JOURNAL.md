@@ -2562,3 +2562,46 @@ sanctionné (A21), G4'-valide ; UNDECIDED ≠ infaisable. Le spike n'a écrit AU
 **Prochaine étape** : arbitrage Stéphane + supervision (Option A vs B). AUCUNE certification lancée, S10 non
 close tant que V6 non validé. Si A : valider S10-V6 → certifier → clôturer G4' → S10-bis (vrai iiwa,
 faisabilité acquise). Si B : re-scoper S10 vers l'iiwa exact (repartir du spike ci-dessus).
+
+## 2026-06-18 — Décision de pilotage (Stéphane + supervision) — arbitrage robot réaliste : Option A recadrée, flagship d'en-tête = vrai iiwa (S10-bis)
+
+Contexte : au gate V6, Stéphane a demandé « une vraie scène 3D avec un robot réaliste ». Deux axes
+distincts : (1) **CINÉMATIQUE** (iiwa-LIKE simplifié vs URDF KUKA exact) ; (2) **RENDU** (projections 2D
+de l'interactif vs 3D rotative). Le spike Drake de ce jour a dé-risqué les MATHS de l'axe 1 : à q*=0 les
+rotations inter-liens de l'iiwa7 sont des permutations signées (±90°/180°, groupe octaédrique ⟹ cos/sin
+rationnels) et les axes de joints variables sont des axes de coordonnées (unitaires rationnels) ⟹ l'iiwa
+exact rentre dans la forme DÉJÀ supportée par verify.py (offset + axe unitaire + rotations fixes cos/sin
+rationnels, mécanisme S9c), SANS irrationnel, SANS modif de verify.py. **Dé-risqué = les maths ; PAS encore
+la construction** (convention de composition X_PF/X_MC encadrant la rotation variable : 2 essais ratés ce
+jour, à régler par parité Drake via ratfk.py — ingénierie bornée, pas de la recherche).
+
+**Décision** : (A) NE PAS re-scoper S10 ; finir le flagship iiwa-LIKE — valider V6, certifier (PROOF +
+verify exact, A32=0), clôturer G4' (banc sanctionné A21, porte technique sans signature) ; (recadrage) le
+VRAI iiwa = flagship d'EN-TÊTE livré en S10-bis, cadré comme **MONTÉE EN GAMME du robot** (pas correction
+d'un faux). Rejet de l'option B (re-scoper S10 maintenant) : mettrait l'inconnue de convention en tête d'une
+session à son gate (scope creep évité depuis S7) ; plancher identique (iiwa-LIKE = repli G4' dans les deux
+cas). **Certification de l'iiwa-LIKE MAINTENUE** (jalon pas cher 3 dims actives/766 lignes/secondes +
+répétition générale du pipeline + isolation de la variable : pipeline validé ici, géométrie échangée
+ensuite).
+
+Axe 2 (rendu) : la **3D Meshcat rotative EXISTE déjà** (`cnp show`, robots spatiaux, depuis S6) ; ce que
+Stéphane a vu à V6 = figures + interactif HTML 2D auto-suffisant. Lui montrer
+`python -m cnp show scenes/S5_iiwa_shelf.yaml` (Meshcat 3D) satisfait une partie de l'envie « vraie 3D ».
+Un export 3D auto-suffisant (Three.js) = polish S11, PAS un item de porte — ne pas laisser le rendu gonfler
+S10/S10-bis. Pour le papier/deck : seule la figure du VRAI iiwa apparaît ; l'iiwa-LIKE reste un jalon
+interne ⟹ pas de « double tampon G4' » côté publication.
+
+- **[A39]** Le flagship d'en-tête (papier, deck Cambon AI) est le vrai KUKA iiwa, livré en S10-bis ;
+  l'iiwa-LIKE est la validation méthodologique sur banc sanctionné (A21).
+- **[A21 résolu]** Le caveat DECISION-G2 §5/A21 « fidélité URDF — à décider si un reviewer l'exige » est
+  PÉRIMÉ : faisable (spike) et PLANIFIÉ (S10-bis). Renvoi inline au corps signé (pas de réécriture, doctrine
+  D45) : « *[résolu : iiwa réel faisable, spike FK rationnelle q*=0 ; livré S10-bis]* » à l'emplacement A21
+  de DECISION-G2.md §5.
+
+**Diffs (circuit A16, repliés au commit de clôture S10)** : **D47** [A21 résolu] renvoi inline §5
+DECISION-G2.md ; **D48** [A39] CLAUDE.md section S10 annotée + section S10-bis insérée au plan ; **D49**
+header CLAUDE.md v1.15 + changelog.
+
+**Prochaine étape** : gate V6 TOUJOURS OUVERT (aucun « VALIDÉ S10-V6 ») — re-présenter artefacts + budget
+prédit + mention Meshcat 3D, PUIS ARRÊTER si non validé. Après V6 : certifier G4' (iiwa-LIKE) + clôturer.
+Puis S10-bis (vrai iiwa, ordre imposé : convention/parité Drake AVANT la scène).
