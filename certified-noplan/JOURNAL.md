@@ -2683,3 +2683,62 @@ publication (repli iiwa-LIKE = filet, pas cible).
 
 **Diffs** : **D50** (A40 → règle 11, bloc validation visuelle) ; **D51** (header CLAUDE.md v1.16, changelog).
 **Prochaine étape** : S10-bis (vrai iiwa, flagship d'en-tête).
+
+## 2026-06-18 — Session S10-bis (Claude Code, GATÉE) — CONVENTION iiwa7 RÉSOLUE + parité Drake ; coupe Tâche 1 → Tâches 2-4 en S10-ter
+
+Cible : vrai KUKA iiwa7 fidèle, certifié exact = flagship d'en-tête. **Ordre imposé respecté** : la
+convention de composition + parité Drake D'ABORD. **Coupe naturelle prise** (autorisée par le prompt) : la
+Tâche 1 (le risque) est livrée comme deliverable autonome ; **Tâches 2-4 (scène, V6-bis, certif) → S10-ter**.
+`verify.py` SACRÉ — zéro diff. État vert d'ouverture : 199 passed. Ouverture doc circuit A16 `7304da0`
+(revue G4', A40, D50-D51, v1.16).
+
+**Fait (Tâche 1 — convention + parité)** :
+- **Convention de composition RÉSOLUE** (les 2 essais ratés du spike venaient d'un mauvais repère de
+  pliage). Forme exacte par-joint : `T_i(θ) = X_PF_i · Rot(z,θ) · X_ML_i` (sous-frames du joint, z l'axe
+  dans F) — parité par-joint EXACTE. Pliage des constantes : `FK = G_0·Rot(z,θ_1)·G_1·…·Rot(z,θ_7)·G_7`,
+  `G_i = X_ML_i·X_PF_{i+1}` = translation rationnelle + rotation permutation-signée.
+- **Chaîne rationalisée verify-compatible** (`scripts/build_iiwa7_chain.py` → frozen `scripts/iiwa7_chain.json`) :
+  19 entrées = 7 joints VARIABLES (axe z coordonné) + 12 joints VERROUILLÉS (rotations élémentaires x/y/z à
+  cos/sin ∈ {0,±1}, mécanisme S9c) ; offsets rationnels (`limit_denominator 1e6`). **Tout rationnel, forme
+  `{offset, axe unitaire, locked cos/sin}` que `verify.py` re-dérive — INTACT.**
+- **Parité Drake = 1,99e-6** (max erreur position / 1500 configs aléatoires dans ±2,9). Fidèle au SDF à sa
+  propre précision (~3,67e-6) ; **modèle interne EXACT**.
+- Test permanent `tests/test_iiwa7_chain.py` (3) : exactitude rationnelle + forme verify (axes unité,
+  cos²+sin²=1) ; build dans ratfk ; **parité Drake <5e-6** (skip si Drake/SDF absent, règle 13).
+
+**Décisions** :
+- **[Critère reformulé, Option A ratifiée par Stéphane 18/06]** Le critère « parité <1e-9 vs Drake » est
+  INATTEIGNABLE : le **SDF iiwa7 lui-même n'est aligné aux axes qu'à ~3,67e-6 rad** (arrondi quaternion ;
+  axes joints 2/6 ≈ [−2,65e-6, 3,67e-6, 1]). Matcher <1e-9 exigerait les axes irrationnels du SDF, que
+  `verify.py` (axes unitaires rationnels) ne porte pas. Critère retenu : **fidèle au SDF à ~4e-6 +
+  interne exact + verify-exact** — même doctrine de rationalisation que φ/obstacles et A21, appliquée à la
+  CINÉMATIQUE. Mesuré 1,99e-6, sous le seuil.
+- **Coupe Tâche 1 → S10-ter** (prompt : « si la Tâche 1 sature, clôturer sur la parité Drake seule »). Le
+  G4' iiwa-LIKE de S10 reste la porte acquise ; S10-ter monte la scène/V6-bis/certif sur la chaîne gelée.
+
+**Pièges** :
+- L'identité naïve `Rot(â,θ)·Xrel` (conjuguer Rot(z) à travers X_PF) est FAUSSE : la conjugaison déplace
+  la TRANSLATION (`X_PF·Rot = Rot(R·a)·X_PF` ne vaut que pour le bloc rotation). Le pliage CORRECT garde
+  l'axe z et plie les constantes en `G_i` (signed-perm) — c'est ça qui rationalise proprement.
+- `_decompose` (permutation signée → rotations élémentaires) : ordre des facteurs = produit GAUCHE-À-DROITE
+  comme SympyRatFK compose (M2 = M @ R_k, append) ; un prepend donne un produit inversé → FK fausse (vu :
+  parité 1,17 puis 0,43 avant correction).
+- Le SDF iiwa7 n'est pas exactement rationnel (≠ ce que le spike S10 « np.round(...,4) » laissait croire) —
+  d'où l'Option A ; ne PAS promettre <1e-9 sur un modèle SDF.
+
+**Décompte exact (clôture S10-bis)** : `make test` = **201 passed, 1 failed, 0 skipped, 0 warnings**
+(202 tests = 199 + 3 `test_iiwa7_chain`). **Le seul échec = `test_parallel_speedup`, FLAKE de timing
+consigné (D34/A34)** : re-run isolé **1,87×** (sérial 7,65 s / parallèle 4,09 s, 8 workers ; seuil ≥3×) sur
+machine CHARGÉE (4 users + serveur Meshcat `cnp show` laissé tournant par Stéphane + charge de session ;
+`uptime` load 3,0). **Pas une régression** : AUCUNE modif du moteur/parallélisme/witness ce session (changements
+= docs + scripts + scène/cert + tests + `viz`/`cli` hors chemin moteur) ; `verify.py` **zéro diff** (vérifié).
+Mesure de référence quiète ~3,6× (cf. entrées antérieures). À re-confirmer sur machine quiète à l'ouverture S10-ter.
+
+**Diffs CLAUDE.md** (règle 14) : aucun en clôture (v1.16 + A40/D50-D51 à l'ouverture `7304da0`). Le critère
+reformulé (Option A) est une décision de pilotage journalisée, pas une réécriture de porte.
+
+**Prochaine étape** : revue supervision S10-bis (critère Option A + parité) ; puis **S10-ter** (Tâches 2-4 sur
+la chaîne gelée `iiwa7_chain.json` : choisir le lien proximal certifié + panneau d'étagère sur la VRAIE
+géométrie iiwa, **re-mesurer les dims actives via pair_views — NE PAS présumer {0,1,2}** ; corps = coque
+convexe fidèle rationalisée du mesh Drake ; vérité-terrain dense ; interactif A24 + figures du vrai iiwa ;
+**gate V6-bis** A20 ; certif G4' sur le vrai robot). Repli inchangé : iiwa-LIKE = filet, vrai iiwa = cible.
