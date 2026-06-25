@@ -2605,3 +2605,55 @@ header CLAUDE.md v1.15 + changelog.
 **Prochaine étape** : gate V6 TOUJOURS OUVERT (aucun « VALIDÉ S10-V6 ») — re-présenter artefacts + budget
 prédit + mention Meshcat 3D, PUIS ARRÊTER si non validé. Après V6 : certifier G4' (iiwa-LIKE) + clôturer.
 Puis S10-bis (vrai iiwa, ordre imposé : convention/parité Drake AVANT la scène).
+
+## 2026-06-18 — Session S10 (Claude Code, GATÉE) — FLAGSHIP iiwa-LIKE certifié : **G4' ACQUISE** (PROOF + verify exact + A32=0)
+
+**V6 validée par Stéphane** (« VALIDÉ S10-V6 ») APRÈS l'arbitrage Option A recadrée (entrée pilotage
+ci-dessus). **verify.py SACRÉ — zéro diff** (cas de base G3'b, spatial q*=0 sans verrou).
+
+**Fait** :
+- Scène flagship `scenes/S5_iiwa_shelf.yaml` (7-DOF tous libres, q*=0, `spatial_revolute` pur). `pair_views`
+  ⟹ dims actives {0,1,2}, distaux {3,4,5,6} passifs.
+- **Gate V6** : interactif A24 7 curseurs (1re 7-DOF sans verrou) + figures C-space/sweep (A20) + budget
+  prédit présentés ; Meshcat 3D signalé. **A24 INVARIANT prouvé** (`tests/test_flagship_interactive.py` : la
+  logique JS FK+collision reproduit l'oracle Python, 0 écart sous node ; correction du point proximal du
+  corps dans `viz`). Les 3 boutons d'évasion (direct / par-dessus / distaux-redondance) ⟹ BLOQUÉ.
+- Vérité-terrain dense **ré-assertée** (règle 9, `flagship_groundtruth.py`) : 0 libre dalle (120k uniforme +
+  448 coins), invariance redondance (16 extrêmes distaux TOUS en collision), libre des 2 côtés.
+- **CERTIFICATION G4'** (`flagship_bench.py`) : `cnp certify scenes/S5_iiwa_shelf.yaml` → **PROOF** ;
+  `cnp verify` indépendant exact → **OK** ; **A32 `n_reresolve_failed` = 0**. 8 feuilles (4 collision,
+  4 outside). **PREMIER certificat 7-DOF NON SYNTHÉTIQUE** du projet (vs synthétique S9d / scellé S9f) —
+  chiffre de G4' sur banc iiwa-LIKE sanctionné (A21). Cert archivé `scenes/S5_iiwa_shelf.cert.json` ;
+  benchmark daté `benchmarks/results/20260625T082956Z/flagship_S10_iiwa_like.json` (commit + git_dirty, règle 7).
+
+**Mesuré vs prédit (discipline budget avant run)** :
+- feuilles : prédit ~8, **mesuré 8** ✓
+- coût/feuille réduit : prédit 766 lignes, **mesuré 766** ✓ (exact ; (d+1)^3 = 4^3)
+- réduction A30 : full 7-DOF = **469 006** lignes ⟹ **×612** (le levier proximal qui rend le 7-DOF gratuit)
+- wall-clock : prédit « secondes » ; mesuré **certify 16,2 s + verify 3,5 s**. Écart commenté : le terme
+  dominant n'est PAS le LP de feuille (766 l., cheap) mais la **re-résolution pleine-dim à l'export**
+  (soundness S8, voit les 7 dims, 469k l.) ; verify (clé de crédibilité) = 3,5 s. Trivialement sous budget.
+
+**Décisions** :
+- G4' acquise sur le banc iiwa-LIKE (A21, porte technique sans signature). Flagship d'EN-TÊTE (papier/deck)
+  = vrai iiwa, livré en **S10-bis** (A39 ; faisabilité acquise par le spike, verify.py intact).
+- Diffs doc D47-D49 (arbitrage) au commit doc `64b6c61` (circuit A16).
+
+**Pièges** :
+- L'interactif A24 prenait l'ORIGINE MONDE comme base du corps (collision fausse) ; corrigé en point
+  proximal réel (shoulder→elbow) ⟹ parité EXACTE JS=oracle (test node). **Leçon : un artefact de viz peut
+  MENTIR sans un invariant testé.**
+- Le wall-clock de certif est piloté par la re-résolution pleine-dim (7 dims), PAS par le LP de feuille
+  (3 dims actives) — ne pas confondre coût/feuille et coût d'export.
+- `_lp_rows` est un helper local de `calibrate_g2` (pas dans `engine`) — répliqué dans `flagship_bench`.
+- Bench run sur arbre dirty (cert + bench non commités) ⟹ `git_dirty=true` dans le JSON, assumé.
+
+**Décompte exact (clôture S10)** : `make test` = **199 passed, 0 skipped, 0 warnings** (~207 s), pas de
+flake (`test_parallel_speedup` vert ; D34 : aucun re-run isolé). Aucune modif src depuis `258fc4d` (viz/cli
+inclus au V6-pending) — S10 ajoute scripts + scène + cert + docs.
+
+**Diffs CLAUDE.md** (règle 14) : header v1.15 + S10 annotée + section S10-bis — au commit doc `64b6c61` (D48/D49).
+
+**Prochaine étape** : revue de supervision G4' ; puis **S10-bis** (VRAI KUKA iiwa, flagship d'en-tête —
+ordre imposé : convention + parité Drake <1e-9 AVANT la scène ; `verify.py` intact). Puis S11 (pack démo
+bin-picking + capot certifiés ; viz complète A11/sweep/axes physiques).
