@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.15 — 18 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f + arbitrage robot réaliste S10 ; v1.0..v1.14 dans git).
+Version 1.16 — 18 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4' + arbitrage robot réaliste S10 ; v1.0..v1.15 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -105,6 +105,12 @@ d'un faux). **[A39]** flagship d'en-tête papier/deck = vrai iiwa (S10-bis) ; ii
 signées ±90° ⟹ cos/sin rationnels ⟹ forme `verify.py` S9c, INTACT) ⟹ iiwa réel faisable, ni POE ni
 extension de verify ; **[D47]** renvoi inline §5 DECISION-G2.md, **[D48]** section S10-bis insérée au plan,
 **[D49]** ce header+changelog. Détail : entrée « Décision de pilotage — arbitrage robot réaliste » de JOURNAL.md.
+Changements v1.15 → v1.16 (revue G4', **[A40]**, D50-D51) : **G4' ACQUISE** sur banc iiwa-LIKE sanctionné
+(PROOF + verify exact + A32=0, 8 feuilles, ×612 A30, verify.py zéro diff) ; **[A40]** tout artefact de viz à
+valeur d'ARGUMENT exige un invariant TESTÉ reproduisant l'oracle de vérité (règle 11 amendée, D50) — bug S10
+de l'interactif A24 (base du corps à l'origine monde) attrapé par le test de parité JS=oracle ; **[D51]** ce
+header+changelog. S10-bis (vrai iiwa, flagship d'en-tête) confirmé non optionnel. Détail : entrée « Revue de
+supervision G4' / S10 » de JOURNAL.md.
 
 ---
 
@@ -216,6 +222,13 @@ extension de verify ; **[D47]** renvoi inline §5 DECISION-G2.md, **[D48]** sect
     PROOF/ENGINE-PROOF : limites en degrés + pas de wrap-around (⊂ (−π,π)) + obstacles
     statiques + corps = polytopes + géométrie exacte. Helpers `viz.joint_limits_deg` /
     `viz.limits_caption`.
+    **[A40, revue G4'] Invariant TESTÉ pour toute viz à valeur d'ARGUMENT.** Un artefact de
+    visualisation qui porte un argument (collision, atteignabilité, séparation des composantes —
+    pas seulement de l'habillage) DOIT être adossé à un test qui reproduit l'oracle de vérité et
+    asserte l'égalité (ex. S10 : la logique JS FK+collision de l'interactif A24 rejouée sous `node`
+    contre `scenes.collision_oracle`, 0 écart). La discipline verify (« sound parce qu'on
+    recompte ») s'étend à la viz argumentative : sans cet invariant, un gate visuel peut valider un
+    artefact qui ment (bug S10 : base du corps prise à l'origine monde, attrapé par le test).
 
 12. **Anti-dérive de spec (NOUVEAU).** Si l'implémentation diverge délibérément de
     SPEC.md (exemples actés en S1-S2 : s = tan((q−q*)/2) avec q* de référence au

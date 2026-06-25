@@ -2657,3 +2657,29 @@ inclus au V6-pending) — S10 ajoute scripts + scène + cert + docs.
 **Prochaine étape** : revue de supervision G4' ; puis **S10-bis** (VRAI KUKA iiwa, flagship d'en-tête —
 ordre imposé : convention + parité Drake <1e-9 AVANT la scène ; `verify.py` intact). Puis S11 (pack démo
 bin-picking + capot certifiés ; viz complète A11/sweep/axes physiques).
+
+## 2026-06-18 — Revue de supervision G4' / S10 (claude.ai, transcrite Code) — G4' ACQUISE, [A40]
+
+Verdict : **G4' acquise** (banc iiwa-LIKE sanctionné A21). PROOF + verify exact + A32=0, 8 feuilles,
+verify.py zéro diff (cas de base spatial q*=0), 199/0/0 sans flake, diffs D47-D49 à `64b6c61`. Conforme.
+
+Chiffre de la session : **×612** (full 7-DOF 469 006 lignes → réduit 766) — 1re mesure du levier A30 sur le
+flagship réel ; le 7-DOF est gratuit parce que le corps est proximal. Cœur du papier, désormais chiffré sur
+scène non synthétique.
+
+Au-dessus de l'attendu : (1) écart budget disséqué honnêtement — le coût certif (16,2 s) est piloté par la
+**RE-RÉSOLUTION PLEINE-DIM à l'export** (soundness S8, 7 dims, 469k l.), PAS par le LP de feuille (766 l.
+trivial) ; terme parallélisable, bonne grandeur à citer ; (2) l'interactif A24 prenait l'origine monde comme
+base du corps (collision fausse), attrapé par le test de parité JS=oracle sous node — sans cet invariant, V6
+validait un artefact qui ment.
+
+Réserve mineure (gérée par le plan) : G4' sur banc iiwa-LIKE, pas le vrai robot ⟹ le tampon G4' et le
+flagship d'en-tête divergent jusqu'à S10-bis ; **S10-bis n'est pas optionnel**, il aligne porte et
+publication (repli iiwa-LIKE = filet, pas cible).
+
+- **[A40]** Tout artefact de visualisation qui porte un ARGUMENT (collision, atteignabilité, séparation des
+  composantes) exige un invariant TESTÉ reproduisant l'oracle de vérité — pas seulement les artefacts de
+  preuve. Étend la discipline verify (« sound parce qu'on recompte ») à la viz à valeur d'argument.
+
+**Diffs** : **D50** (A40 → règle 11, bloc validation visuelle) ; **D51** (header CLAUDE.md v1.16, changelog).
+**Prochaine étape** : S10-bis (vrai iiwa, flagship d'en-tête).
