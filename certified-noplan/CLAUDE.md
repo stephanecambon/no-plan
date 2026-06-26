@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.17 — 18 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis + arbitrage robot réaliste S10 ; v1.0..v1.16 dans git).
+Version 1.18 — 26 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter + arbitrage robot réaliste S10 ; v1.0..v1.17 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -111,6 +111,16 @@ valeur d'ARGUMENT exige un invariant TESTÉ reproduisant l'oracle de vérité (r
 de l'interactif A24 (base du corps à l'origine monde) attrapé par le test de parité JS=oracle ; **[D51]** ce
 header+changelog. S10-bis (vrai iiwa, flagship d'en-tête) confirmé non optionnel. Détail : entrée « Revue de
 supervision G4' / S10 » de JOURNAL.md.
+Changements v1.17 → v1.18 (revue S10-ter, **[A43]**, D55-D56) : **robot iiwa ENTIÈREMENT défini gelé** —
+cinématique (`iiwa7_chain.json`, 1,99e-6) ET silhouette (`iiwa7_body_link3.json`, corps convexe fidèle 40
+sommets, parité 1,67e-6 < plancher SDF), verify.py zéro diff ; dims actives RE-MESURÉES (0,1,2), distaux
+passifs AUTOMATIQUEMENT (corps proximal après q3). **[A43]** la fidélité géométrique du CORPS change la
+difficulté de conception du piège (corps-segment = grand levier ⟹ piège lacet de base facile ; corps à
+silhouette réelle = compact ⟹ levier disparu ⟹ séparation lacet de base marginale ~6 mm, refusée) → règle 9 ;
+le piège proximal franc d'un robot réaliste vient d'un séparateur à grand levier (pitch d'épaule) ou d'un
+obstacle enfermant (coin/wedge), PAS du lacet de base ; corollaire vérité-terrain : un corps K-sommets exige
+un oracle corps-convexe vs H-rep (LP), pas l'échantillonnage de segment de `collision_oracle` ; **[D55]** A43
+→ règle 9 ; **[D56]** ce header+changelog. Détail : entrée « Revue de supervision S10-ter » de JOURNAL.md.
 Changements v1.16 → v1.17 (revue S10-bis, **[A41-A42]**, D52-D54) : **convention iiwa7 RÉSOLUE** et chaîne
 rationnelle verify-compatible gelée (`scripts/iiwa7_chain.json`, parité Drake 1,99e-6, verify.py zéro diff) ;
 **critère parité Option A RATIFIÉ** (« fidèle au SDF ~4e-6 + interne exact + verify-exact » — doctrine A21
@@ -190,6 +200,18 @@ de JOURNAL.md.
    (doctrine A21 étendue à la cinématique). Corollaire papier : la fidélité au robot PHYSIQUE
    est plafonnée par la précision de l'URDF publié (~2e-6 rad mesuré), pas par la méthode —
    énoncer « cinématique fidèle à l'URDF iiwa7 à 2e-6 près », PAS « le iiwa exact ».
+   **[A43, S10-ter] La FIDÉLITÉ GÉOMÉTRIQUE DU CORPS change la difficulté de conception du
+   piège.** Tout le projet a piégé des corps-SEGMENTS (grand levier ⟹ déconnexion par lacet de
+   base facile, S5/S6) ; un corps à SILHOUETTE RÉELLE est compact ⟹ le levier disparaît ⟹ la
+   séparation par lacet de base devient marginale (vrai link3 iiwa : ~6 mm mesuré, REFUSÉ à
+   juste titre — ne pas graver une déconnexion que la marge ne soutient pas, lignée pas-de-×400
+   appliquée à la géométrie). Sur un robot réaliste, le piège proximal FRANC vient d'un
+   séparateur à GRAND LEVIER réel (pitch d'épaule) ou d'un obstacle ENFERMANT (coin/wedge, sans
+   levier articulaire), PAS du lacet de base. **Corollaire vérité-terrain** : un corps convexe
+   à K sommets exige un oracle CORPS-CONVEXE vs H-rep (LP de faisabilité), PAS l'échantillonnage
+   de SEGMENT de `collision_oracle` (scenes.py) — sinon vérité-terrain fausse ⟹ régression
+   micro-canal/scène-leaky. C'est aussi un RÉSULTAT du papier (un humain ne voit pas qu'un blob
+   proximal est piégé — l'outil le prouve).
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).

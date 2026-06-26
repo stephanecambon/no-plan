@@ -2860,3 +2860,43 @@ ligne « État d'avancement » S10-ter ajoutée (14b).
 (2) conception du piège FRANC sur le vrai robot (arbitrer séparateur/obstacle/lien) ; (3) vérité-terrain dense 0-libre ;
 (4) interactif A24 (invariant A40 JS=oracle) + figures + sweep ; (5) **gate V6-bis** (A20) ; (6) certif G4' sur le
 vrai robot + verify exact + A32=0. Puis revue supervision. Repli inchangé : iiwa-LIKE = filet, vrai iiwa = cible.
+
+---
+
+## 2026-06-26 — Revue de supervision S10-ter (claude.ai) — robot entièrement défini, finding A43, cap S10-quater
+
+Verdict : S10-ter validée. Le vrai iiwa est désormais ENTIÈREMENT défini en forme verify-
+compatible — cinématique (S10-bis, 1,99e-6) ET silhouette (S10-ter, corps convexe fidèle 40
+sommets, parité 1,67e-6 < plancher SDF), les deux gelées, verify.py zéro diff. Dims actives
+RE-MESURÉES (0,1,2) via pair_views, pas présumées : la vraie cinématique n'a pas décalé la
+passivité (corps après q3 ⟹ q4-q7 en aval ⟹ passifs automatiquement) — « robuste à la
+redondance » tombe de la géométrie réelle. Budget (d+1)^3 trivial, identique au banc. A42
+exécuté proprement (test sorti du requis vers make bench-parallel ; diagnostic systématique,
+best-of-N exclu à juste titre). 204/0/0, doc à `1576515`. Conforme.
+Le finding central : le vrai link3 est un blob compact proximal (~0,13 m) sans le levier 0,3 m
+du SEGMENT iiwa-LIKE ⟹ séparation par lacet de base marginale (~6 mm). Code a REFUSÉ de graver
+un piège à 6 mm (« fragile, contraire à la discipline ») et a coupé — exactement la bonne
+décision (lignée pas-de-×400 appliquée à la géométrie : ne pas vendre une déconnexion que la
+marge ne soutient pas). Leçon générale au-delà de la session : tout le projet a piégé des
+corps-SEGMENTS (grand levier ⟹ piège lacet de base facile) ; un corps à silhouette réelle est
+compact ⟹ le levier disparaît ⟹ les déconnexions réalistes ne sont pas géométriquement les
+mêmes que sur un robot-jouet. C'est aussi un RÉSULTAT du papier (un humain ne voit pas qu'un
+blob proximal est piégé — l'outil le prouve).
+Second finding (technique) : collision_oracle (scenes.py) n'échantillonne que le SEGMENT
+hull[0]→hull[-1] — inadéquat pour un corps à 40 sommets ; la vérité-terrain exige un oracle
+corps-convexe vs H-rep (LP de faisabilité, hors verify.py sacré), à livrer AVANT toute
+conception de piège (sinon vérité-terrain fausse ⟹ régression micro-canal/scène-leaky).
+**[A43]** La fidélité géométrique du CORPS change la difficulté de conception du piège.
+Corps-segment = grand levier ⟹ piège lacet de base facile ; corps à silhouette réelle =
+compact ⟹ levier disparu ⟹ séparation lacet de base marginale (~6 mm mesuré, refusé). Sur un
+robot réaliste, le piège proximal franc vient d'un séparateur à grand levier réel (pitch
+d'épaule q2) ou d'un obstacle enfermant (coin/wedge, sans levier articulaire), pas du lacet de
+base. Corollaire vérité-terrain : un corps convexe K-sommets exige un oracle corps-convexe vs
+H-rep (LP de faisabilité), PAS l'échantillonnage de segment de collision_oracle — AVANT toute
+conception de piège.
+Diffs : D55 (A43 → leçons de conception de scène, à côté du piégeage proximal S5/S6) ; D56
+(header CLAUDE.md v1.18, changelog « v1.17→v1.18 (revue S10-ter, A43) : robot iiwa
+entièrement défini gelé ; fidélité du corps change la difficulté du piège ; oracle
+corps-convexe vs H-rep requis pour vérité-terrain K-sommets »).
+Cap S10-quater : oracle corps-convexe d'abord ; piège franc (wedge premier choix, pitch q2
+second, lien distal filet) ; vérité-terrain dense ; interactif A24 ; V6-bis ; certif G4'.
