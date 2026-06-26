@@ -2784,3 +2784,79 @@ Diffs : D52 (A41 → règle 9, à côté d'A28 — vérifier la source avant d'a
 Option A ratifié (fidèle SDF ~4e-6 + interne exact) ; tolérance de franchissement vérifiée
 contre la précision source ; flake parallel_speedup à durcir »).
 Prochaine étape : S10-ter (Tâches 2-4 sur la chaîne gelée).
+
+---
+
+## 2026-06-26 — Session S10-ter (Claude Code, GATÉE) — corps convexe fidèle GELÉ + dims actives MESURÉES ; coupe Tâche 2 → S10-quater
+
+Suite de S10-bis (convention + parité Drake résolues, chaîne gelée `iiwa7_chain.json`). Objectif : monter
+la scène flagship sur la VRAIE géométrie iiwa, corps convexe fidèle, V6-bis, certif G4'. **Coupe naturelle
+prise** (autorisée par le prompt — « si la Tâche 2 sature, clôturer sur scène + vérité-terrain + corps convexe,
+V6-bis/certif → S10-quater ») : la Tâche 2 est un vrai travail de recherche géométrique. `verify.py` SACRÉ —
+zéro diff.
+
+**Fait (ouverture)** :
+- Nettoyage : aucun Meshcat/`cnp show` résiduel (le port 7000 = ControlCenter macOS/AirPlay, pas Meshcat).
+  Machine quiète (load ~2,0 sur 10 cœurs ≈ 20 %).
+- **[A42 EXÉCUTÉ]** `test_parallel_speedup` a flaké une 4e fois (isolé sur desktop actif : 2,04× ; série
+  7,59 s / parallèle 3,72 s ; seuil ≥3×). Diagnostic : throttle SYSTÉMATIQUE par ~2 cœurs d'occupation
+  desktop inkillables sur 10 (cold==warm pool mesuré, PAS une régression — zéro diff moteur ; le best-of-N
+  est exclu, ce n'est pas un hiccup transitoire). Appliqué l'option A42 « sortir du `make test` requis vers
+  un bench séparé » : marqueur pytest `bench`, `@pytest.mark.bench`, `make test` = `-m "not bench"`,
+  `make bench-parallel` = `-m bench`. Référence quiète ~3,6× journalée. Commit `b465042`.
+- Doc circuit A16 (commit séparé `1576515`) : revue S10-bis transcrite (A41-A42), CLAUDE.md v1.17 (D52 A41→règle
+  9 ; D53 A42→section plan S10-ter ; D54 header+changelog).
+
+**Fait (Tâche 2)** :
+- **Corps convexe fidèle (niveau 1) GELÉ** → `scripts/iiwa7_body_link3.json` (+ tooling `scripts/build_iiwa7_scene.py`,
+  test `tests/test_iiwa7_body.py`, 3). Pipeline : coque convexe Drake du **mesh de VISU du lien 3** (`Mesh.GetConvexHull()`,
+  1301 sommets, convention Drake correcte — PAS le `.bin` gltf Y-up) → **support-échantillonnage** à 40 directions
+  (Fibonacci sphere ; chaque sommet = vrai point extrême) → 40 sommets → **exprimés dans la frame-chaîne après q3**
+  → **rationalisés** (`limit_denominator 1e6`, re-vérifiables exact). Remplace le segment épaissi. **UNE** coque/corps
+  (niveau 2 multi-pièces hors périmètre).
+- **Parité corps vs Drake = 1,67e-6** (coque rationalisée via FK chaîne vs lien 3 Drake réel, 400 cfg × 40 sommets ;
+  sous le plancher SDF ~3,67e-6 ; modèle interne EXACT). Doctrine Option A (A21/A41) étendue à la SILHOUETTE.
+- **Intégration chaîne gelée → scène CONFIRMÉE** : robot `spatial_revolute` 19 joints + 12 verrouillés + q_star 19×0
+  se monte, FK marche, `body_link=7` (q3).
+- **[Dims actives RE-MESURÉES via `engine.pair_views` — PAS présumées, A30]** = **(0,1,2)**, passives (3,4,5,6).
+  La vraie cinématique (rotations inter-joints réelles) n'a PAS décalé les dims : corps après q3 ⇒ seuls les
+  variables AMONT {q1,q2,q3} le bougent ; q4-q7 géométriquement en aval = passifs (thèse « robuste à la redondance »
+  automatique pour un corps proximal). Budget prédit **(d+1)^3 = 64 lignes/LP**, identique au banc iiwa-LIKE.
+
+**Décisions** :
+- **Coupe Tâche 2 → S10-quater** : livrés = corps convexe fidèle gelé + intégration + dims mesurées. Reste
+  (piège franc + vérité-terrain 0-libre + interactif A24 + figures + V6-bis + certif G4') → S10-quater. Forcer un
+  piège marginal (6 mm) serait fragile, contraire à la discipline. Repli iiwa-LIKE (G4' S10) inchangé.
+- **Lien proximal certifié = link 3** (3 actives, 4 distales passives — mirroir exact iiwa-LIKE ; corps réel).
+
+**Pièges / findings (à ne pas repayer)** :
+- La chaîne REPLIÉE n'expose PAS les frames de liens Drake comme frames intermédiaires (`G_i = X_ML_i·X_PF_{i+1}`
+  mêle le côté lien i et le côté joint i+1). MAIS la frame-chaîne après q3 est rigidement reliée au lien 3 Drake
+  par l'offset constant X_ML_3 ⟹ on exprime la coque dans la frame-chaîne via les poses à q=0 (C = X_chain0⁻¹·X_drake0),
+  valable pour TOUT q par rigidité. Parité body 1,67e-6 le confirme.
+- **`scenes.collision_oracle` (scenes.py:364) n'échantillonne que le SEGMENT `hull[0]→hull[-1]`** — INADÉQUAT pour
+  un corps convexe à K sommets. La vérité-terrain S10-quater exige un oracle **corps-convexe vs H-rep** (LP de
+  faisabilité indépendant ; hors `verify.py` sacré, c'est l'oracle de vérité-terrain). À livrer en S10-quater AVANT
+  toute conception de piège.
+- **GÉOMÉTRIE — piège franc non trivial sur le VRAI robot** : le vrai link3 est un blob compact proximal (~0,13 m),
+  SANS le levier 0,3 m du segment iiwa-LIKE simplifié ⟹ la base-yaw le bouge peu ⟹ séparation base-yaw **MARGINALE**
+  (mesuré : seul pitch ±15° symétrique sépare un mur +y, marge ~6 mm ; à pitch=0 les configs du slab et de
+  start/goal sont quasi au même endroit près de l'axe — l'unique discriminateur est la rotation azimutale 62°
+  d'un blob de rayon 0,11 ; les pitches extrêmes replient le lien hors de toute bande). 0 voxel commun sur le slab
+  à pitch ±70°. **Conséquence S10-quater** : concevoir un piège FRANC — pistes à arbitrer (séparateur = q2 pitch à
+  grand levier plutôt que base-yaw ; obstacle H-rep en coin/wedge ; OU lien plus distal au prix de >3 dims actives,
+  budget S9f OK). L'iiwa-LIKE marchait parce que son corps-SEGMENT avait un grand levier — leçon : la fidélité
+  géométrique du corps change la difficulté du piège.
+
+**Décompte exact (clôture S10-ter)** : `make test` = **204 passed, 1 deselected, 0 skipped, 0 warnings**
+(204 = 201 + 3 `test_iiwa7_chain` + 3 `test_iiwa7_body` ; le 1 deselected = `test_parallel_speedup`, marqueur
+`bench`, durci A42 hors du requis). `test_parallel_speedup` : statut = **durci A42** (bench séparé `make bench-parallel`,
+machine quiète ; référence ~3,6×), n'est plus dans le `make test` requis.
+
+**Diffs CLAUDE.md** (règle 14) : à l'ouverture v1.17 + A41-A42 + section plan S10-ter (`1576515`) ; à la clôture
+ligne « État d'avancement » S10-ter ajoutée (14b).
+
+**Prochaine étape** : **S10-quater** — (1) oracle corps-convexe vs H-rep (vérité-terrain pour corps K-sommets) ;
+(2) conception du piège FRANC sur le vrai robot (arbitrer séparateur/obstacle/lien) ; (3) vérité-terrain dense 0-libre ;
+(4) interactif A24 (invariant A40 JS=oracle) + figures + sweep ; (5) **gate V6-bis** (A20) ; (6) certif G4' sur le
+vrai robot + verify exact + A32=0. Puis revue supervision. Repli inchangé : iiwa-LIKE = filet, vrai iiwa = cible.

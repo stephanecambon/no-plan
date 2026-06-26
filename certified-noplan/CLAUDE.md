@@ -674,6 +674,23 @@ Entrée : chaîne gelée `scripts/iiwa7_chain.json` (parité Drake 1,99e-6, veri
   desktop ; le décompte requis devient **201 passed + 1 bench déselectionné** (la référence quiète ~3,6× est journalée).
 - Repli : coupe naturelle autorisée — si la Tâche 2 sature, clôturer sur scène + vérité-terrain + corps convexe ;
   V6-bis/certif → S10-quater. iiwa-LIKE (G4' S10) reste le filet.
+- 🔄 **S10-ter ACTÉE (26/06), COUPE Tâche 2** : livrés = **corps convexe fidèle GELÉ** (`scripts/iiwa7_body_link3.json`,
+  40 sommets du mesh de visu Drake lien 3, rationalisés, parité body 1,67e-6 ; test `tests/test_iiwa7_body.py`) +
+  intégration chaîne→scène + **dims actives RE-MESURÉES = (0,1,2)** (passives 3,4,5,6 ; budget (d+1)^3 identique
+  iiwa-LIKE). A42 exécuté. `make test` = **204 passed, 1 deselected, 0 skip/warn**. Finding : piège base-yaw MARGINAL
+  sur le vrai link3 (blob compact, pas le levier du segment iiwa-LIKE). **Reste → S10-quater** : oracle corps-convexe
+  vs H-rep ; piège FRANC (séparateur/obstacle/lien à arbitrer) ; vérité-terrain 0-libre ; interactif A24 + figures ;
+  V6-bis ; certif G4' vrai robot. (voir JOURNAL.md S10-ter.)
+
+### S10-quater — VRAI iiwa7 : piège franc + vérité-terrain + V6-bis + certif G4' (reste de S10-ter) [coupe S10-ter]
+Entrée : corps convexe fidèle gelé `scripts/iiwa7_body_link3.json` (parité 1,67e-6) + chaîne gelée. `verify.py` SACRÉ.
+- **Oracle corps-convexe** : `collision_oracle` n'échantillonne que le segment `hull[0]→hull[-1]` (scenes.py:364) —
+  étendre à un test corps-convexe (K sommets) vs H-rep (LP de faisabilité indépendant, hors verify.py) AVANT toute
+  vérité-terrain.
+- **Piège FRANC** sur le vrai robot (le base-yaw sur link3 est marginal, ~6 mm) : arbitrer séparateur (q2 pitch à grand
+  levier ?), forme d'obstacle (H-rep wedge ?), ou lien plus distal (>3 dims actives, budget S9f OK). A20 non négociable.
+- Puis : vérité-terrain dense 0-libre (uniforme + biaisé-coins) ; interactif A24 (invariant A40 JS=oracle) + figures ;
+  **gate V6-bis** ; certif G4' (PROOF + verify exact + A32=0) sur le vrai robot. Repli iiwa-LIKE inchangé.
 
 ### S11 — Visualisation complète et assets (viz.py) + pack démo cas d'usage [D24]
 - Entrée : G4' (ou en parallèle après G2' si S10 traîne).
