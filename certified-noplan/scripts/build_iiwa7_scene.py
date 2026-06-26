@@ -235,6 +235,62 @@ def emit_scene(hull_rat, panel_b, box, start_s, goal_s, delta="1/10"):
             "pairs": ["SHELF_PANEL"], "budget": {"max_depth": 24, "axis": "margin"}}
 
 
+SCENE_OUT = os.path.join(HERE, "..", "scenes", "S6_iiwa_real_shelf.yaml")
+
+# Franc trap (S10-quater, A43): the proximal link 3 is a compact blob with NO base-yaw lever,
+# so we separate on q2 (shoulder PITCH — big real z-lever) and trap with an OVERHEAD SHELF.
+# slab {|s1|<=delta} = q2~0 = arm STRAIGHT UP = body high (top z~0.77); start/goal = q2=∓62deg =
+# arm tilted, body low (top z~0.60) -> clears the shelf. Ceiling z0 in the franc window
+# (0.597, 0.772): margins ~+90mm both sides (vs 6mm for base-yaw). Validated 0-free by the
+# convex oracle.
+_SHELF_XY = "1/2"          # finite overhead shelf half-extent in x,y (realistic, A20)
+_SHELF_Z0 = "17/25"        # 0.68: ceiling underside, mid franc window
+_SHELF_ZTOP = "1"
+_DELTA = "1/5"
+
+
+def write_scene_yaml():
+    """Freeze the franc flagship scene on the frozen chain + frozen faithful body."""
+    import yaml
+    hull_rat = [[F(x) for x in v] for v in json.load(open(BODY_OUT))["hull_vertices"]]
+    box = [["-7/10", "7/10"], ["-7/10", "7/10"], ["-7/10", "7/10"],
+           ["-3", "3"], ["-3", "3"], ["-3", "3"], ["-3", "3"]]
+    panel_b = [_SHELF_XY, _SHELF_XY, _SHELF_ZTOP, _SHELF_XY, _SHELF_XY,
+               str(F(_SHELF_Z0) * -1)]
+    data = emit_scene(hull_rat, panel_b, box,
+                      ["0", "-3/5", "0", "0", "0", "0", "0"],
+                      ["0", "3/5", "0", "0", "0", "0", "0"], delta=_DELTA)
+    data["phi"] = {"degree_per_var": 2, "coeffs": {"0,1,0,0,0,0,0": "1"}}   # phi = s1 (q2)
+    data["obstacles"]["SHELF_PANEL"] = data["obstacles"].pop("SHELF_PANEL")
+    header = (
+        "# S6 — FLAGSHIP d'EN-TÊTE : VRAI iiwa7 (chaîne + corps convexe fidèle GELÉS), portée 7-DOF\n"
+        "# CERTIFIÉE (S10-quater, porte G4'). Cinématique fidèle à l'URDF iiwa7 ~2e-6 (S10-bis) ET\n"
+        "# silhouette convexe fidèle 40 sommets, parité ~1.7e-6 (S10-ter). verify.py SACRÉ — zéro diff.\n"
+        "#\n"
+        "# RÉCIT. Un bras redondant 7-DOF (KUKA iiwa7) doit passer d'une pose basse (épaule pitchée d'un\n"
+        "# côté) à une pose basse symétrique (pitchée de l'autre) ; une ÉTAGÈRE EN SURPLOMB barre le\n"
+        "# passage par le haut. L'intuition dit « un bras à 7 axes, redondant, contournera ». Le certificat\n"
+        "# prouve le contraire : pour changer le SIGNE du pitch d'épaule (q2) il faut passer par q2~0 (bras\n"
+        "# DROIT, vertical), où le SEGMENT PROXIMAL (lien 3) percute l'étagère — et AUCUN des 4 joints\n"
+        "# distaux ne l'en sort (ils sont en aval du lien 3, passifs). Redondance inutile = THÈSE du flagship.\n"
+        "#\n"
+        "# POURQUOI PITCH ET PAS LACET (A43, finding S10-ter). Le vrai lien 3 est un blob COMPACT (~0.13 m),\n"
+        "# sans le levier 0.3 m du segment iiwa-LIKE : le lacet de base ne le bouge pas assez (séparation\n"
+        "# marginale ~6 mm, refusée). Le pitch d'épaule q2 a un GRAND levier en z réel (top du corps 0.81\n"
+        "# bras droit -> 0.55 bras incliné) ⟹ piège FRANC par étagère en surplomb (marge ~90 mm, mesurée).\n"
+        "#\n"
+        "# CORPS = COQUE CONVEXE FIDÈLE (niveau 1) du mesh de visu Drake du lien 3, 40 sommets rationalisés\n"
+        "# (verify recompte en Fraction), frame-chaîne après q3. Dims actives RE-MESURÉES (pair_views) =\n"
+        "# (0,1,2) ; distaux (3,4,5,6) passifs AUTOMATIQUEMENT. Budget (d+1)^3 = 4^3 = 64 lignes/LP.\n"
+        "# Obstacle = étagère H-rep EXACTE (étanche). VÉRITÉ-TERRAIN dense (oracle CORPS-CONVEXE, A43) :\n"
+        "# voir scripts/flagship_iiwa_real_groundtruth.py. Limites box ±70deg actifs / ±143deg passifs (A25).\n")
+    with open(SCENE_OUT, "w") as f:
+        f.write(header)
+        yaml.safe_dump(data, f, sort_keys=False, default_flow_style=None, width=120)
+    print(f"frozen flagship scene -> {SCENE_OUT}")
+    return SCENE_OUT
+
+
 def measure_active(scene_dict):
     """Re-measure the per-pair active dims via engine.pair_views (A30; NOT presumed)."""
     import yaml
@@ -248,4 +304,5 @@ def measure_active(scene_dict):
 
 
 if __name__ == "__main__":
-    freeze_body()
+    freeze_body()             # -> scripts/iiwa7_body_link3.json (needs Drake)
+    write_scene_yaml()        # -> scenes/S6_iiwa_real_shelf.yaml (from the frozen body)

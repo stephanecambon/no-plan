@@ -373,3 +373,40 @@ def collision_oracle(scene: _cert.Scene, n_samples: int = 40):
 def planar_collision_oracle(scene: _cert.Scene, n_samples: int = 40):
     """Backward-compatible alias of :func:`collision_oracle` (planar callers)."""
     return collision_oracle(scene, n_samples)
+
+
+def _convex_hrep_intersect(world_verts, A, b, tol: float = 1e-9) -> bool:
+    """Does the convex hull of ``world_verts`` (K x 3) intersect the H-rep polytope
+    ``{y : A y <= b}``?  Exact-INTENT LP feasibility: a point y in BOTH is a convex
+    combination ``y = Σ λ_k w_k`` (λ in the simplex) with ``A y <= b``.  Substituting,
+    the K λ's must satisfy ``(A W) λ <= b``, ``1·λ = 1``, ``λ >= 0`` — a feasibility LP.
+    Feasible  <=>  the bodies overlap (touching counts; the polytope is closed)."""
+    from scipy.optimize import linprog
+    W = np.asarray(world_verts, dtype=float)            # K x 3 world body vertices
+    A = np.asarray(A, dtype=float); b = np.asarray(b, dtype=float)
+    K = W.shape[0]
+    res = linprog(c=np.zeros(K), A_ub=A @ W.T, b_ub=b + tol,
+                  A_eq=np.ones((1, K)), b_eq=[1.0], bounds=(0.0, None), method="highs")
+    return bool(res.success)
+
+
+def convex_collision_oracle(scene: _cert.Scene):
+    """Ground-truth oracle ``f(s) -> bool`` for a K-vertex CONVEX BODY (S10-quater, A43):
+    does the body's convex hull (its K FK-transformed vertices at config ``s``) intersect
+    any scene obstacle (H-rep)?  This is the convex-body analogue the faithful iiwa silhouette
+    needs — :func:`collision_oracle` only samples the SEGMENT ``hull[0]..hull[-1]``, which is
+    blind to a 40-vertex body (S10-ter finding).  INDEPENDENT of the certificate (it transforms
+    the body vertices and solves an LP; it never reads λ/μ), seeded/deterministic.  ``True`` iff
+    the convex body overlaps some obstacle."""
+    body = _body_fk(scene)
+    hull = [[float(c) for c in v] for v in scene.hull_vertices]
+    obstacles = [(np.array([[float(x) for x in row] for row in A], dtype=float),
+                  np.array([float(x) for x in b], dtype=float))
+                 for (A, b) in scene.obstacles.values()]
+
+    def f(s) -> bool:
+        s = np.asarray(s, dtype=float)
+        W = np.array([body.eval_world_point(v, s) for v in hull])   # K x 3
+        return any(_convex_hrep_intersect(W, A, b) for A, b in obstacles)
+
+    return f

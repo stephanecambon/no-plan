@@ -713,6 +713,27 @@ Entrée : corps convexe fidèle gelé `scripts/iiwa7_body_link3.json` (parité 1
   levier ?), forme d'obstacle (H-rep wedge ?), ou lien plus distal (>3 dims actives, budget S9f OK). A20 non négociable.
 - Puis : vérité-terrain dense 0-libre (uniforme + biaisé-coins) ; interactif A24 (invariant A40 JS=oracle) + figures ;
   **gate V6-bis** ; certif G4' (PROOF + verify exact + A32=0) sur le vrai robot. Repli iiwa-LIKE inchangé.
+- 🔄 **S10-quater ACTÉE (26/06), COUPE Tâche 2-3** : livrés = **oracle CORPS-CONVEXE vs H-rep** (`scenes.convex_collision_oracle`,
+  LP ; test `tests/test_convex_oracle.py`) + **PIÈGE FRANC figé** `scenes/S6_iiwa_real_shelf.yaml` (séparateur = **q2
+  pitch d'épaule** à grand levier, A43 ; obstacle = **étagère en surplomb** H-rep ; marge **~90 mm** vs 6 mm base-yaw ;
+  corps = coque fidèle 40 sommets ; dims actives (0,1,2)) + **vérité-terrain dense** (`scripts/flagship_iiwa_real_groundtruth.py` :
+  0 libre/40k slab, 0 libre/448 coins, invariance redondance, 2 côtés libres ; test `tests/test_flagship_iiwa_real.py`).
+  `make test` = **208 passed, 1 deselected, 0 skip/warn**. **Reste → S10-quinquies** (ci-dessous). (voir JOURNAL.md S10-quater.)
+
+### S10-quinquies — VRAI iiwa7 : interactif A24 + figures + V6-bis + certif G4' (reste de S10-quater) [coupe S10-quater]
+Entrée : piège FRANC figé `scenes/S6_iiwa_real_shelf.yaml` (φ=q2, étagère surplomb, marge ~90 mm, vérité-terrain
+dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
+- **Tâche 4** : interactif A24 sur le vrai iiwa (curseurs 7 joints ; **corps = coque 40 sommets**, PAS un segment ;
+  verrouillés en cinématique fixe ; **invariant A40 JS=oracle TESTÉ** sous node, cohérent avec l'oracle corps-convexe
+  A43) ; fantômes start/goal (A24-a) ; chaque vue déclare ce qu'elle montre (A24-b) ; A25 par vue **avec ÉTIQUETTES
+  D'AXES PHYSIQUES corrigées** (finding S10-quater : `viz.joint_limits_deg` lit l'axe-chaîne brut « z » pour tous les
+  variables — dériver le type du joint de l'axe EFFECTIF locked·axis : q2 = pitch d'épaule). Figures C-space + sweep
+  (A20 apparence faisable). Meshcat 3D `cnp show`.
+- **Gate V6-bis** (STOP, humain, A20) : interactif + figures + budget de certif prédit (dims (0,1,2), (d+1)^3, feuilles
+  ≈ banc iiwa-LIKE, wall-clock) + **MARGE FRANCHE mesurée (~90 mm)**. Attendre « VALIDÉ S10-V6bis ».
+- **Tâche 5 (après V6-bis)** : `cnp certify` → PROOF ; `cnp verify` OK ; A32=0 ; vérité-terrain ré-assertée ; benchmark
+  daté (règle 7). **G4' RÉAFFIRMÉE sur le vrai robot** (cinématique ~2e-6 + silhouette ~1,7e-6 + déconnexion franche).
+  Caveat A41 (fidélité plafonnée par précision URDF, interne exact).
 
 ### S11 — Visualisation complète et assets (viz.py) + pack démo cas d'usage [D24]
 - Entrée : G4' (ou en parallèle après G2' si S10 traîne).

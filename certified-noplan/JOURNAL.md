@@ -2900,3 +2900,66 @@ entièrement défini gelé ; fidélité du corps change la difficulté du piège
 corps-convexe vs H-rep requis pour vérité-terrain K-sommets »).
 Cap S10-quater : oracle corps-convexe d'abord ; piège franc (wedge premier choix, pitch q2
 second, lien distal filet) ; vérité-terrain dense ; interactif A24 ; V6-bis ; certif G4'.
+
+---
+
+## 2026-06-26 — Session S10-quater (Claude Code, GATÉE) — oracle corps-convexe + PIÈGE FRANC (φ=q2 + étagère) + vérité-terrain ; coupe Tâche 2-3 → S10-quinquies
+
+Suite de S10-ter (robot iiwa entièrement défini gelé : chaîne `iiwa7_chain.json` + corps `iiwa7_body_link3.json`).
+Le travail de la session est le PIÈGE (le robot est fini, A43). `verify.py` SACRÉ — zéro diff. **Coupe Tâche 2-3
+prise** (autorisée par le prompt) : oracle + piège franc conçu + vérité-terrain livrés ; interactif A24/figures +
+V6-bis + certif → S10-quinquies.
+
+**Fait (ouverture)** : machine quiète, pas de Meshcat. Doc circuit A16 (`c746bec`) : revue S10-ter transcrite (A43),
+CLAUDE.md v1.18 (D55 A43→règle 9 ; D56 header). `make test` 204 confirmé à l'ouverture.
+
+**Fait (Tâche 1 — oracle corps-convexe)** :
+- **`scenes.convex_collision_oracle`** + helper testable **`_convex_hrep_intersect`** : teste si la coque convexe du
+  corps (40 sommets FK-transformés) intersecte un obstacle H-rep — **LP de faisabilité** (`y=Σλ_k w_k`, λ simplexe,
+  `Ay≤b` ⟹ `(AW)λ≤b, 1·λ=1, λ≥0`). Remplace l'échantillonnage de SEGMENT `hull[0]→hull[-1]` de `collision_oracle`,
+  aveugle à un corps K-sommets (finding S10-ter A43). INDÉPENDANT du certificat, hors `verify.py` sacré.
+- Test `tests/test_convex_oracle.py` (2) : cas hand-checkable cube↔boîte (chevauchement/disjoint/contact/tranche) +
+  intégration sur le VRAI corps iiwa gelé (collide/libre ; FK sympy + coque gelée, sans Drake).
+
+**Fait (Tâche 2 — PIÈGE FRANC)** :
+- **Insight A43 appliqué et MESURÉ** : levier z du corps link3 par joint actif — **q1 (yaw)** et **q3 (roll)** laissent
+  z INVARIANT (axes verticaux à q=0) ; **q2 (pitch d'épaule)** a un GRAND levier (top du corps 0,808 bras droit →
+  0,545 bras incliné ±70°, symétrique). ⟹ séparateur = **q2** (pas le lacet de base, marginal). Wedge non nécessaire.
+- **Piège** : **φ = s1 (q2)** ; slab {|s1|≤δ} = q2≈0 = bras DROIT vertical = corps HAUT ; **obstacle = ÉTAGÈRE EN
+  SURPLOMB** (H-rep étanche, x,y∈±1/2, z∈[17/25, 1]) que le corps haut percute ; start/goal (q2=∓62°, bras inclinés,
+  corps bas) passent dessous. δ=1/5. **Fenêtre franche de plafond mesurée : z0∈(0,597 ; 0,772), largeur 175 mm** ;
+  choisi z0=17/25=0,68 ⟹ marges **+92 mm (pénétration slab) / +83 mm (dégagement start-goal)** — vs **6 mm** du base-yaw.
+- **Scène figée `scenes/S6_iiwa_real_shelf.yaml`** (chaîne 19 joints + 12 verrouillés + corps 40 sommets ; verifiable
+  exact q*=0 ⟹ PROOF éligible). Dims actives RE-MESURÉES (0,1,2), distaux (3,4,5,6) passifs. Budget (d+1)^3=64 l./LP,
+  ≈ banc iiwa-LIKE. Générée par `scripts/build_iiwa7_scene.py:write_scene_yaml`.
+
+**Fait (Tâche 3 — vérité-terrain dense)** : `scripts/flagship_iiwa_real_groundtruth.py` (oracle CORPS-CONVEXE) —
+(A) start/goal libres ; (B) **0 libre / 40 000 uniforme** dans le slab ; (C) **0 libre / 448 coins** (2^6 non-barrière
+× 7 niveaux s1, extrêmes distaux balayés, S9f) ; (D) **invariance redondance** : 16 extrêmes distaux ⟹ TOUS collision ;
+(E) libre des 2 côtés (4000/4000). Marge franche ré-affichée (+92/+83 mm). Test rapide `tests/test_flagship_iiwa_real.py`
+(2 : forme de scène + sous-ensemble franc 448 coins + invariance + marge ≥40 mm).
+
+**Décisions** :
+- **Coupe Tâche 2-3 → S10-quinquies** : livrés = oracle corps-convexe + piège FRANC figé + vérité-terrain. Reste
+  (interactif A24 corps 40-sommets + invariant A40 JS=oracle + figures + V6-bis + certif G4') → S10-quinquies.
+- **Séparateur = q2 (pitch, grand levier réel)** + **étagère en surplomb** (A43 premier choix levier). Le wedge
+  (suggestion supervision) n'a pas été nécessaire : le levier de pitch suffit pour une marge ~90 mm.
+
+**Pièges / findings** :
+- **`viz.joint_limits_deg` étiquette chaque joint VARIABLE par son axe-chaîne (tous « z »)** — la chaîne repliée porte
+  l'axe z, le vrai axe physique (q2 = pitch) émerge de la rotation verrouillée précédente (G1). Étiquettes physiques
+  FAUSSES dans la sortie A25 actuelle ⟹ à corriger pour les figures (Tâche 4 S10-quinquies) : dériver le type de joint
+  de l'axe EFFECTIF (locked·axis), pas de l'axe-chaîne brut.
+- L'oracle corps-convexe coûte ~7,5 ms/LP (40k échantillons ⟹ ~5 min). Vérité-terrain dense = script ; le test garde un
+  sous-ensemble rapide (coins 448 + marge).
+
+**Décompte exact (clôture S10-quater)** : `make test` = **208 passed, 1 deselected, 0 skipped, 0 warnings**
+(208 = 204 + 2 `test_convex_oracle` + 2 `test_flagship_iiwa_real` ; 1 deselected = `test_parallel_speedup`, bench A42).
+
+**Diffs CLAUDE.md** (règle 14) : ouverture v1.18 + A43 + D55-D56 (`c746bec`) ; clôture ligne « État d'avancement »
+S10-quater + section plan S10-quinquies (14b).
+
+**Prochaine étape** : **S10-quinquies** — (4) interactif A24 sur le vrai iiwa (curseurs 7 joints ; corps = coque
+40-sommets ; **invariant A40 JS=oracle TESTÉ** ; étiquettes axes physiques corrigées) + figures C-space/sweep (A20
+apparence faisable, A25 par vue) ; (5) **gate V6-bis** (présenter marge FRANCHE + budget) ; (6) certif G4' (PROOF +
+verify exact + A32=0) sur le vrai robot. Repli inchangé : iiwa-LIKE = filet, vrai iiwa = cible.
