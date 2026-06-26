@@ -11,7 +11,7 @@ VENV_PY := $(VENV)/bin/python
 PYTEST  := $(VENV)/bin/pytest
 STAMP   := $(VENV)/.installed
 
-.PHONY: setup test test-fast test-slow figures clean
+.PHONY: setup test test-fast test-slow bench-parallel figures clean
 
 # Idempotent: re-running `make setup` does nothing unless pyproject.toml changed.
 setup: $(STAMP)
@@ -26,18 +26,26 @@ $(STAMP): pyproject.toml
 	@touch $(STAMP)
 	@echo "setup OK: $$($(VENV_PY) --version) in $(VENV)"
 
+# The required exit gate (rule 13). Excludes `bench` — wall-clock timing benchmarks
+# that need an idle machine and are NOT correctness tests (A42: test_parallel_speedup
+# flaked 4x on busy desktops; the speedup claim lives in the bench target below).
 test: setup
-	$(PYTEST)
+	$(PYTEST) -m "not bench"
 
 # Fast daily subset (< 30 s, CLAUDE.md S3 task 6): skips the slow regression replays
 # (E1/E2 SOS-SDP cross-check, the full E3/E4 b&b reproductions, parallel/resume).
 # The FULL `make test` is the one required at every session exit (rule 13).
 test-fast: setup
-	$(PYTEST) -m "not slow" -q
+	$(PYTEST) -m "not slow and not bench" -q
 
 # The slow replays on their own (handy when iterating on the engine).
 test-slow: setup
 	$(PYTEST) -m slow -q
+
+# Wall-clock benchmarks (A42) — run DELIBERATELY on a quiet machine. Currently the
+# >=3x parallel speedup check; the reference quiet ratio (~3.6x) is journalled (rule 7).
+bench-parallel: setup
+	$(PYTEST) -m bench -q
 
 # Certified-partition figures for the regression scenes (S3 task 4 / V1 validation).
 figures: setup
