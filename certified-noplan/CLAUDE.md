@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.16 — 18 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4' + arbitrage robot réaliste S10 ; v1.0..v1.15 dans git).
+Version 1.17 — 18 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis + arbitrage robot réaliste S10 ; v1.0..v1.16 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -111,6 +111,18 @@ valeur d'ARGUMENT exige un invariant TESTÉ reproduisant l'oracle de vérité (r
 de l'interactif A24 (base du corps à l'origine monde) attrapé par le test de parité JS=oracle ; **[D51]** ce
 header+changelog. S10-bis (vrai iiwa, flagship d'en-tête) confirmé non optionnel. Détail : entrée « Revue de
 supervision G4' / S10 » de JOURNAL.md.
+Changements v1.16 → v1.17 (revue S10-bis, **[A41-A42]**, D52-D54) : **convention iiwa7 RÉSOLUE** et chaîne
+rationnelle verify-compatible gelée (`scripts/iiwa7_chain.json`, parité Drake 1,99e-6, verify.py zéro diff) ;
+**critère parité Option A RATIFIÉ** (« fidèle au SDF ~4e-6 + interne exact + verify-exact » — doctrine A21
+étendue à la cinématique ; le seuil <1e-9 était inatteignable, le SDF iiwa7 n'est aligné aux axes qu'à
+~3,67e-6) ; **[A41]** toute tolérance de FRANCHISSEMENT d'un prompt de supervision est vérifiée contre la
+PRÉCISION DE LA SOURCE avant d'être imposée (→ règle 9, à côté d'A28) ; corollaire papier : fidélité physique
+plafonnée par la précision URDF publié (~2e-6), énoncer « fidèle à l'URDF iiwa7 à 2e-6 près », PAS « le iiwa
+exact » ; **[A42]** `test_parallel_speedup` (timing ≥3×) structurellement fragile (flaké S9a/S9c/S10-bis sous
+charge) : 4e occurrence ⟹ le rendre robuste OU le sortir du `make test` requis vers un bench séparé, jamais un
+re-run silencieux (→ S10-ter sortie + esprit règle 13) ; **[D52]** A41 → règle 9 ; **[D53]** A42 → section
+S10-ter + esprit règle 13 ; **[D54]** ce header+changelog. Détail : entrée « Revue de supervision S10-bis »
+de JOURNAL.md.
 
 ---
 
@@ -169,7 +181,15 @@ supervision G4' / S10 » de JOURNAL.md.
    débloqués (piège S4 — garde A12 en S5). **[A28, S8] Toute référence externe
    (papier, chiffre, benchmark, arXiv) citée dans SPEC/CLAUDE.md est VÉRIFIÉE à sa
    première utilisation par la session qui s'en sert** (leçon S7 : deux arXiv mal
-   attribués par la supervision ; corrigé S7-S8).
+   attribués par la supervision ; corrigé S7-S8). **[A41, S10-bis] Toute TOLÉRANCE DE
+   FRANCHISSEMENT (seuil de parité/précision) posée dans un prompt de supervision est
+   vérifiée contre la PRÉCISION DE LA SOURCE avant d'être imposée** (même esprit qu'A28 :
+   on vérifie la source avant d'affirmer). Leçon : « parité <1e-9 vs Drake » était
+   inatteignable — le SDF iiwa7 n'est aligné aux axes qu'à ~3,67e-6 (quaternions arrondis)
+   et verify.py porte des axes rationnels ; reformulé « fidèle au SDF ~4e-6 + interne exact »
+   (doctrine A21 étendue à la cinématique). Corollaire papier : la fidélité au robot PHYSIQUE
+   est plafonnée par la précision de l'URDF publié (~2e-6 rad mesuré), pas par la méthode —
+   énoncer « cinématique fidèle à l'URDF iiwa7 à 2e-6 près », PAS « le iiwa exact ».
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
@@ -631,6 +651,29 @@ Faisabilité acquise (spike Drake 18/06 : FK iiwa7 rationnelle à q\*=0 ⟹ form
    le papier. **Gate V6-bis** (A20 non négociable) sur la scène réelle.
 - Repli : si la convention résiste au-delà du raisonnable, l'iiwa-LIKE certifié en S10 reste le G4' acquis ;
   S10-bis devient une dette explicite, pas un bloquant.
+- ✅ **S10-bis ACTÉE** (18/06) : convention RÉSOLUE + parité Drake 1,99e-6 + chaîne gelée `iiwa7_chain.json`
+  (Tâche 1) ; **coupe Tâche 1 → S10-ter** (Tâches 2-4). Revue S10-bis : A41-A42, v1.17.
+
+### S10-ter — VRAI iiwa7 : scène + corps convexe fidèle + V6-bis + certif G4' (Tâches 2-4 de S10-bis) [coupe S10-bis]
+Entrée : chaîne gelée `scripts/iiwa7_chain.json` (parité Drake 1,99e-6, verify-compatible). `verify.py` SACRÉ.
+- **Tâche 2** : scène flagship sur la VRAIE géométrie iiwa (lien proximal certifié + panneau étagère) ; **corps =
+  coque convexe fidèle (niveau 1)** dérivée du mesh de visu Drake, **sommets rationalisés** (`limit_denominator 1e6`,
+  re-vérifiable exact) ; **dims actives RE-MESURÉES via `pair_views` — NE PAS présumer {0,1,2}** ; obstacle H-rep
+  EXACT (étanche) ; vérité-terrain dense AVANT certif (uniforme + biaisé-coins 2^k, S9f ; A25 limites en degrés).
+  Niveau 2 (décomposition multi-pièces) HORS périmètre.
+- **Tâche 3** : interactif A24 du vrai iiwa (7 curseurs ; corps = coque fidèle ; verrouillés en cinématique fixe ;
+  **invariant A40 JS=oracle TESTÉ**) + figures C-space/sweep ; A20 non négociable ; A25 par vue ; Meshcat 3D `cnp show`.
+- **Gate V6-bis** (STOP, humain, A20 non négociable, AVANT certif) : interactif + figures + BUDGET de certif prédit
+  (dims re-mesurées, lignes/LP, feuilles, wall-clock — terme dominant = re-résolution pleine-dim à l'export). Attendre
+  « VALIDÉ S10-V6bis ».
+- **Tâche 4 (après V6-bis)** : `cnp certify` → PROOF ; `cnp verify` OK ; A32=0 ; vérité-terrain ré-assertée ; mesuré
+  vs budget commenté ; benchmark daté (règle 7). **G4' RÉAFFIRMÉE sur le vrai robot.** Caveat A41 (fidélité plafonnée
+  par la précision URDF, modèle interne exact).
+- **Discipline [A42, esprit règle 13]** : `test_parallel_speedup` est un BENCHMARK wall-clock (machine quiète), SORTI
+  du `make test` requis vers `make bench-parallel` (marqueur `bench`) — exécuté en S10-ter après 4e flake sous charge
+  desktop ; le décompte requis devient **201 passed + 1 bench déselectionné** (la référence quiète ~3,6× est journalée).
+- Repli : coupe naturelle autorisée — si la Tâche 2 sature, clôturer sur scène + vérité-terrain + corps convexe ;
+  V6-bis/certif → S10-quater. iiwa-LIKE (G4' S10) reste le filet.
 
 ### S11 — Visualisation complète et assets (viz.py) + pack démo cas d'usage [D24]
 - Entrée : G4' (ou en parallèle après G2' si S10 traîne).

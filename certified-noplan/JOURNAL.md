@@ -2742,3 +2742,45 @@ la chaîne gelée `iiwa7_chain.json` : choisir le lien proximal certifié + pann
 géométrie iiwa, **re-mesurer les dims actives via pair_views — NE PAS présumer {0,1,2}** ; corps = coque
 convexe fidèle rationalisée du mesh Drake ; vérité-terrain dense ; interactif A24 + figures du vrai iiwa ;
 **gate V6-bis** A20 ; certif G4' sur le vrai robot). Repli inchangé : iiwa-LIKE = filet, vrai iiwa = cible.
+
+---
+
+## 2026-06-18 — Revue de supervision S10-bis (claude.ai) — convention résolue, critère Option A ratifié, A41-A42
+
+Verdict : S10-bis validée. Le seul vrai risque research-ish restant du projet (la
+convention de composition iiwa7) est RÉSOLU et la chaîne rationnelle verify-compatible
+gelée (`iiwa7_chain.json`, 19 entrées : 7 variables axe-z + 12 verrouillées
+permutation-signée). verify.py zéro diff confirmé ; parité Drake 1,99e-6 ; coupe Tâche 1
+→ S10-ter conforme au prompt ; doc à `7304da0`.
+Le piège documenté (conjuguer Rot(z) à travers X_PF déplace la TRANSLATION, pas seulement
+la rotation ; pliage correct = garder l'axe z, plier les constantes en G_i permutation-
+signée) est exactement l'erreur subtile qui aurait pollué une scène à moitié construite —
+l'ordre imposé (convention d'abord) a payé.
+Critère <1e-9 RATIFIÉ comme reformulé (Option A) : le seuil que la supervision avait posé
+était INATTEIGNABLE non par faiblesse de méthode mais parce que le SDF iiwa7 lui-même
+n'est aligné aux axes qu'à ~3,67e-6 (quaternions arrondis ; axes joints 2/6 non exactement
+[0,0,1]) ; verify.py (axes rationnels) ne peut matcher des axes irrationnels. Erreur de
+source côté supervision (même famille que les arXiv mal attribués S7). Reformulation juste :
+« fidèle au SDF à ~4e-6 + interne exact + verify-exact » = doctrine A21 (rationalisation à
+tolérance, re-vérifiabilité exacte préservée) étendue à la CINÉMATIQUE. 1,99e-6 mesuré,
+sous le plancher de précision du SDF.
+Le flake test_parallel_speedup (1,87× sous charge, Meshcat laissé tournant) correctement
+consigné (D34/A34), pas une régression (zéro modif moteur/parallélisme, verify.py zéro
+diff) — mais 3e occurrence ⟹ A42.
+**[A41]** Toute tolérance de FRANCHISSEMENT posée dans un prompt de supervision doit être
+vérifiée contre la PRÉCISION DE LA SOURCE avant d'être imposée. Leçon S10-bis : « parité
+<1e-9 vs Drake » inatteignable (SDF aligné à ~3,67e-6 ; verify.py axes rationnels).
+Reformulé « fidèle au SDF ~4e-6 + interne exact » (doctrine A21 étendue à la cinématique).
+Corollaire papier : la fidélité au robot PHYSIQUE est plafonnée par la précision de l'URDF
+publié (~2e-6 rad mesuré), pas par la méthode ; énoncer « cinématique rationnelle fidèle à
+l'URDF iiwa7 à 2e-6 près », PAS « le iiwa exact » au sens absolu.
+**[A42]** test_parallel_speedup a flaké 3× (S9a/S9c/S10-bis) sous charge — test de timing
+structurellement fragile. Prochaine occurrence : le rendre robuste (best-of-N documenté)
+ou le déplacer du `make test` requis vers un bench séparé, PAS un 4e re-run silencieux.
+Non bloquant ; référence quiète ~3,6× inchangée.
+Diffs : D52 (A41 → règle 9, à côté d'A28 — vérifier la source avant d'affirmer) ; D53
+(A42 → S10-ter sortie + esprit règle 13) ; D54 (header CLAUDE.md v1.17, changelog
+« v1.16→v1.17 (revue S10-bis, A41-A42) : convention iiwa7 résolue ; critère parité
+Option A ratifié (fidèle SDF ~4e-6 + interne exact) ; tolérance de franchissement vérifiée
+contre la précision source ; flake parallel_speedup à durcir »).
+Prochaine étape : S10-ter (Tâches 2-4 sur la chaîne gelée).
