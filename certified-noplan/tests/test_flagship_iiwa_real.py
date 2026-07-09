@@ -13,9 +13,29 @@ import itertools
 
 import numpy as np
 
-from cnp import engine, scenes
+from cnp import engine, scenes, viz
 
 SCENE = "scenes/S6_iiwa_real_shelf.yaml"
+
+
+def test_real_flagship_physical_axis_labels():
+    """A25/A40 (finding S10-quater): the physical joint labels must come from the EFFECTIVE
+    world axis (``locked·axis``), not the raw chain axis. The octahedral decomposition parks
+    every variable joint's chain axis at a bare ``z`` — reading it raw would label all 7 DOF
+    ``lacet`` and, worse, the shoulder-pitch BARRIER q2 as ``lacet (z)`` (a viz that lies). The
+    frozen chain must resolve to the canonical iiwa pattern yaw,pitch,yaw,pitch,yaw,pitch,yaw."""
+    sc, _ = scenes.load(SCENE)
+    lims = viz.joint_limits_deg(sc)
+    assert len(lims) == 7                                       # one per unlocked joint / slider
+    kinds = [n.split(" (")[0] for n, _, _ in lims]
+    assert kinds == ["lacet", "tangage", "lacet", "tangage", "lacet", "tangage", "lacet"], kinds
+    assert kinds[1] == "tangage", "the barrier s1=q2 MUST read as shoulder pitch, not lacet"
+    # the bug it guards against: every UNLOCKED joint's raw chain axis is a bare z, so reading
+    # it raw would collapse all 7 DOF to "lacet"; only the EFFECTIVE axis recovers the pitches.
+    locked = sc.robot.locked_angles
+    raw_unlocked = [tuple(round(float(viz._cert.Q(x))) for x in j["axis"])
+                    for i, j in enumerate(sc.robot.joints) if i not in locked]
+    assert all(a == (0, 0, 1) for a in raw_unlocked), "premise: unlocked chain axes are all z"
 
 
 def test_real_flagship_scene_shape():

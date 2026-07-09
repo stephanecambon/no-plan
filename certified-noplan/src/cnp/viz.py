@@ -414,24 +414,68 @@ setS(SC.start_s);
 """
 
 
+def _rot3(ax, ang):
+    """3×3 rotation matrix about (possibly non-unit) axis ``ax`` by ``ang`` rad (Rodrigues)."""
+    import math
+    x, y, z = ax
+    n = math.hypot(x, y, z)
+    if n == 0:
+        return np.eye(3)
+    x, y, z = x / n, y / n, z / n
+    c, s, t = math.cos(ang), math.sin(ang), 1 - math.cos(ang)
+    return np.array([[t * x * x + c, t * x * y - s * z, t * x * z + s * y],
+                     [t * x * y + s * z, t * y * y + c, t * y * z - s * x],
+                     [t * x * z - s * y, t * y * z + s * x, t * z * z + c]])
+
+
+def _effective_axes(scene: _cert.Scene):
+    """World-frame rotation axis of each CHAIN joint at the REFERENCE config (unlocked
+    joints at 0, locked joints at their fixed angle). The octahedral decomposition of the
+    real iiwa parks every VARIABLE joint's *chain* axis at a bare ``z`` — the physical joint
+    TYPE (yaw/pitch/roll) only emerges once the preceding LOCKED rotations are applied
+    (finding S10-quater: reading the raw chain axis mislabels the shoulder-pitch q2 as a
+    ``lacet (z)`` — a viz that lies, A40). We accumulate the reference rotation and return
+    ``R_{0..i-1} · axis_i`` per joint. For a fully-unlocked chain every accumulated rotation
+    is identity at the reference, so effective ≡ raw axis (S3/S5/S2b labels unchanged)."""
+    locked = scene.robot.locked_angles
+    R = np.eye(3)
+    out = []
+    for i, j in enumerate(scene.robot.joints):
+        ax = [float(_cert.Q(x)) for x in j["axis"]]
+        out.append(tuple(R @ np.array(ax, dtype=float)))
+        R = R @ _rot3(ax, locked.get(i, 0.0))
+    return out
+
+
 def _spatial_joint_names(scene: _cert.Scene):
-    """Physical name per unlocked joint of a spatial builtin (yaw/pitch/roll by axis,
-    the joint just after the body link is the elbow)."""
-    def nm(ax):
-        ax = tuple(round(float(v)) for v in ax)
+    """Physical name per CHAIN joint of a spatial builtin, keyed on the joint's EFFECTIVE
+    world axis (``locked·axis``, not the raw chain axis — finding S10-quater). z→lacet
+    (yaw), y→tangage (pitch), x→roll; the unlocked joint just after the certified body link
+    is named the elbow (kept for the simple S3/S5 scenes; on the real iiwa that slot is a
+    locked decomposition joint, so the rule is a no-op there and q4 reads as its pitch)."""
+    def word(effax):
+        a = tuple(abs(round(float(v))) for v in effax)          # TYPE ignores axis sign
         return {(0, 0, 1): "lacet (z)", (0, 1, 0): "tangage (y)",
-                (1, 0, 0): "roll (x)"}.get(ax, "rotation")
-    names = [nm([float(_cert.Q(x)) for x in j["axis"]]) for j in scene.robot.joints]
-    return [n if i != scene.body_link + 1 else "coude (y)" for i, n in enumerate(names)]
+                (1, 0, 0): "roll (x)"}.get(a, "rotation")
+    names = [word(e) for e in _effective_axes(scene)]
+    bl1 = scene.body_link + 1
+    if 0 <= bl1 < len(names) and bl1 not in scene.robot.locked_angles:
+        names[bl1] = "coude (y)"
+    return names
 
 
 def joint_limits_deg(scene: _cert.Scene):
-    """``[(name, lo_deg, hi_deg)]`` per unlocked joint. The s-box IS the joint-limit box
-    (SPEC §2, all ⊂ (−π,π)); angles via ``q = 2·arctan(s)``. Makes the limits explicit
-    (A25) on every figure / slider / verdict."""
+    """``[(name, lo_deg, hi_deg)]`` per UNLOCKED joint (one per slider / per s-box axis). The
+    s-box IS the joint-limit box (SPEC §2, all ⊂ (−π,π)); angles via ``q = 2·arctan(s)``.
+    Makes the limits explicit (A25) on every figure / slider / verdict. Names come from the
+    EFFECTIVE-axis labels of the *unlocked* chain joints (finding S10-quater: the box has one
+    entry per unlocked joint, so we must skip the locked decomposition joints, not index the
+    first ``n`` chain joints)."""
     import math
     if scene.robot.kind == "spatial_revolute":
-        names = _spatial_joint_names(scene)
+        allnames = _spatial_joint_names(scene)
+        locked = scene.robot.locked_angles
+        names = [allnames[i] for i in range(len(allnames)) if i not in locked]
     else:
         names = [f"q{i}" for i in range(scene.robot.n)]
     return [(names[i], math.degrees(2 * math.atan(float(lo))),
