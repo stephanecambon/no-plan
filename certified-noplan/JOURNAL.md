@@ -2963,3 +2963,42 @@ S10-quater + section plan S10-quinquies (14b).
 40-sommets ; **invariant A40 JS=oracle TESTÉ** ; étiquettes axes physiques corrigées) + figures C-space/sweep (A20
 apparence faisable, A25 par vue) ; (5) **gate V6-bis** (présenter marge FRANCHE + budget) ; (6) certif G4' (PROOF +
 verify exact + A32=0) sur le vrai robot. Repli inchangé : iiwa-LIKE = filet, vrai iiwa = cible.
+
+---
+
+## 2026-07-02 — Revue de supervision S10-quater (claude.ai, transcrite Code, circuit A16) — piège franc endossé, aucun diff
+
+Verdict : S10-quater validée. Le piège est FRANC (marges +92/+83 mm vs les 6 mm refusés en S10-ter — facteur ~15)
+et la méthode exemplaire : levier z MESURÉ par joint actif avant de choisir (q1/q3 laissent z invariant — le lacet de
+base ne pouvait structurellement pas marcher, ce qui explique le 6 mm ; q2 déplace le haut du corps de 0,808 à 0,545 m)
+⟹ séparateur = pitch q2, obstacle = étagère en surplomb. Le wedge (suggestion supervision) non nécessaire — solution
+plus simple ET meilleur récit (une étagère en surplomb dans une baie = littéralement le cas d'usage pharma). Oracle
+corps-convexe livré en premier comme exigé (LP de faisabilité, testé hand-checkable + vrai corps), vérité-terrain
+dense avec le BON oracle (40k + 448 coins + invariance redondance + libre des 2 côtés), dims actives re-mesurées
+(0,1,2), scène figée PROOF-éligible, coupe conforme, 208/0/0, verify.py zéro diff. Conforme.
+
+Deux points portés à S10-quinquies : (1) étiquettes d'axes physiques FAUSSES dans joint_limits_deg (famille A40 : une
+étiquette A25 fausse sur les figures V6-bis est une viz qui ment) — corriger AVANT de générer les figures ; (2) unités
+du budget à trancher explicitement (prédit « 64 lignes/LP » vs banc iiwa-LIKE mesuré « 766 lignes/LP » — les deux ne
+mesurent probablement pas la même chose : points de contrôle Bernstein par contrainte vs lignes LP totales ;
+l'ambiguïté polluerait le mesuré-vs-prédit).
+
+Côté papier : le placeholder Figure 1 est résolu sur le TYPE (iiwa7 réel, étagère en surplomb, pitch q2) ; les chiffres
+attendent la certif.
+
+**Diff CLAUDE.md** : AUCUN (revue sans annotation — le circuit A16 transcrit la revue, les deux findings sont des
+tâches de S10-quinquies déjà au plan, pas des amendements de règle).
+
+---
+
+## 2026-07-09 — Session S10-quinquies (Claude Code, GATÉE) — interactif A24 vrai iiwa + figures + gate V6-bis + certif G4' [EN COURS]
+
+Suite de S10-quater. Piège FRANC figé `scenes/S6_iiwa_real_shelf.yaml` (φ=s1 pitch q2, étagère en surplomb, marges
++92/+83 mm) + oracle corps-convexe. `verify.py` SACRÉ — zéro diff attendu. Le robot ET le piège sont finis ; cette
+session produit les ARTEFACTS (interactif + figures), GATE V6-bis, puis certif G4' sur le vrai robot.
+
+**Fait (ouverture)** : machine quiète (no Meshcat ; load ~2). `git status` propre, `origin/main` à jour au commit de
+clôture S10-quater (`4f42915`) + doc (`c746bec`). `make test` = **208 passed, 1 deselected, 0 skip/warn** confirmé à
+l'ouverture. Doc circuit A16 : revue S10-quater transcrite ci-dessus (aucun diff CLAUDE.md).
+
+*(entrée en cours — Fait / Décisions / Pièges / décompte complétés à la clôture)*
