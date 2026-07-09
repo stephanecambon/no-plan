@@ -414,6 +414,210 @@ setS(SC.start_s);
 """
 
 
+# ── S10-quinquies: interactive for the REAL iiwa7 flagship — body = faithful 40-vertex convex
+# hull (NOT a segment), collision = GJK(hull, H-rep box) reproducing scenes.convex_collision_oracle
+# (A43/A40 invariant, tested under node). Separator = q2 shoulder PITCH; obstacle = overhead shelf.
+_INTERACTIVE_TEMPLATE_HULL = r"""<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><title>__TITLE__</title>
+<style>
+ body{font-family:system-ui,Arial,sans-serif;margin:14px;color:#222;background:#fff}
+ h1{font-size:16px;margin:0 0 4px} .sub{color:#555;font-size:12px;margin:0 0 10px;max-width:900px}
+ .views{display:flex;gap:18px;flex-wrap:wrap} .view{flex:0 0 auto}
+ .view h2{font-size:13px;margin:0 0 2px} .view .what{font-size:11px;color:#666;margin:0 0 4px;max-width:320px}
+ canvas{border:1px solid #ccc;background:#fafafa}
+ .panel{margin-top:12px;max-width:820px}
+ .sld{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:13px}
+ .sld label{width:250px} .sld input{flex:1} .sld .val{width:54px;text-align:right;font-variant-numeric:tabular-nums}
+ #verdict{font-weight:bold;font-size:15px;margin:8px 0;padding:6px 10px;border-radius:6px;display:inline-block}
+ #limits{font-size:12px;color:#333;background:#fff7e0;border:1px solid #e0c060;border-radius:6px;padding:6px 10px;margin:6px 0;max-width:800px}
+ .btns{margin:10px 0;display:flex;gap:8px;flex-wrap:wrap}
+ button{font-size:13px;padding:6px 10px;border:1px solid #999;border-radius:6px;background:#f0f0f0;cursor:pointer}
+ button:hover{background:#e4e4e4} #attempt{font-size:13px;margin-left:6px}
+ .legend{font-size:11px;color:#555;margin-top:8px;line-height:1.5;max-width:820px}
+ .sw{display:inline-block;width:22px;height:0;border-top-width:3px;border-top-style:solid;vertical-align:middle;margin-right:4px}
+ .bx{display:inline-block;width:16px;height:11px;vertical-align:middle;margin-right:4px;border:1px solid #555}
+</style></head><body>
+<h1>__TITLE__</h1>
+<p class="sub">Artefact de validation INTERACTIF (A24) — VRAI KUKA iiwa7. Bougez les 7 curseurs
+articulaires ; le <b>corps proximal certifié</b> est la <b>silhouette convexe fidèle (40 sommets)</b>
+du lien 3, elle devient <b>ROUGE</b> en collision avec l'<b>étagère en surplomb</b>. La collision est
+calculée en 3D par GJK (coque ∩ boîte H-rep), reproduisant l'oracle corps-convexe Python (invariant
+A40 testé sous node). Les <b>fantômes</b> start (bleu) / goal (vert) sont les deux poses basses libres
+à relier. Cet outil montre l'INTENTION ; la preuve est le certificat (règle 9).</p>
+<div class="views">
+ <div class="view"><h2>Vue de CÔTÉ (x–z) — LE tangage q2</h2>
+  <p class="what">plan monde x–z. C'est la vue qui compte : on voit l'<b>espace libre SOUS
+   l'étagère</b> où reposent start/goal, et le corps qui MONTE dans l'étagère quand q2→0
+   (bras droit vertical). Chaîne iiwa complète (fine) + corps certifié (silhouette pleine).</p>
+  <canvas id="side" width="360" height="420"></canvas></div>
+ <div class="view"><h2>Vue de DESSUS (x–y) — lacet q1</h2>
+  <p class="what">plan monde x–y. Le lacet de base q1 fait pivoter le bras ; le corps compact
+   reste près de l'axe. La collision est calculée en 3D (une silhouette peut sembler croiser
+   l'étagère en projection sans la toucher, ou l'inverse).</p>
+  <canvas id="top" width="360" height="360"></canvas></div>
+</div>
+<div class="panel">
+ <div id="verdict"></div>
+ <div id="limits"></div>
+ <div id="sliders"></div>
+ <div class="btns">
+  <button onclick="play('direct')">Tentative : passage direct (tangage q2 : start→goal)</button>
+  <button onclick="play('under')">Tentative : passer dessous en restant incliné (balayer lacet+roll)</button>
+  <button onclick="play('distal')">Tentative : contourner via les distaux (redondance 7-DOF)</button>
+  <button onclick="setS(SC.start_s)">→ start</button>
+  <button onclick="setS(SC.goal_s)">→ goal</button>
+  <span id="attempt"></span>
+ </div>
+ <div class="legend">
+  <div><span class="sw" style="border-color:#1f77b4"></span>fantôme start &nbsp;
+       <span class="sw" style="border-color:#2ca02c"></span>fantôme goal &nbsp;
+       <span class="sw" style="border-color:#d62728"></span>corps EN COLLISION &nbsp;
+       <span class="sw" style="border-color:#333"></span>corps libre &nbsp;
+       <span class="bx" style="background:rgba(120,120,120,0.5)"></span>étagère en surplomb (H-rep)</div>
+  <div>Chaque vue déclare ce qu'elle montre (A24). La THÈSE du flagship : pour changer le SIGNE
+  du pitch d'épaule q2 (start q2&lt;0 → goal q2&gt;0) il faut passer par q2≈0 (bras droit), où le
+  corps proximal percute l'étagère — et AUCUN des 4 joints distaux (passifs, en aval du lien 3) ne
+  l'en sort. La redondance 7-DOF est inutile ici : c'est ce que le certificat prouve, pas l'œil.</div>
+ </div>
+</div>
+<script>
+const SC = __SCENE__;
+// ── 3-vector + 4x4 helpers ──
+function ident(){return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];}
+function mul(A,B){let C=new Array(16).fill(0);for(let i=0;i<4;i++)for(let j=0;j<4;j++)for(let k=0;k<4;k++)C[i*4+j]+=A[i*4+k]*B[k*4+j];return C;}
+function trans(v){let T=ident();T[3]=v[0];T[7]=v[1];T[11]=v[2];return T;}
+function rot(axis,a){let [x,y,z]=axis,n=Math.hypot(x,y,z);x/=n;y/=n;z/=n;
+ let c=Math.cos(a),s=Math.sin(a),t=1-c;
+ return [t*x*x+c,t*x*y-s*z,t*x*z+s*y,0, t*x*y+s*z,t*y*y+c,t*y*z-s*x,0, t*x*z-s*y,t*y*z+s*x,t*z*z+c,0, 0,0,0,1];}
+function ap(T,p){return [T[0]*p[0]+T[1]*p[1]+T[2]*p[2]+T[3], T[4]*p[0]+T[5]*p[1]+T[6]*p[2]+T[7], T[8]*p[0]+T[9]*p[1]+T[10]*p[2]+T[11]];}
+function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+function neg(a){return [-a[0],-a[1],-a[2]];}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];}
+// forward kinematics: unlocked joint q = 2*atan(s) (s = the UNLOCKED slider vector), locked joint
+// = its fixed angle. Returns the cumulative transform AFTER each chain joint (frame j{i}).
+function fkChain(s){let T=ident(),out=[],si=0;for(let i=0;i<SC.joints.length;i++){
+  T=mul(T,trans(SC.joints[i].offset));
+  let a = SC.joints[i].locked!=null ? SC.joints[i].locked : 2*Math.atan(s[si++]);
+  T=mul(T,rot(SC.joints[i].axis, a)); out.push(T);}return out;}
+function bodyWorld(s){let T=fkChain(s),F=T[SC.body_link];return SC.hull.map(v=>ap(F,v));} // 40 world verts
+function skeleton(s){let T=fkChain(s),pts=[[0,0,0]];for(let i=0;i<=SC.body_link;i++)pts.push(ap(T[i],[0,0,0]));
+  pts.push(ap(T[T.length-1],[0,0,0]));return pts;}   // base -> ... -> body frame -> distal tip (display)
+// ── GJK: does the convex hull of world verts W intersect the AABB [lo,hi]? (== convex_collision_oracle) ──
+function supHull(W,d){let bi=0,bd=dot(W[0],d);for(let k=1;k<W.length;k++){let x=dot(W[k],d);if(x>bd){bd=x;bi=k;}}return W[bi];}
+function supBox(lo,hi,d){return [d[0]>=0?hi[0]:lo[0], d[1]>=0?hi[1]:lo[1], d[2]>=0?hi[2]:lo[2]];}
+function msup(W,lo,hi,d){return sub(supHull(W,d), supBox(lo,hi,neg(d)));} // Minkowski A⊖B support
+function tprod(a,b,c){return cross(cross(a,b),c);}                        // (a×b)×c
+function gjk(W,lo,hi){
+ let d=[1,0,0], s=[msup(W,lo,hi,d)]; d=neg(s[0]);
+ for(let it=0;it<64;it++){
+   if(dot(d,d)<1e-30) return true;
+   let a=msup(W,lo,hi,d);
+   if(dot(a,d)<0) return false;                                          // a not past origin along d ⇒ disjoint
+   s.push(a);
+   // evolve simplex toward the origin (line / triangle / tetrahedron)
+   if(s.length===2){let[b,A]=[s[0],s[1]],ab=sub(b,A),ao=neg(A);
+     if(dot(ab,ao)>0){d=tprod(ab,ao,ab); if(dot(d,d)<1e-30)d=Math.abs(ab[0])<0.9?cross(ab,[1,0,0]):cross(ab,[0,1,0]);}
+     else{s=[A];d=ao;}}
+   else if(s.length===3){let[c,b,A]=[s[0],s[1],s[2]],ab=sub(b,A),ac=sub(c,A),ao=neg(A),abc=cross(ab,ac);
+     if(dot(cross(abc,ac),ao)>0){ if(dot(ac,ao)>0){s=[c,A];d=tprod(ac,ao,ac);} else{s=[b,A];d=(dot(ab,ao)>0)?tprod(ab,ao,ab):ao;} }
+     else if(dot(cross(ab,abc),ao)>0){ s=[b,A];d=(dot(ab,ao)>0)?tprod(ab,ao,ab):ao; }
+     else{ if(dot(abc,ao)>0){d=abc;} else{s=[b,c,A];d=neg(abc);} }}
+   else{let[dd,c,b,A]=[s[0],s[1],s[2],s[3]],ao=neg(A),
+     abc=cross(sub(b,A),sub(c,A)), acd=cross(sub(c,A),sub(dd,A)), adb=cross(sub(dd,A),sub(b,A));
+     let over=false;
+     if(dot(abc,ao)>0){s=[c,b,A];d=abc;over=true;}
+     else if(dot(acd,ao)>0){s=[dd,c,A];d=acd;over=true;}
+     else if(dot(adb,ao)>0){s=[b,dd,A];d=adb;over=true;}
+     if(!over) return true;}                                             // origin enclosed ⇒ intersect
+ }
+ return true;
+}
+function collide(s){let W=bodyWorld(s);for(const p of SC.panels){if(gjk(W,p.lo,p.hi))return true;}return false;}
+// ── 2-D convex hull (monotone chain) for drawing the projected silhouette ──
+function hull2d(P){if(P.length<3)return P;P=P.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+ let cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),L=[],U=[];
+ for(const p of P){while(L.length>=2&&cr(L[L.length-2],L[L.length-1],p)<=0)L.pop();L.push(p);}
+ for(let i=P.length-1;i>=0;i--){const p=P[i];while(U.length>=2&&cr(U[U.length-2],U[U.length-1],p)<=0)U.pop();U.push(p);}
+ return L.slice(0,-1).concat(U.slice(0,-1));}
+// ── per-view projection: world window -> canvas px ──
+const VIEW={side:{ai:0,vi:2,amin:-0.55,amax:0.55,vmin:0.0,vmax:1.15,w:360,h:420},
+            top:{ai:0,vi:1,amin:-0.55,amax:0.55,vmin:-0.55,vmax:0.55,w:360,h:360}};
+function mapx(V,wa){return (wa-V.amin)/(V.amax-V.amin)*V.w;}
+function mapy(V,wv){return V.h-(wv-V.vmin)/(V.vmax-V.vmin)*V.h;}
+function drawPanels(ctx,V){ctx.fillStyle="rgba(120,120,120,0.5)";ctx.strokeStyle="#555";
+ for(const b of SC.panels){let x0=mapx(V,b.lo[V.ai]),x1=mapx(V,b.hi[V.ai]),y0=mapy(V,b.hi[V.vi]),y1=mapy(V,b.lo[V.vi]);
+   ctx.fillRect(x0,y0,x1-x0,y1-y0);ctx.strokeRect(x0,y0,x1-x0,y1-y0);}}
+function drawSilhouette(ctx,V,s,col,ghost){
+ let W=bodyWorld(s),P=W.map(w=>[mapx(V,w[V.ai]),mapy(V,w[V.vi])]),h=hull2d(P);
+ ctx.beginPath();ctx.moveTo(h[0][0],h[0][1]);for(let i=1;i<h.length;i++)ctx.lineTo(h[i][0],h[i][1]);ctx.closePath();
+ if(ghost){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();}
+ else{ctx.fillStyle=col+"cc";ctx.fill();ctx.strokeStyle="#222";ctx.lineWidth=1;ctx.stroke();}}
+function drawSkeleton(ctx,V,s,col){let sk=skeleton(s);ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.beginPath();
+ ctx.moveTo(mapx(V,sk[0][V.ai]),mapy(V,sk[0][V.vi]));for(let i=1;i<sk.length;i++)ctx.lineTo(mapx(V,sk[i][V.ai]),mapy(V,sk[i][V.vi]));ctx.stroke();}
+function drawView(id){let V=VIEW[id],ctx=document.getElementById(id).getContext("2d");ctx.clearRect(0,0,V.w,V.h);
+ ctx.strokeStyle="#e9e9e9";ctx.lineWidth=1;ctx.beginPath();
+ ctx.moveTo(mapx(V,0),0);ctx.lineTo(mapx(V,0),V.h);ctx.moveTo(0,mapy(V,0));ctx.lineTo(V.w,mapy(V,0));ctx.stroke();
+ drawPanels(ctx,V);
+ // "space under the shelf" cue on the side view (A20): dashed underside line + label
+ if(id==="side"){let z0=SC.panels[0].lo[2],y=mapy(V,z0);ctx.strokeStyle="#a06000";ctx.setLineDash([5,4]);
+   ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(V.w,y);ctx.stroke();ctx.setLineDash([]);
+   ctx.fillStyle="#a06000";ctx.font="11px sans-serif";ctx.fillText("dessous d'étagère z="+z0.toFixed(2)+" — espace libre en-dessous",6,y+13);}
+ drawSkeleton(ctx,V,SC.start_s,"#9ec6e6");drawSkeleton(ctx,V,SC.goal_s,"#a9dab0");drawSkeleton(ctx,V,cur,"#555");
+ drawSilhouette(ctx,V,SC.start_s,"#1f77b4",true);drawSilhouette(ctx,V,SC.goal_s,"#2ca02c",true);
+ drawSilhouette(ctx,V,cur,collide(cur)?"#d62728":"#333",false);
+ ctx.fillStyle="#000";ctx.fillRect(mapx(V,0)-3,mapy(V,0)-3,6,6);
+ let gs=bodyWorld(SC.start_s)[0],gg=bodyWorld(SC.goal_s)[0];
+ ctx.font="11px sans-serif";ctx.fillStyle="#1f77b4";ctx.fillText("start",mapx(V,gs[V.ai])+4,mapy(V,gs[V.vi]));
+ ctx.fillStyle="#2ca02c";ctx.fillText("goal",mapx(V,gg[V.ai])+4,mapy(V,gg[V.vi])+11);}
+function redraw(){drawView("side");drawView("top");
+ let c=collide(cur),v=document.getElementById("verdict");
+ v.textContent=c?"corps proximal EN COLLISION avec l'étagère":"corps proximal libre";
+ v.style.background=c?"#f6d3d3":"#d6efd6";v.style.color=c?"#7f0000":"#14521a";}
+let cur=SC.start_s.slice();
+function setS(s){cur=s.slice();for(let i=0;i<cur.length;i++){let e=document.getElementById("s"+i);
+  if(e){e.value=cur[i];document.getElementById("v"+i).textContent=cur[i].toFixed(2);}}redraw();}
+document.getElementById("limits").innerHTML="<b>"+SC.limits_caption+"</b> — les BUTÉES des curseurs SONT ces limites articulaires (A25) ; toutes ⊂ (−180°,180°) ⟹ pas de wrap-around. Étiquettes d'axes PHYSIQUES (axe effectif locked·axe, pas l'axe-chaîne replié) : q2 est bien le TANGAGE (pitch) d'épaule.";
+const NAMES=SC.joint_names;let sl=document.getElementById("sliders");let si=0;
+for(let i=0;i<SC.joints.length;i++){let d=document.createElement("div");d.className="sld";
+ if(SC.joints[i].locked!=null){let dg=Math.round(SC.joints[i].locked*180/Math.PI);
+   d.innerHTML='<label>joint '+i+' — 🔒 VERROUILLÉ à '+dg+'° (décomposition, hors C-space certifié)</label>';
+   d.style.opacity=0.5;sl.appendChild(d);continue;}
+ let j=si;let ld=SC.limits_deg[j];let deg='['+Math.round(ld[0])+'…'+Math.round(ld[1])+'°]';
+ let star=(j===SC.barrier_dim)?' ★ SÉPARATEUR':'';
+ d.innerHTML='<label>s'+j+' — q'+(j+1)+' '+NAMES[i]+' '+deg+star+'</label><input id="s'+j+'" type="range" min="'+SC.box[j][0]+'" max="'+SC.box[j][1]+'" step="0.01" value="'+cur[j]+'"><span class="val" id="v'+j+'"></span>';
+ sl.appendChild(d);let inp=d.querySelector("input");
+ inp.oninput=()=>{cur[j]=parseFloat(inp.value);document.getElementById("v"+j).textContent=cur[j].toFixed(2);redraw();};
+ si++;}
+// escape attempts. 'direct' = a PATH (blocked iff ANY pose collides). 'under'/'distal' = ESCAPE
+// scans inside the forbidden band (blocked iff NO pose is free — no way out).
+function play(kind){let path=[],N=28,bd=SC.barrier_dim,delta=SC.delta;
+ if(kind==='direct'){for(let k=0;k<=N;k++){let t=k/N;path.push(SC.start_s.map((v,i)=>v+(SC.goal_s[i]-v)*t));}}
+ else if(kind==='under'){for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();
+   s[bd]=(-delta+2*delta*(k%7)/6);                                       // stay INSIDE the forbidden band
+   if(s.length>0)s[0]=SC.box[0][0]+(SC.box[0][1]-SC.box[0][0])*t;         // sweep lacet q1
+   if(s.length>2)s[2]=SC.box[2][0]+(SC.box[2][1]-SC.box[2][0])*(0.5-0.5*Math.cos(6.28*t)); // sweep roll q3
+   path.push(s);}}
+ else{for(let k=0;k<=N;k++){let t=k/N;let s=cur.slice();s[bd]=0;         // 'distal': at band centre
+   for(const pj of (SC.passive_dims||[]))s[pj]=SC.box[pj][0]+(SC.box[pj][1]-SC.box[pj][0])*(0.5-0.5*Math.cos(6.28*t*(1+pj)));
+   path.push(s);}}
+ let free=0,i=0;document.getElementById("attempt").textContent="…";
+ let iv=setInterval(()=>{if(i>=path.length){clearInterval(iv);let nColl=path.length-free;
+    let lbl={direct:"passage direct (tangage q2)",under:"passer dessous en restant incliné",distal:"contourner via les distaux (redondance)"}[kind];
+    let msg;
+    if(kind==='direct') msg = nColl>0 ? ("BLOQUÉ ✗ — "+lbl+" : le trajet traverse "+nColl+"/"+path.length+" poses en collision")
+                                      : ("libre — trajet sans collision ("+path.length+" poses)");
+    else msg = free===0 ? ("BLOQUÉ ✗ — "+lbl+" : 0 pose libre sur "+path.length+" (aucune échappatoire)")
+                        : ("échappatoire trouvée ("+free+"/"+path.length+" libres)");
+    document.getElementById("attempt").textContent=msg;return;}
+   cur=path[i].slice();if(!collide(cur))free++;
+   for(let j=0;j<cur.length;j++){let e=document.getElementById("s"+j);if(e){e.value=cur[j];document.getElementById("v"+j).textContent=cur[j].toFixed(2);}}
+   redraw();i++;},55);}
+setS(SC.start_s);
+</script></body></html>
+"""
+
+
 def _rot3(ax, ang):
     """3×3 rotation matrix about (possibly non-unit) axis ``ax`` by ``ang`` rad (Rodrigues)."""
     import math
@@ -495,8 +699,15 @@ def limits_caption(scene: _cert.Scene) -> str:
     return "limites articulaires : " + " · ".join(parts)
 
 
+def _barrier_dim(scene: _cert.Scene):
+    """The single s-dim the barrier φ depends on (linear single-var barrier ⇒ one nonzero
+    coeff dim), or ``None`` if φ is not a single-variable barrier."""
+    dims = {i for e, c in scene.phi.items() for i in range(len(e)) if e[i] and _cert.Q(c) != 0}
+    return dims.pop() if len(dims) == 1 else None
+
+
 def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float = 0.3,
-                            title: str = None, active_dims=None) -> str:
+                            title: str = None, active_dims=None, body_mode: str = "segment") -> str:
     """Export a SELF-CONTAINED interactive HTML (zero dependencies) for a spatial scene
     (A24): joint sliders, two world projections (top x–y for yaw, side x–z for pitch/
     height), live collision of the certified UPPER-ARM body (turns red), labelled
@@ -509,6 +720,13 @@ def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float
     the third escape attempt sweeps the PASSIVE (distal) joints — demonstrating that no distal
     setting frees the proximal body ("portée robuste à la redondance"). Without it, that button
     keeps the legacy roll/elbow sweep.
+
+    ``body_mode`` selects the body model and collision layer (both JS-recomputed, dependency-free):
+    ``"segment"`` (default) draws the certified body as a SEGMENT and collides by sampling it
+    (matches :func:`scenes.collision_oracle` — the iiwa-LIKE / planar scenes); ``"hull"`` draws
+    the faithful K-vertex convex SILHOUETTE and collides by GJK(hull, H-rep box), reproducing
+    :func:`scenes.convex_collision_oracle` (the REAL iiwa7 flagship, S10-quinquies, A43/A40). The
+    hull mode also stars the barrier joint and animates the pitch/shelf escape attempts.
 
     Returns ``path``. Spatial builtin only (the planar scenes read fine as 2-D figures)."""
     import json
@@ -547,7 +765,18 @@ def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float
         "active_dims": list(active_dims) if active_dims is not None else None,
         "passive_dims": passive,                               # distal joints proven passive
     }
-    html = (_INTERACTIVE_TEMPLATE
+    if body_mode == "hull":
+        # REAL iiwa flagship (S10-quinquies): the certified body is the faithful 40-vertex convex
+        # hull; collision is GJK(hull, H-rep box) reproducing scenes.convex_collision_oracle (A43).
+        data["hull"] = [[float(_cert.Q(c)) for c in v] for v in scene.hull_vertices]
+        data["delta"] = float(scene.delta)
+        data["barrier_dim"] = _barrier_dim(scene)
+        template = _INTERACTIVE_TEMPLATE_HULL
+    elif body_mode == "segment":
+        template = _INTERACTIVE_TEMPLATE
+    else:
+        raise ValueError(f"body_mode must be 'segment' or 'hull', got {body_mode!r}")
+    html = (template
             .replace("__SCENE__", json.dumps(data))
             .replace("__FOREARM__", repr(float(forearm_length)))
             .replace("__TITLE__", title or "scène spatiale — validation interactive"))
