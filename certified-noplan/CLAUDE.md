@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.18 — 26 juin 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter + arbitrage robot réaliste S10 ; v1.0..v1.17 dans git).
+Version 1.19 — 8 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 ; v1.0..v1.18 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -134,6 +134,20 @@ re-run silencieux (→ S10-ter sortie + esprit règle 13) ; **[D52]** A41 → r�
 S10-ter + esprit règle 13 ; **[D54]** ce header+changelog. Détail : entrée « Revue de supervision S10-bis »
 de JOURNAL.md.
 
+Changements v1.18 → v1.19 (revue S10-quinquies, **[A44]**, piste **[L6]**, D57-D59) : **flagship
+d'en-tête ACQUIS** — vrai iiwa7 certifié PROOF + verify exact (2 feuilles, A32=0, `verify.py` zéro diff),
+V6-bis validé, bench daté, 211/1/0/0 sans flake ; le programme S10 est CLOS et la **Figure 1 du papier
+est débloquée**. **[A44]** toute estimation de wall-clock de certification part de la taille RÉELLE du LP
+pleine dim (**lignes × COLONNES** — les K sommets multiplient les colonnes λ) et d'un modèle
+**superlinéaire** calibré sur les benchs, PAS d'une extrapolation linéaire en lignes (leçon : 15-30 s
+annoncés, 726 s mesurés ; ~99,5 % dans un terme d'export parallélisable par feuille) → **[D57]** règle 7.
+Corollaire papier : « secondes » pour 5-6 DOF et la décision ; « minutes » pour le flagship réel.
+**[L6, piste à ÉVALUER]** export du certificat RÉDUIT embedé en pleine dim au lieu de la re-résolution,
+quand la projection S8 est exacte sur la géométrie originale ; soundness inchangée (verify arbitre) ;
+gain potentiel ~×100 → **[D58]** tâche d'OUVERTURE de S11, **mesure seule, décision de pilotage à la revue
+suivante**. **[D59]** ce header+changelog. Décision Stéphane : **S11 (pack démo) AVANT le preprint** —
+matière deck en priorité. Détail : entrée « Revue de supervision S10-quinquies » de JOURNAL.md.
+
 ---
 
 ## Règles non négociables
@@ -164,7 +178,14 @@ de JOURNAL.md.
    utilisateur et le README le disent explicitement.
 7. **Reproductibilité** : toute randomisation est seedée ; chaque run de benchmark
    écrit dans benchmarks/results/<date-heure>/ (jamais d'écrasement) avec le
-   commit hash.
+   commit hash. **[A44, revue S10-quinquies] Discipline de BUDGET wall-clock** : toute
+   estimation de temps de certification présentée à un gate part de la **taille RÉELLE
+   du LP pleine dimension — lignes ×  COLONNES** (les K sommets du corps multiplient les
+   colonnes λ : `nz = K · |basis|`, soit 320 colonnes pour K=40 en affine 7-dim contre
+   ~16 pour un corps-segment) **et d'un modèle SUPERLINÉAIRE calibré sur les benchs**,
+   jamais d'une extrapolation linéaire en lignes. Leçon S10-quinquies : 15-30 s annoncés
+   au gate V6-bis, **726 s mesurés** (×25-50) — sans impact soundness (verify exact 3,8 s),
+   mais une prédiction fausse au gate reste une prédiction fausse.
 8. **Discipline de session** : une session = un objectif de la liste ci-dessous.
    On n'attaque pas la session N+1 si les critères de sortie de N ne sont pas
    verts. **Ouverture [D33, A33]** : la session vérifie `git status` PROPRE ; toute
@@ -748,6 +769,18 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
 
 ### S11 — Visualisation complète et assets (viz.py) + pack démo cas d'usage [D24]
 - Entrée : G4' (ou en parallèle après G2' si S10 traîne).
+- **Tâche d'OUVERTURE [L6, revue S10-quinquies — ÉVALUER, NE PAS implémenter sans décision]** :
+  mesurer, HORS chemin par défaut (script d'évaluation, jamais `make_certificate`), l'**export du
+  certificat RÉDUIT embedé en pleine dimension** (coefficients nuls sur les axes passifs) au lieu de
+  la re-résolution pleine-dim, **quand la projection S8 est exacte sur la géométrie ORIGINALE** (dims
+  passives absentes de D ET de N — le cas proximal : pour le lien 3 de l'iiwa, s3..s6 n'entrent ni
+  dans D ni dans N ; le LP plein est alors le MÊME problème que le réduit, avec 5⁴ fois plus de
+  points de contrôle sur un polynôme constant le long de 4 axes). `verify` reste l'arbitre pleine
+  dim ⟹ **soundness inchangée** (un embedding faux ⇒ rejet ⇒ ENGINE-PROOF, jamais un faux PROOF —
+  l'argument S8). La **re-résolution reste CONSERVÉE** quand A29 a divisé un facteur (1+s²) d'un
+  joint de la chaîne (T n'est pas divisé ⟹ l'embedding direct ne vaut pas). Gain potentiel ~×100 sur
+  `certify`. **Changement de CONTRAT d'export ⟹ décision de pilotage + règle 1 (0 changement de
+  verdict, adversarial) : Code MESURE, la revue décide.**
 - Tâches : `cnp viz <cert>` complet (Meshcat : scène, configs, animation de la
   dalle projetée, feuilles en échec si UNDECIDED) ; figures C-space/partition
   généralisées (coupes pour n>2) ; tables/courbes de benchmark auto-générées ;

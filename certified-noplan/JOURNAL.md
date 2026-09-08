@@ -3084,3 +3084,45 @@ le cert).
 **Prochaine étape** : **revue de supervision** (flagship d'en-tête réel acquis ⟹ **Figure 1 du papier + headline débloqués**),
 puis **S11** (pack démo bin-picking + capot de sûreté certifiés 5-6 DOF ; export HTML 3D partageable ; viz complète A11/sweep/
 axes physiques standard). `verify.py` intact tout du long.
+
+## 2026-09-08 — Revue de supervision S10-quinquies (claude.ai, transcrite Code, circuit A16) — flagship d'en-tête ACQUIS, [A44], piste [L6]
+
+**Verdict : S10-quinquies validée.** PROOF vérifié exact sur le vrai iiwa7, 2 feuilles, A32=0, `verify.py`
+zéro diff, V6-bis validé, bench daté (`git_dirty` consigné), cert archivé au chemin prévu, 211/1/0/0 sans
+flake. L'état hérité (session interrompue sans transcript) a été traité comme il faut : constaté, cert
+re-vérifié frais, bench relu ligne à ligne, orphelins tués. Les étiquettes physiques (z,y,z,y,z,y,z) +
+l'invariant A40 (0 écart/694) ferment les points de la revue précédente. **Le programme S10 est CLOS** :
+flagship d'en-tête = vrai iiwa7, cinématique fidèle URDF ~2e-6 + silhouette fidèle ~1,7e-6 + déconnexion
+franche ~90 mm, exactement re-vérifiable en 3,8 s. **Figure 1 du papier débloquée.**
+
+**Point qui compte** : `certify` 726 s vs ~15-30 s annoncés au gate (×25-50). Le diagnostic de Code est
+juste (re-résolution pleine-dim, LP 473 870 lignes, solve superlinéaire) mais INCOMPLET : en S9f un LP de
+469 006 lignes prenait 72 s ; ici ~360 s/feuille. Le ×5 vient très probablement des **COLONNES** — le
+témoin S9f a 2 sommets, la coque fidèle en a 40 ⟹ λ affine en 7 dims = **320 colonnes λ** au lieu de ~16.
+Prix de la silhouette fidèle : dérisoire dans le LP réduit (1 070 lignes), lourd dans l'export pleine dim.
+À confirmer par Code (ouverture S11, avec L6). Sans impact soundness (verify 3,8 s) ; 12 min ≪ 1 h. Cela
+change la PHRASE du papier : « secondes » pour 5-6 DOF et la décision ; « minutes » pour le flagship réel,
+dont ~99,5 % dans un terme d'export **parallélisable par feuille**.
+
+**[A44]** Toute estimation de wall-clock de certification part de la taille **RÉELLE** du LP pleine
+dimension (**lignes × COLONNES** — les K sommets multiplient les colonnes λ) et d'un modèle
+**superlinéaire** calibré sur les benchs, pas d'une extrapolation linéaire en lignes. Leçon
+S10-quinquies : 15-30 s annoncés, 726 s mesurés.
+
+**[L6 — piste, à ÉVALUER en S11]** Export du certificat **RÉDUIT embedé en pleine dimension**
+(coefficients nuls sur les axes passifs) au lieu de la re-résolution pleine-dim, **QUAND la projection S8
+est exacte sur la géométrie ORIGINALE** (dims passives hors de la chaîne du corps — le cas proximal :
+pour le lien 3 de l'iiwa, s3..s6 n'entrent même pas dans D ni dans N ; le LP plein est alors le MÊME
+problème que le réduit, avec 5⁴ fois plus de points de contrôle sur un polynôme constant le long de 4
+axes). `verify` reste l'arbitre pleine dim ⟹ **soundness inchangée** (embedding faux ⇒ rejet ⇒
+ENGINE-PROOF, jamais un faux PROOF — l'argument S8). Re-résolution **CONSERVÉE** quand A29 a divisé un
+facteur (1+s²) d'un joint de la chaîne (T n'est pas divisé ⟹ l'embedding direct ne vaut pas). Gain
+potentiel ~×100 sur `certify`. Changement de **CONTRAT d'export** ⟹ décision de pilotage + règle 1
+(0 changement de verdict, adversarial) ; **Code MESURE d'abord, on décide ensuite.**
+
+**Diffs appliqués (ouverture S11, règle 14)** : **[D57]** A44 → règle 7 (discipline de budget) ;
+**[D58]** L6 → tâche d'OUVERTURE de S11 « évaluer, ne pas implémenter sans décision » ; **[D59]** header
+CLAUDE.md **v1.19** + changelog « v1.18→v1.19 (revue S10-quinquies, A44, L6) : flagship d'en-tête acquis
+vrai iiwa7 ; budget wall-clock lignes×colonnes superlinéaire ; piste export cert réduit à évaluer ».
+
+**Décision Stéphane** : **S11 (pack démo) AVANT le preprint** — matière deck en priorité.
