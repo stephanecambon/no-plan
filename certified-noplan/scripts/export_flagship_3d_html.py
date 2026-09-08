@@ -86,8 +86,19 @@ def _link_hulls(plant, sg) -> dict:
 
 
 def _triangles(V: np.ndarray) -> list:
+    """Triangles de la coque, ORIENTÉS VERS L'EXTÉRIEUR. ``ConvexHull.simplices`` ne garantit
+    pas l'orientation ; des normales incohérentes donnent un rendu creux (les faces
+    disparaissent). On réoriente chaque triangle sur le centroïde."""
     from scipy.spatial import ConvexHull
-    return [[int(x) for x in tri] for tri in ConvexHull(V).simplices]
+    V = np.asarray(V, float)
+    c = V.mean(axis=0)
+    out = []
+    for tri in ConvexHull(V).simplices:
+        a, b, d = V[tri[0]], V[tri[1]], V[tri[2]]
+        if np.dot(np.cross(b - a, d - a), (a + b + d) / 3.0 - c) < 0:
+            tri = [tri[0], tri[2], tri[1]]
+        out.append([int(x) for x in tri])
+    return out
 
 
 def build(scene_path: str, out_path: str) -> str:
@@ -110,26 +121,27 @@ def build(scene_path: str, out_path: str) -> str:
     def q_of(s):                       # q = 2·arctan(s) sur les 7 joints débloqués
         return 2.0 * np.arctan(np.asarray(s, float))
 
-    poses, parity = [], 0.0
+    poses = []
     for s in s_list:
         plant.SetPositions(ctx, q_of(s))
         Ts = []
         for L in LINKS:
             X = plant.EvalBodyPoseInWorld(ctx, plant.GetBodyByName(L)).GetAsMatrix4()
             Ts.append([float(x) for x in X.T.reshape(-1)])       # column-major (Three.js)
-        # contrôle A40/A41 : le corps certifié posé par la CHAÎNE GELÉE coïncide avec Drake
-        Xd = plant.EvalBodyPoseInWorld(ctx, plant.GetBodyByName(CERTIFIED_LINK)).GetAsMatrix4()
+        # le corps certifié est posé par la CHAÎNE DU CERTIFICAT (pas par Drake) — c'est la
+        # cinématique que la preuve utilise ; l'accord avec Drake est mesuré ci-dessous.
         W_chain = np.array([body_fk.eval_world_point(v, s) for v in cert_hull_body])
         Wcert = [[float(c) for c in p] for p in W_chain]
         poses.append({"s": [float(x) for x in s], "q_deg": [float(x) for x in
                                                             np.degrees(q_of(s))],
                       "T": Ts, "body_world": Wcert, "colliding": bool(oracle(s)),
                       "phi": float(_viz.phi_eval(sc, s))})
-        del Xd
-    # parité chaîne↔Drake sur le corps certifié (via la coque link-frame reconstruite)
-    parity = _body_parity(plant, ctx, hulls, sc, body_fk, cert_hull_body, s_list, q_of)
-    if parity > 5e-6:
-        raise RuntimeError(f"parité corps chaîne↔Drake {parity:.2e} > 5e-6 — export refusé "
+    # parité chaîne↔Drake du corps certifié : globale (mesure gelée S10-ter, 120 configs
+    # ALÉATOIRES) + locale aux poses affichées. Au-delà du seuil, l'export ÉCHOUE (A40).
+    parity, parity_poses = _body_parity(plant, ctx, sc, body_fk, cert_hull_body, s_list, q_of)
+    if parity > 5e-6 or parity_poses > 5e-6:
+        raise RuntimeError(f"parité corps chaîne↔Drake {parity:.2e} (globale) / "
+                           f"{parity_poses:.2e} (poses affichées) > 5e-6 — export refusé "
                            "(un artefact d'argument ne doit pas mentir, A40)")
 
     obs = {}
@@ -148,7 +160,7 @@ def build(scene_path: str, out_path: str) -> str:
         "delta": str(sc.delta),
         "limits": _viz.limits_caption(sc),
         "joint_names": [n for n, _, _ in _viz.joint_limits_deg(sc)],
-        "body_parity": f"{parity:.2e}",
+        "body_parity": f"{parity:.2e}", "body_parity_poses": f"{parity_poses:.2e}",
         "start_idx": 0, "goal_idx": N_POSES - 1,
     }
     html = _TEMPLATE.replace("__DATA__", json.dumps(data, separators=(",", ":")))
@@ -157,30 +169,45 @@ def build(scene_path: str, out_path: str) -> str:
         f.write(html)
     kb = os.path.getsize(out_path) / 1024
     n_coll = sum(p["colliding"] for p in poses)
-    print(f"parité corps chaîne↔Drake : {parity:.2e} (<= 5e-6 exigé)")
+    print(f"parité corps chaîne↔Drake : {parity:.2e} globale (120 configs aléatoires, "
+          f"mesure gelée S10-ter) / {parity_poses:.2e} aux poses affichées  (<= 5e-6 exigé)")
     print(f"poses : {N_POSES}, dont {n_coll} en collision (oracle corps-convexe)")
     print(f"écrit {out_path}  ({kb:.0f} ko ; Three.js chargé depuis {THREE_CDN})")
     return out_path
 
 
-def _body_parity(plant, ctx, hulls, sc, body_fk, cert_hull_body, s_list, q_of) -> float:
-    """max ‖ corps posé par la CHAÎNE GELÉE − corps posé par Drake ‖ sur les poses affichées."""
+def _body_parity(plant, ctx, sc, body_fk, cert_hull_body, s_list, q_of) -> tuple:
+    """(parité GLOBALE, parité aux poses affichées) du corps certifié, chaîne GELÉE vs Drake.
+
+    La parité GLOBALE délègue à ``build_iiwa7_scene.check_body_parity`` — la mesure gelée et
+    testée de S10-ter (200 configurations ALÉATOIRES sur les 7 axes). C'est elle qui fait foi :
+    un contrôle qui n'échantillonnerait que la ligne de balayage (où seul q2 varie) mesurerait
+    un cas trop favorable et pourrait valider un artefact faux.
+
+    La seconde valeur est le contrôle local aux poses RÉELLEMENT affichées : le corps posé par
+    la chaîne du certificat (``SympyRatFK``) contre le même corps posé par Drake, via l'offset
+    constant lu à q=0. Deux chemins de code indépendants ; c'est ce que la page dessine."""
     import numpy.linalg as la
-    Lk = CERTIFIED_LINK
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "build_iiwa7_scene", os.path.join(HERE, "build_iiwa7_scene.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    global_parity = mod.check_body_parity(n_cfg=120)
+
     plant.SetPositions(ctx, np.zeros(7))
-    Xd0 = plant.EvalBodyPoseInWorld(ctx, plant.GetBodyByName(Lk)).GetAsMatrix4()
-    # coque certifiée ramenée dans le repère du lien Drake, via la pose à q=0
+    Xd0 = plant.EvalBodyPoseInWorld(ctx, plant.GetBodyByName(CERTIFIED_LINK)).GetAsMatrix4()
     W0 = np.array([body_fk.eval_world_point(v, np.zeros(len(sc.box)))
                    for v in cert_hull_body])
     link_pts = (la.inv(Xd0[:3, :3]) @ (W0 - Xd0[:3, 3]).T).T
     err = 0.0
     for s in s_list:
         plant.SetPositions(ctx, q_of(s))
-        Xd = plant.EvalBodyPoseInWorld(ctx, plant.GetBodyByName(Lk)).GetAsMatrix4()
+        Xd = plant.EvalBodyPoseInWorld(ctx, plant.GetBodyByName(CERTIFIED_LINK)).GetAsMatrix4()
         Wd = (Xd[:3, :3] @ link_pts.T).T + Xd[:3, 3]
         Wc = np.array([body_fk.eval_world_point(v, s) for v in cert_hull_body])
         err = max(err, float(np.abs(Wc - Wd).max()))
-    return err
+    return global_parity, err
 
 
 _TEMPLATE = r"""<meta charset="utf-8"><title>certified-noplan — flagship iiwa7 3D</title>
@@ -245,8 +272,10 @@ const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0f1115);
 const cam = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, .05, 100);
 const rnd = new THREE.WebGLRenderer({canvas:document.getElementById('cv'),antialias:true});
 rnd.setPixelRatio(devicePixelRatio); rnd.setSize(innerWidth, innerHeight);
-scene.add(new THREE.HemisphereLight(0xdfe7ff, 0x20242c, 1.05));
-const dl = new THREE.DirectionalLight(0xffffff, .75); dl.position.set(2,-2.5,3); scene.add(dl);
+scene.add(new THREE.HemisphereLight(0xdfe7ff, 0x252a34, 1.0));
+const dl = new THREE.DirectionalLight(0xffffff, .85); dl.position.set(2,-2.5,3); scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0xbfd0ff, .35); dl2.position.set(-2.5,2,1.5);
+scene.add(dl2);
 const grid = new THREE.GridHelper(3, 24, 0x2c3240, 0x1c2029);
 grid.rotation.x = Math.PI/2; scene.add(grid);                     // Z-up (repère robot)
 
@@ -258,11 +287,13 @@ function meshFrom(V, F, mat){
   g.setAttribute('position', new THREE.BufferAttribute(pos,3)); g.computeVertexNormals();
   return new THREE.Mesh(g, mat);
 }
-const matLink = new THREE.MeshStandardMaterial({color:0x6b7280,roughness:.65,metalness:.15});
-const matBodyOK = new THREE.MeshStandardMaterial({color:0xe0a93b,roughness:.4,
-  metalness:.25,emissive:0x3a2a06});
-const matBodyHit = new THREE.MeshStandardMaterial({color:0xe05252,roughness:.4,
-  metalness:.25,emissive:0x3a0d0d});
+const SIDE = THREE.DoubleSide;
+const matLink = new THREE.MeshStandardMaterial({color:0x9aa2ad,roughness:.55,metalness:.2,
+  side:SIDE,flatShading:true});
+const matBodyOK = new THREE.MeshStandardMaterial({color:0xe0a93b,roughness:.35,
+  metalness:.3,emissive:0x4a3608,side:SIDE,flatShading:true});
+const matBodyHit = new THREE.MeshStandardMaterial({color:0xe05252,roughness:.35,
+  metalness:.3,emissive:0x4a1010,side:SIDE,flatShading:true});
 const linkMeshes = D.links.map(L => {
   const m = meshFrom(L.V, L.F, L.certified ? matBodyOK.clone() : matLink.clone());
   m.visible = !L.certified;                      // le corps certifié est dessiné à part
@@ -283,7 +314,8 @@ function setBody(P){
 for(const [nm,o] of Object.entries(D.obstacles)){
   const s=[o.max[0]-o.min[0],o.max[1]-o.min[1],o.max[2]-o.min[2]];
   const b=new THREE.Mesh(new THREE.BoxGeometry(s[0],s[1],s[2]),
-    new THREE.MeshStandardMaterial({color:0x8a8f98,roughness:.9,transparent:true,opacity:.55}));
+    new THREE.MeshStandardMaterial({color:0x8a8f98,roughness:.92,transparent:true,
+      opacity:.40,side:SIDE,depthWrite:false}));
   b.position.set(o.min[0]+s[0]/2,o.min[1]+s[1]/2,o.min[2]+s[2]/2); scene.add(b);
   const e=new THREE.LineSegments(new THREE.EdgesGeometry(b.geometry),
     new THREE.LineBasicMaterial({color:0xb9c0cc})); e.position.copy(b.position); scene.add(e);
@@ -291,11 +323,12 @@ for(const [nm,o] of Object.entries(D.obstacles)){
 // fantômes start / goal (A24-a) : toujours disponibles, masquables
 const ghosts = [D.start_idx, D.goal_idx].map((idx,k)=>{
   const m = meshFrom(D.poses[idx].body_world, D.body_hull_faces,
-    new THREE.MeshStandardMaterial({color:k?0x4caf7d:0x4a90d9,transparent:true,opacity:.35}));
+    new THREE.MeshStandardMaterial({color:k?0x4caf7d:0x4a90d9,transparent:true,opacity:.32,
+      side:SIDE,flatShading:true,depthWrite:false}));
   scene.add(m); return m;
 });
 // --- orbite maison (aucune dépendance en plus) ---
-let th=-1.05, ph=1.15, rad=2.3, tgt=new THREE.Vector3(0,0,.45), drag=null;
+let th=-0.62, ph=1.24, rad=2.75, tgt=new THREE.Vector3(0,0,.52), drag=null;
 function place(){ cam.position.set(tgt.x+rad*Math.sin(ph)*Math.cos(th),
   tgt.y+rad*Math.sin(ph)*Math.sin(th), tgt.z+rad*Math.cos(ph));
   cam.up.set(0,0,1); cam.lookAt(tgt); }
@@ -335,7 +368,8 @@ document.getElementById('bp').onclick=e=>{ if(anim){clearInterval(anim);anim=nul
 document.getElementById('bghost').onclick=()=>ghosts.forEach(g=>g.visible=!g.visible);
 document.getElementById('meta').innerHTML =
   D.scene + ' &middot; corps certifié = lien 3 (40 sommets, coque du certificat)<br>'
-  + 'parité corps chaîne↔Drake ' + D.body_parity
+  + 'parité corps chaîne↔Drake ' + D.body_parity + ' (120 configs aléatoires) / '
+  + D.body_parity_poses + ' (poses affichées)'
   + ' &middot; <span class="k">Three.js chargé depuis un CDN</span>';
 document.getElementById('limits').textContent = D.limits;
 place(); show(0);

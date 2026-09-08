@@ -4,6 +4,17 @@
 > dossier de sûreté, re-vérifiable en arithmétique exacte par un tiers — pas un « croyez notre
 > collision-checker flottant ».
 
+> **✅ CERTIFIÉ (S11, 8 septembre 2026) sur le VRAI KUKA iiwa7.** `PROOF` + `cnp verify` **OK en
+> arithmétique exacte** + cross-check de scène, **A32 = 0**. Scène
+> [`scenes/usecase_capot_surete_iiwa7.yaml`](../../scenes/usecase_capot_surete_iiwa7.yaml),
+> certificat [`scenes/usecase_capot_surete_iiwa7.cert.json`](../../scenes/usecase_capot_surete_iiwa7.cert.json).
+> **Montée en gamme** par rapport à la spec S9b : robot générique à corps-SEGMENT → **vrai iiwa7**,
+> cinématique fidèle à l'URDF ~2e-6 et **silhouette convexe fidèle du lien 3** (40 sommets, ~1,7e-6).
+>
+> ⚠️ **Ce document décrit une PIÈCE GÉOMÉTRIQUE re-vérifiable, PAS une certification ISO.** Voir
+> §3 pour le claim calibré : ce que le certificat prouve, et — au moins aussi important dans un
+> contexte réglementaire — ce qu'il ne prouve pas.
+
 ---
 
 ## 1. Secteur & persona (qui paie)
@@ -16,28 +27,52 @@
 
 ## 2. Le récit (scène — apparence FAISABLE, A20)
 
-Une cellule 7-DOF travaille derrière un **capot de sûreté** (guard panel) percé d'une **fenêtre
-opérateur**. Question d'analyse de risque : *« le bras peut-il, depuis sa zone home, atteindre la
-zone opérateur en traversant le plan du capot ? »* La **fenêtre est visible**, la zone opérateur
-**proche** — l'intuition dit *« il y a un passage »*. Le certificat prouve que **non** : viser la
-fenêtre ne sert à rien, le **segment proximal** reste pris dans le plein du capot, fenêtre ou pas.
+Une cellule 7 axes (KUKA iiwa7) travaille sous un **capot de sûreté horizontal** (guard panel).
+La **zone opérateur** est de l'autre côté du capot, **visible et proche** ; l'espace latéral a
+l'air dégagé — l'intuition dit *« il passera par-dessus, ou il contournera »* (apparence faisable,
+A20). Question d'analyse de risque : *« le bras peut-il, depuis sa zone home, basculer vers la zone
+opérateur ? »*
+
+Le certificat prouve que **non**, et dit **pourquoi** : pour basculer d'un côté à l'autre, le
+tangage d'épaule `q2` doit **changer de signe**, donc passer par `q2 ≈ 0` — le bras se **redresse**,
+et c'est là que le **segment proximal** (lien 3) percute le plan du capot. Contourner par le lacet
+de base ne change rien (le corps proximal tourne sur lui-même sans se déplacer — **mesuré**, cf.
+§5), et les **4 joints distaux sont prouvés passifs** : ils sont en aval du corps piégé.
 
 ## 3. Claim CALIBRÉ — ce que le certificat prouve, et ce qu'il ne prouve PAS
 
-**PROUVE** : *dans les limites articulaires affichées* (actifs **±70°**, distaux **±143°** ⊂
-limites usine), **aucun chemin continu sans collision** ne fait franchir le plan du capot au
-segment proximal épaule-coude (link 2) — dalle `|φ|≤δ` entièrement en collision, **indépendamment
-des 4 joints distaux**. Preuve **algébrique exacte**, **re-vérifiée en rationnels par un programme
-indépendant** (`cnp verify`, <500 lignes, stdlib seule, sans importer le générateur).
+**PROUVE**, et rien de plus : *dans les limites articulaires affichées* (actifs **±66°**, distaux
+**±143°**, toutes ⊂ limites usine iiwa7 et ⊂ (−180°, 180°) donc **sans wrap-around**), et pour la
+**géométrie statique modélisée** (obstacle en H-rep exacte, corps = **polytope convexe**, géométrie
+en **rationnels exacts**), **aucun chemin continu sans collision** ne relie la pose home à la pose
+côté opérateur : la dalle `|φ| ≤ 9/50` est **entièrement en collision** entre le corps proximal
+certifié (lien 3, silhouette convexe fidèle) et le capot, **indépendamment des 4 joints distaux**.
+Les deux poses sont dans **deux composantes libres distinctes** de l'espace des configurations.
 
-**NE PROUVE PAS** :
-- **pas** l'inatteignabilité *hors* des limites affichées ni hors géométrie modélisée (autre
-  outil monté, déplacement de base, jeu mécanique) — **UNDECIDED ≠ inatteignable** (SPEC §6) ;
-- **pas** une garantie de sûreté *système* (ce n'est PAS une certification ISO ; c'est une
-  **pièce géométrique** versable, à intégrer dans une analyse de risque par l'humain compétent) ;
+Preuve **algébrique exacte**, **re-vérifiée en arithmétique rationnelle par un programme
+indépendant** (`cnp verify`, < 500 lignes, `fractions.Fraction` seulement, stdlib seule, **aucun
+import du générateur** — il ré-implémente la cinématique et les bornes de Bernstein depuis zéro).
+C'est ce programme, pas le nôtre, que l'organisme notifié peut relancer.
+
+**NE PROUVE PAS** — à lire avant tout usage dans un dossier :
+- **pas une certification ISO, ni une garantie de sûreté SYSTÈME.** C'est une **pièce géométrique**
+  versable, à intégrer dans une analyse de risque **par une personne compétente**. Elle ne se
+  substitue à aucune exigence de l'ISO 10218 / ISO 12100 / ISO/TS 15066 / EN ISO 13849 ;
+- **rien de DYNAMIQUE** : ni vitesses, ni distances d'arrêt, ni temps de réaction, ni défaillance
+  de capteur ou d'actionneur, ni comportement en mode dégradé, ni intrusion humaine ;
+- **rien HORS des limites articulaires affichées** ni hors de la géométrie modélisée : un autre
+  outil en bout de bras, un déplacement de la base, un desserrage de butée logicielle, un jeu
+  mécanique ou une déformation **invalident le claim**. Le certificat est indexé sur SES prémisses,
+  qui sont écrites dans le fichier ;
+- **rien sur les obstacles MOBILES** : les obstacles sont supposés **statiques** ;
+- **UNDECIDED ≠ inatteignable** (SPEC §6) : l'absence de certificat n'est pas une preuve
+  d'atteignabilité, et réciproquement ;
 - **pas** un facteur de performance vs un autre outil (pas de ×N) ;
 - **pas** une montée en dims actives gratuite (régime `(d+1)^k`, S9f ; ici k=3) ;
-- **pas** la fidélité physique au-delà du modèle (bac technique 7-DOF, frames simplifiés, A21).
+- **pas « le iiwa exact »** : la fidélité au robot PHYSIQUE est plafonnée par la précision de
+  l'URDF publié (~2e-6 mesuré, A41). Le **modèle interne** est exact — `verify` recompte en
+  `Fraction` — mais il certifie *le modèle*, et la correspondance modèle↔réalité reste une
+  hypothèse d'ingénierie à assumer explicitement dans le dossier.
 
 ## 4. Proposition de valeur PROPRE à ce cas
 
@@ -49,40 +84,70 @@ indépendant du générateur) et **recompte la preuve lui-même**. Pour un dossi
 différence entre *« le fournisseur affirme »* et *« j'ai re-vérifié »*. C'est aussi le seul des
 trois cas où la **recomptabilité** est la valeur centrale (vs un argument de portée ou d'élagage).
 
-## 5. Scène & plausibilité (PAS une certification)
+## 5. Scène, mesures et certificat
 
-- **Spec chargeable** : [`scenes/usecase_capot_surete.yaml`](../../scenes/usecase_capot_surete.yaml)
-  — 7-DOF (`spatial_revolute`), corps certifié = **link 2**, obstacle `GUARD_PANEL` (plein du
-  capot) en H-rep exacte ; la **fenêtre opérateur** est l'espace libre au-dessus/sur les côtés du
-  panneau (apparence faisable, A20). `python -m cnp show … --interactive` OK.
-- **Piégeage proximal explicite** : link 2 dépend des seuls **{0,1,2}** (3 **dims actives**) ;
-  j3,j4,j5,j6 **prouvés passifs** pour la paire (`GUARD_PANEL`).
-- **Plausibilité** (`python scripts/usecase_sanity.py scenes/usecase_capot_surete.yaml`, seedé) :
-  start/goal **libres** ; **0 libre dans la dalle** sur 30 000 uniformes ET **0 sur 30 000
-  biaisés-coins** (S9f) ; **libre des deux côtés** (2706/4000 à gauche, 2679/4000 à droite — le
-  capot plus large laisse de plus grandes poches libres hors-dalle, déconnexion nette). ⟹
-  **déconnexion candidate plausible**. *La preuve est `cnp verify` en S11.*
+- **Scène** : [`scenes/usecase_capot_surete_iiwa7.yaml`](../../scenes/usecase_capot_surete_iiwa7.yaml)
+  — vrai iiwa7 7 axes (chaîne gelée), corps certifié = **lien 3** (coque convexe fidèle 40
+  sommets), obstacle `GUARD_PANEL` : capot **horizontal mince** (50 mm) et **large** (±0,60 m),
+  dessous à **z = 0,695 m**, en **H-rep exacte** (étanche par construction). L'espace latéral et
+  le dessous du capot sont **libres** — c'est ce qui rend la scène feasible-looking (A20).
+- **Piégeage proximal RE-MESURÉ** (`engine.pair_views`, jamais présumé) : dims actives
+  **{0,1,2}** ; **j4…j7 prouvés passifs** pour la paire.
+- **Pourquoi ce séparateur, et pourquoi contourner ne marche pas** :
+  `scripts/measure_iiwa7_lever.py` a mesuré le levier **avant** d'écrire la scène — 3 axes actifs
+  × 6 directions × 2 motifs d'obstacle. Sur le vrai lien 3, **seul** « tangage `q2` + obstacle en
+  surplomb » est franc (**+174,8 mm**) ; le **lacet de base est négatif dans les 6 directions**
+  (le corps proximal tourne sur lui-même sans se déplacer) et le roulis `q3` aussi. Autrement
+  dit : la mesure elle-même établit que les manœuvres de contournement « naturelles » n'ont pas
+  de levier sur ce corps. (Finding A43, quantifié.)
+- **Marge FRANCHE mesurée** (obstacle posé au MILIEU de la fenêtre franche) : **+83,1 mm** de
+  pénétration dans la dalle / **+85,3 mm** de dégagement aux poses. On refuse le marginal : une
+  séparation de ~6 mm avait été rejetée en S10-ter.
+- **Vérité-terrain dense** (oracle **corps-convexe**, seedée, INDÉPENDANTE du certificat — elle
+  ne lit ni λ ni μ) : start/goal **libres** ; **0 libre dans la dalle** sur 40 000 uniformes ET
+  **0 sur 448 coins** ; **invariance de redondance** (les 2⁴ extrêmes distaux : tous en
+  collision) ; **libre des deux côtés**.
+- **Certificat** : **PROOF**, **4 feuilles** (2 collision + 2 hors-dalle), **A32 = 0** ;
+  `cnp verify` **OK exact** en **2,54 s** ; `certify` **498 s** (budget prédit A44 avant le run :
+  ~620 s ⟹ écart **−20 %**). LP de feuille **1 070 lignes** (réduit) contre **473 870** en pleine
+  dimension : **×442,9**. Bench daté : `benchmarks/results/20260908T151019Z/`.
 
-## 6. Storyboard des artefacts (construits en S11, pack démo)
+### Comment un tiers RECOMPTE (la valeur de ce cas, rendue opérationnelle)
 
-- **[A24] interactif HTML** : curseurs 7 joints (butées = limites, degrés, A25) ; collision
-  visuelle ; **fantômes home/zone-opérateur** ; **boutons d'évasion** (viser la fenêtre, rouler le
-  poignet) → verdict « bloqué ». **Bouton « recompter le certificat »** rejouant `cnp verify`
-  (l'argument auditabilité, rendu tangible).
-- **[A20, NON NÉGOCIABLE] vue sweep** : le bras *semblant viser la fenêtre*, poses en collision
-  en rouge — l'œil croit au passage, la preuve dit non.
-- **Figure C-space livrée ici** :
-  [`benchmarks/figures/S9b_usecases/usecase_capot_surete_cspace.png`](../../benchmarks/figures/S9b_usecases/usecase_capot_surete_cspace.png).
-- **[A25] limites partout** + **rappel des hypothèses du verdict** (statiques, polytopes convexes,
-  géométrie exacte) — central ici, car c'est ce que l'auditeur lit.
+```bash
+python -m cnp verify scenes/usecase_capot_surete_iiwa7.cert.json scenes/usecase_capot_surete_iiwa7.yaml
+```
 
-## 7. Critères d'acceptation (ce que S11 doit livrer)
+Le second argument **croise le certificat avec le fichier de scène** : il ne suffit pas que la
+preuve soit correcte, il faut qu'elle porte sur **le problème que le dossier décrit**. La commande
+imprime le verdict **et rappelle ses hypothèses** (limites en degrés, absence de wrap-around,
+obstacles statiques, corps = polytopes, géométrie rationnelle exacte). `verify.py` fait moins de
+500 lignes, n'utilise que la bibliothèque standard, et **n'importe rien du générateur** :
+l'auditeur peut le lire en entier.
 
-1. `cnp certify scenes/usecase_capot_surete.yaml` → **PROOF** ; `cnp verify` → **OK** (exact),
-   **lancé par un tiers** sur la pièce versée (démonstration de recomptabilité).
-2. Budget présenté avant run (~8 feuilles / secondes attendus, k=3).
-3. **A32 = 0** ; vérité-terrain dense seedée ré-assertée (règle 9).
-4. **Encadré « hypothèses du certificat »** explicite (limites degrés, pas de wrap-around,
-   obstacles statiques, corps = polytopes, géométrie rationnelle exacte) — la pièce doit se lire
-   **sans le pipeline qui l'a produite**.
-5. Cadrage honnête : pièce géométrique re-vérifiable, **PAS** une certification ISO en soi.
+## 6. Artefacts livrés (pack démo S11)
+
+- **[A24] interactif HTML auto-suffisant** :
+  [`usecase_capot_surete_iiwa7_interactive.html`](../../benchmarks/figures/S11_usecases/usecase_capot_surete_iiwa7_interactive.html)
+  — 7 curseurs (butées = limites, en degrés, A25), corps = **coque 40 sommets** avec collision
+  **GJK** reproduisant l'oracle, fantômes home / zone-opérateur, boutons d'évasion → « bloqué ».
+- **3D partageable** (un fichier, sans Python, sans serveur) :
+  [`usecase_capot_surete_iiwa7_3d.html`](../../benchmarks/figures/share/usecase_capot_surete_iiwa7_3d.html)
+  — corps certifié surligné + légende A40 (« seule la coque surlignée est dans la paire
+  certifiée »). Invariant testé (`tests/test_share_3d_html.py`).
+- **[A20] sweep** + **C-space** + **partition slab-aware** :
+  `benchmarks/figures/S11_usecases/usecase_capot_surete_iiwa7_{sweep,cspace,partition}.png`.
+  La **partition** est celle qui parle à un auditeur : le plein rouge est **ce que le théorème
+  prouve** (feuille ∩ dalle), le hachuré est la zone **où il ne dit rien** (A11).
+- **[A25] limites partout** + rappel des hypothèses par le verdict CLI.
+
+## 7. Critères d'acceptation — état
+
+| # | Critère | État |
+|---|---|---|
+| 1 | `cnp certify` → PROOF ; `cnp verify` → OK exact, **relançable par un tiers** | ✅ + cross-check de scène (commande ci-dessus) |
+| 2 | Budget présenté AVANT le run | ✅ prédit ~620 s (A44), mesuré 498 s |
+| 3 | A32 = 0 ; vérité-terrain dense seedée ré-assertée | ✅ |
+| 4 | Encadré « hypothèses du certificat » explicite | ✅ verdict CLI + encadré A25 sur chaque figure |
+| 5 | Cadrage honnête : pièce géométrique, **PAS** une certification ISO | ✅ bandeau d'en-tête + §3 « NE PROUVE PAS » développé |
+| 6 | Marge FRANCHE (≥ ~40 mm) | ✅ +83,1 / +85,3 mm |

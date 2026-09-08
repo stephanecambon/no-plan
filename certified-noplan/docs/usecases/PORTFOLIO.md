@@ -1,9 +1,54 @@
-# Portefeuille de cas d'usage (S9b) — trois propositions de valeur du MÊME certificat
+# Portefeuille de cas d'usage — trois propositions de valeur du MÊME certificat
 
-Session **S9b** : conception produit (spécification + storyboard), **pas de preuve** (aucun run de
-certification long, aucun `make_certificate` ici). Chaque cas est livré au niveau (a) one-pager
-calibré · (b) spec YAML chargeable · (c) sanity-check de **plausibilité** (pas une certification)
-· (d) storyboard + ≥1 figure · (e) critères d'acceptation S10/S11.
+> **✅ ÉTAT AU 8 SEPTEMBRE 2026 (S11) — LES TROIS CAS SONT CERTIFIÉS SUR LE VRAI KUKA iiwa7.**
+> `PROOF` + `cnp verify` **OK en arithmétique exacte** + cross-check de scène + **A32 = 0** pour
+> les trois. Ce document n'est plus un portefeuille de *specs* : c'est un pack de *preuves*.
+> (Le corps du document ci-dessous garde le cadrage S9b — conception produit — pour la trace ;
+> les chiffres réels sont dans le tableau « État certifié » et dans les trois one-pagers.)
+
+## État certifié (S11)
+
+| Cas | Scène (vrai iiwa7) | Verdict | Feuilles | `verify` exact | `certify` (prédit A44) | Marges franches | Bench daté |
+|---|---|---|---|---|---|---|---|
+| **Étagère pharma** ⭐ *(flagship d'en-tête)* | `scenes/S6_iiwa_real_shelf.yaml` | **PROOF** | 2 | ✅ 3,79 s | 726 s | +91,5 / +83,3 mm | `20260908T121907Z` |
+| **Bin-picking logistique** | `scenes/usecase_binpicking_iiwa7.yaml` | **PROOF** | 2 | ✅ 2,45 s | 567 s (~620 s, −9 %) | +66,9 / +71,7 mm | `20260908T150151Z` |
+| **Capot de sûreté** | `scenes/usecase_capot_surete_iiwa7.yaml` | **PROOF** | 4 (2 coll. + 2 hors-dalle) | ✅ 2,54 s | 498 s (~620 s, −20 %) | +83,1 / +85,3 mm | `20260908T151019Z` |
+
+Communs aux trois : **7 axes réels** (chaîne gelée fidèle à l'URDF iiwa7 à ~2e-6), **corps certifié
+= lien 3** avec sa **silhouette convexe fidèle à 40 sommets** (~1,7e-6), **dims actives {0,1,2}
+RE-MESURÉES** (les 4 joints distaux sont *prouvés* passifs — la redondance ne dégage pas le corps),
+LP de feuille **1 070 lignes** réduit contre **473 870** en pleine dimension (**×442,9**),
+vérité-terrain dense par l'**oracle corps-convexe** (0 libre / 40 000 dans la dalle, 0 / 448 coins,
+invariance de redondance, libre des deux côtés).
+
+### Le mécanisme est commun — et c'est un RÉSULTAT mesuré, pas un raccourci
+
+Avant d'écrire la moindre scène, `scripts/measure_iiwa7_lever.py` a mesuré le **levier par joint
+actif** sur le vrai lien 3 : **3 axes actifs × 6 directions × 2 motifs d'obstacle** (demi-espace
+« plafond » et plaque « paroi à traverser »).
+
+| séparateur | meilleure marge franche | verdict |
+|---|---|---|
+| **`s1` = q2, tangage d'épaule + obstacle en SURPLOMB** | **+174,8 mm** | **le seul franc** |
+| `s0` = lacet de base | **négatif dans les 6 directions** (−73 à −299 mm) | mort |
+| `s2` = q3, roulis du bras | négatif partout | mort |
+| motif « traverser une paroi verticale » | négatif partout | mort |
+
+Le corps proximal réel est un **blob compact** ancré à l'épaule : il tourne sur lui-même sans se
+déplacer (d'où la mort du lacet de base — le finding A43 de S10-ter, ici quantifié), et il ne peut
+**jamais** se retrouver entièrement d'un côté d'une paroi verticale. Sur ce robot et ce lien, le
+piège proximal franc **est unique**. Les trois cas partagent donc la mécanique et se différencient
+par la **géométrie de l'obstacle** (étagère en surplomb / bac empilé / capot mince et large), les
+**limites**, la **dalle**, les **poses**, le **récit** et le **claim**. C'est exactement la thèse
+« **une seule machinerie, trois marchés** » énoncée plus bas — et on le dit plutôt que de le
+maquiller.
+
+---
+
+Session **S9b** (trace d'origine) : conception produit (spécification + storyboard), **pas de
+preuve** (aucun run de certification long, aucun `make_certificate` là). Chaque cas était livré au
+niveau (a) one-pager calibré · (b) spec YAML chargeable · (c) sanity-check de **plausibilité** (pas
+une certification) · (d) storyboard + ≥1 figure · (e) critères d'acceptation S10/S11.
 
 **Cadre S9f (frontière re-mesurée) — ce qui calibre le choix.** Il n'y a **pas de mur affine
 k≤7** : la montée en dims actives coûte `(d+1)^k` **par LP unique** à feuilles quasi-constantes, et
@@ -88,12 +133,25 @@ la cible G4' 7-DOF) ou de le porter à 7-DOF.
 
 ---
 
-## Gate (validation VUE — fin de S9b)
+## Gate (validation VUE — fin de S9b) — *acquise*
 
-À valider par Stéphane : les **3 one-pagers** + **≥1 figure par cas** (livrées) + ce **PORTFOLIO**,
-PUIS **choix du flagship** (ou itérations). **S10 n'est PAS ouverte.** La clôture (commit ET push)
-suit la validation VUE. Prochaine étape après validation : **S10** (flagship choisi, 7-DOF
-proximal, G4', V6 avec A20 non négociable).
+Validée par Stéphane en S9b ; flagship désigné = **étagère pharma**. Les deux autres cas ont été
+certifiés en **S11** (tableau « État certifié » en tête).
+
+## Artefacts du pack démo (S11)
+
+| Artefact | Où |
+|---|---|
+| **3D partageable** (un fichier `.html`, ouvrable sans Python ni serveur, orbite souris, balayage start→goal, corps certifié surligné + légende A40) | `benchmarks/figures/share/*_3d.html` |
+| **Interactif A24** (7 curseurs, corps = coque 40 sommets, collision GJK ≡ oracle, fantômes, boutons d'évasion) | `benchmarks/figures/S11_usecases/*_interactive.html`, `benchmarks/figures/S10_real_flagship/S6_real_shelf_interactive.html` |
+| **Figures** C-space · sweep fidèle · **partition slab-aware** (plein = prouvé, hachuré = hors-dalle où le théorème ne dit rien, A11) | `benchmarks/figures/S11_usecases/`, `benchmarks/figures/S10_real_flagship/` |
+| **Composite Figure 1** du papier (rendu 3D + coupe C-space + encadré de chiffres lus dans les JSON de bench) | `benchmarks/figures/paper/fig1.png` |
+
+Tous les artefacts qui portent un ARGUMENT sont adossés à un **invariant testé** (règle 11 / A40) :
+`tests/test_viz_partition.py` (le plein ne peut pas sortir de la dalle et ne peut pas contredire
+l'oracle), `tests/test_share_3d_html.py` (le corps dessiné est celui du certificat ; le verdict de
+collision affiché est celui de l'oracle), `tests/test_flagship_real_interactive.py` (la collision
+JS reproduit l'oracle, 0 écart / 694 configurations).
 
 Détail des cas : [`binpicking.md`](binpicking.md) · [`etagere_pharma.md`](etagere_pharma.md) ·
 [`capot_surete.md`](capot_surete.md).
