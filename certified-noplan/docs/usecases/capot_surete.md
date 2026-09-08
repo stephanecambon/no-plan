@@ -133,8 +133,10 @@ l'auditeur peut le lire en entier.
   **GJK** reproduisant l'oracle, fantômes home / zone-opérateur, boutons d'évasion → « bloqué ».
 - **3D partageable** (un fichier, sans Python, sans serveur) :
   [`usecase_capot_surete_iiwa7_3d.html`](../../benchmarks/figures/share/usecase_capot_surete_iiwa7_3d.html)
-  — corps certifié surligné + légende A40 (« seule la coque surlignée est dans la paire
-  certifiée »). Invariant testé (`tests/test_share_3d_html.py`).
+  — 7 curseurs articulaires, collision recalculée en direct, fantômes de bras entier, tentatives
+  d'évasion, corps certifié surligné + légende A40 (« seule la coque surlignée est dans la paire
+  certifiée »). Cinématique et collision = le **noyau JS partagé** testé sous node contre l'oracle
+  Python (`tests/test_share_3d_html.py`, 0 écart).
 - **[A20] sweep** + **C-space** + **partition slab-aware** :
   `benchmarks/figures/S11_usecases/usecase_capot_surete_iiwa7_{sweep,cspace,partition}.png`.
   La **partition** est celle qui parle à un auditeur : le plein rouge est **ce que le théorème

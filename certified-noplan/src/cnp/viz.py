@@ -417,6 +417,71 @@ setS(SC.start_s);
 # ── S10-quinquies: interactive for the REAL iiwa7 flagship — body = faithful 40-vertex convex
 # hull (NOT a segment), collision = GJK(hull, H-rep box) reproducing scenes.convex_collision_oracle
 # (A43/A40 invariant, tested under node). Separator = q2 shoulder PITCH; obstacle = overhead shelf.
+# --------------------------------------------------------------------------- #
+# NOYAU JS PARTAGÉ — cinématique de la chaîne GELÉE + collision GJK du corps convexe.
+# C'est le code que l'invariant A40 teste (`tests/test_flagship_real_interactive.py`
+# le rejoue sous node contre `scenes.convex_collision_oracle` : 0 écart / 694 configs).
+# TOUT artefact interactif qui pose le robot ou colore une collision DOIT l'embarquer
+# tel quel — en réécrire une seconde version, c'est se donner un artefact non testé qui
+# peut mentir (règle 11 / A40). Consommé par `_INTERACTIVE_TEMPLATE_HULL` (widget 2-D)
+# et par `scripts/export_flagship_3d_html.py` (page 3-D partageable).
+# --------------------------------------------------------------------------- #
+
+JS_KINEMATICS_KERNEL = r"""const SC = __SCENE__;
+// ── 3-vector + 4x4 helpers ──
+function ident(){return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];}
+function mul(A,B){let C=new Array(16).fill(0);for(let i=0;i<4;i++)for(let j=0;j<4;j++)for(let k=0;k<4;k++)C[i*4+j]+=A[i*4+k]*B[k*4+j];return C;}
+function trans(v){let T=ident();T[3]=v[0];T[7]=v[1];T[11]=v[2];return T;}
+function rot(axis,a){let [x,y,z]=axis,n=Math.hypot(x,y,z);x/=n;y/=n;z/=n;
+ let c=Math.cos(a),s=Math.sin(a),t=1-c;
+ return [t*x*x+c,t*x*y-s*z,t*x*z+s*y,0, t*x*y+s*z,t*y*y+c,t*y*z-s*x,0, t*x*z-s*y,t*y*z+s*x,t*z*z+c,0, 0,0,0,1];}
+function ap(T,p){return [T[0]*p[0]+T[1]*p[1]+T[2]*p[2]+T[3], T[4]*p[0]+T[5]*p[1]+T[6]*p[2]+T[7], T[8]*p[0]+T[9]*p[1]+T[10]*p[2]+T[11]];}
+function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+function neg(a){return [-a[0],-a[1],-a[2]];}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];}
+// forward kinematics: unlocked joint q = 2*atan(s) (s = the UNLOCKED slider vector), locked joint
+// = its fixed angle. Returns the cumulative transform AFTER each chain joint (frame j{i}).
+function fkChain(s){let T=ident(),out=[],si=0;for(let i=0;i<SC.joints.length;i++){
+  T=mul(T,trans(SC.joints[i].offset));
+  let a = SC.joints[i].locked!=null ? SC.joints[i].locked : 2*Math.atan(s[si++]);
+  T=mul(T,rot(SC.joints[i].axis, a)); out.push(T);}return out;}
+function bodyWorld(s){let T=fkChain(s),F=T[SC.body_link];return SC.hull.map(v=>ap(F,v));} // 40 world verts
+function skeleton(s){let T=fkChain(s),pts=[[0,0,0]];for(let i=0;i<=SC.body_link;i++)pts.push(ap(T[i],[0,0,0]));
+  pts.push(ap(T[T.length-1],[0,0,0]));return pts;}   // base -> ... -> body frame -> distal tip (display)
+// ── GJK: does the convex hull of world verts W intersect the AABB [lo,hi]? (== convex_collision_oracle) ──
+function supHull(W,d){let bi=0,bd=dot(W[0],d);for(let k=1;k<W.length;k++){let x=dot(W[k],d);if(x>bd){bd=x;bi=k;}}return W[bi];}
+function supBox(lo,hi,d){return [d[0]>=0?hi[0]:lo[0], d[1]>=0?hi[1]:lo[1], d[2]>=0?hi[2]:lo[2]];}
+function msup(W,lo,hi,d){return sub(supHull(W,d), supBox(lo,hi,neg(d)));} // Minkowski A⊖B support
+function tprod(a,b,c){return cross(cross(a,b),c);}                        // (a×b)×c
+function gjk(W,lo,hi){
+ let d=[1,0,0], s=[msup(W,lo,hi,d)]; d=neg(s[0]);
+ for(let it=0;it<64;it++){
+   if(dot(d,d)<1e-30) return true;
+   let a=msup(W,lo,hi,d);
+   if(dot(a,d)<0) return false;                                          // a not past origin along d ⇒ disjoint
+   s.push(a);
+   // evolve simplex toward the origin (line / triangle / tetrahedron)
+   if(s.length===2){let[b,A]=[s[0],s[1]],ab=sub(b,A),ao=neg(A);
+     if(dot(ab,ao)>0){d=tprod(ab,ao,ab); if(dot(d,d)<1e-30)d=Math.abs(ab[0])<0.9?cross(ab,[1,0,0]):cross(ab,[0,1,0]);}
+     else{s=[A];d=ao;}}
+   else if(s.length===3){let[c,b,A]=[s[0],s[1],s[2]],ab=sub(b,A),ac=sub(c,A),ao=neg(A),abc=cross(ab,ac);
+     if(dot(cross(abc,ac),ao)>0){ if(dot(ac,ao)>0){s=[c,A];d=tprod(ac,ao,ac);} else{s=[b,A];d=(dot(ab,ao)>0)?tprod(ab,ao,ab):ao;} }
+     else if(dot(cross(ab,abc),ao)>0){ s=[b,A];d=(dot(ab,ao)>0)?tprod(ab,ao,ab):ao; }
+     else{ if(dot(abc,ao)>0){d=abc;} else{s=[b,c,A];d=neg(abc);} }}
+   else{let[dd,c,b,A]=[s[0],s[1],s[2],s[3]],ao=neg(A),
+     abc=cross(sub(b,A),sub(c,A)), acd=cross(sub(c,A),sub(dd,A)), adb=cross(sub(dd,A),sub(b,A));
+     let over=false;
+     if(dot(abc,ao)>0){s=[c,b,A];d=abc;over=true;}
+     else if(dot(acd,ao)>0){s=[dd,c,A];d=acd;over=true;}
+     else if(dot(adb,ao)>0){s=[b,dd,A];d=adb;over=true;}
+     if(!over) return true;}                                             // origin enclosed ⇒ intersect
+ }
+ return true;
+}
+function collide(s){let W=bodyWorld(s);for(const p of SC.panels){if(gjk(W,p.lo,p.hi))return true;}return false;}"""
+
+
 _INTERACTIVE_TEMPLATE_HULL = r"""<!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"><title>__TITLE__</title>
 <style>
@@ -481,59 +546,7 @@ A40 testé sous node). Les <b>fantômes</b> start (bleu) / goal (vert) sont les 
  </div>
 </div>
 <script>
-const SC = __SCENE__;
-// ── 3-vector + 4x4 helpers ──
-function ident(){return [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];}
-function mul(A,B){let C=new Array(16).fill(0);for(let i=0;i<4;i++)for(let j=0;j<4;j++)for(let k=0;k<4;k++)C[i*4+j]+=A[i*4+k]*B[k*4+j];return C;}
-function trans(v){let T=ident();T[3]=v[0];T[7]=v[1];T[11]=v[2];return T;}
-function rot(axis,a){let [x,y,z]=axis,n=Math.hypot(x,y,z);x/=n;y/=n;z/=n;
- let c=Math.cos(a),s=Math.sin(a),t=1-c;
- return [t*x*x+c,t*x*y-s*z,t*x*z+s*y,0, t*x*y+s*z,t*y*y+c,t*y*z-s*x,0, t*x*z-s*y,t*y*z+s*x,t*z*z+c,0, 0,0,0,1];}
-function ap(T,p){return [T[0]*p[0]+T[1]*p[1]+T[2]*p[2]+T[3], T[4]*p[0]+T[5]*p[1]+T[6]*p[2]+T[7], T[8]*p[0]+T[9]*p[1]+T[10]*p[2]+T[11]];}
-function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
-function neg(a){return [-a[0],-a[1],-a[2]];}
-function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
-function cross(a,b){return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];}
-// forward kinematics: unlocked joint q = 2*atan(s) (s = the UNLOCKED slider vector), locked joint
-// = its fixed angle. Returns the cumulative transform AFTER each chain joint (frame j{i}).
-function fkChain(s){let T=ident(),out=[],si=0;for(let i=0;i<SC.joints.length;i++){
-  T=mul(T,trans(SC.joints[i].offset));
-  let a = SC.joints[i].locked!=null ? SC.joints[i].locked : 2*Math.atan(s[si++]);
-  T=mul(T,rot(SC.joints[i].axis, a)); out.push(T);}return out;}
-function bodyWorld(s){let T=fkChain(s),F=T[SC.body_link];return SC.hull.map(v=>ap(F,v));} // 40 world verts
-function skeleton(s){let T=fkChain(s),pts=[[0,0,0]];for(let i=0;i<=SC.body_link;i++)pts.push(ap(T[i],[0,0,0]));
-  pts.push(ap(T[T.length-1],[0,0,0]));return pts;}   // base -> ... -> body frame -> distal tip (display)
-// ── GJK: does the convex hull of world verts W intersect the AABB [lo,hi]? (== convex_collision_oracle) ──
-function supHull(W,d){let bi=0,bd=dot(W[0],d);for(let k=1;k<W.length;k++){let x=dot(W[k],d);if(x>bd){bd=x;bi=k;}}return W[bi];}
-function supBox(lo,hi,d){return [d[0]>=0?hi[0]:lo[0], d[1]>=0?hi[1]:lo[1], d[2]>=0?hi[2]:lo[2]];}
-function msup(W,lo,hi,d){return sub(supHull(W,d), supBox(lo,hi,neg(d)));} // Minkowski A⊖B support
-function tprod(a,b,c){return cross(cross(a,b),c);}                        // (a×b)×c
-function gjk(W,lo,hi){
- let d=[1,0,0], s=[msup(W,lo,hi,d)]; d=neg(s[0]);
- for(let it=0;it<64;it++){
-   if(dot(d,d)<1e-30) return true;
-   let a=msup(W,lo,hi,d);
-   if(dot(a,d)<0) return false;                                          // a not past origin along d ⇒ disjoint
-   s.push(a);
-   // evolve simplex toward the origin (line / triangle / tetrahedron)
-   if(s.length===2){let[b,A]=[s[0],s[1]],ab=sub(b,A),ao=neg(A);
-     if(dot(ab,ao)>0){d=tprod(ab,ao,ab); if(dot(d,d)<1e-30)d=Math.abs(ab[0])<0.9?cross(ab,[1,0,0]):cross(ab,[0,1,0]);}
-     else{s=[A];d=ao;}}
-   else if(s.length===3){let[c,b,A]=[s[0],s[1],s[2]],ab=sub(b,A),ac=sub(c,A),ao=neg(A),abc=cross(ab,ac);
-     if(dot(cross(abc,ac),ao)>0){ if(dot(ac,ao)>0){s=[c,A];d=tprod(ac,ao,ac);} else{s=[b,A];d=(dot(ab,ao)>0)?tprod(ab,ao,ab):ao;} }
-     else if(dot(cross(ab,abc),ao)>0){ s=[b,A];d=(dot(ab,ao)>0)?tprod(ab,ao,ab):ao; }
-     else{ if(dot(abc,ao)>0){d=abc;} else{s=[b,c,A];d=neg(abc);} }}
-   else{let[dd,c,b,A]=[s[0],s[1],s[2],s[3]],ao=neg(A),
-     abc=cross(sub(b,A),sub(c,A)), acd=cross(sub(c,A),sub(dd,A)), adb=cross(sub(dd,A),sub(b,A));
-     let over=false;
-     if(dot(abc,ao)>0){s=[c,b,A];d=abc;over=true;}
-     else if(dot(acd,ao)>0){s=[dd,c,A];d=acd;over=true;}
-     else if(dot(adb,ao)>0){s=[b,dd,A];d=adb;over=true;}
-     if(!over) return true;}                                             // origin enclosed ⇒ intersect
- }
- return true;
-}
-function collide(s){let W=bodyWorld(s);for(const p of SC.panels){if(gjk(W,p.lo,p.hi))return true;}return false;}
+__JS_KERNEL__
 // ── 2-D convex hull (monotone chain) for drawing the projected silhouette ──
 function hull2d(P){if(P.length<3)return P;P=P.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
  let cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),L=[],U=[];
@@ -777,6 +790,7 @@ def export_interactive_html(scene: _cert.Scene, path: str, forearm_length: float
     else:
         raise ValueError(f"body_mode must be 'segment' or 'hull', got {body_mode!r}")
     html = (template
+            .replace("__JS_KERNEL__", JS_KINEMATICS_KERNEL)
             .replace("__SCENE__", json.dumps(data))
             .replace("__FOREARM__", repr(float(forearm_length)))
             .replace("__TITLE__", title or "scène spatiale — validation interactive"))

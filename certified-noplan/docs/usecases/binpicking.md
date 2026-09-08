@@ -107,8 +107,10 @@ scène la plus banale du secteur.
   **GJK** reproduisant l'oracle, fantômes start/goal, boutons d'évasion → tous « bloqué ».
 - **3D partageable** (un fichier, sans Python) :
   [`usecase_binpicking_iiwa7_3d.html`](../../benchmarks/figures/share/usecase_binpicking_iiwa7_3d.html)
-  — le vrai iiwa7, le bac, le balayage start→goal en curseur, **corps certifié surligné** +
-  légende A40. Invariant testé (`tests/test_share_3d_html.py`).
+  — le vrai iiwa7 avec **7 curseurs articulaires**, collision **recalculée en direct**, fantômes
+  de bras ENTIER aux poses start/goal, tentatives d'évasion rejouées, **corps certifié surligné**
+  + légende A40. La cinématique et la collision sont le **noyau JS partagé** testé sous node
+  contre l'oracle Python (`tests/test_share_3d_html.py`, 0 écart).
 - **[A20, NON NÉGOCIABLE] sweep** + **C-space** + **partition slab-aware** :
   `benchmarks/figures/S11_usecases/usecase_binpicking_iiwa7_{sweep,cspace,partition}.png`.
 - **[A25] limites partout** (encadré de chaque figure, cadre = boîte P, butées des curseurs,

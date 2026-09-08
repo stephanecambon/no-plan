@@ -142,12 +142,15 @@ certifiés en **S11** (tableau « État certifié » en tête).
 
 | Artefact | Où |
 |---|---|
-| **3D partageable** (un fichier `.html`, ouvrable sans Python ni serveur, orbite souris, balayage start→goal, corps certifié surligné + légende A40) | `benchmarks/figures/share/*_3d.html` |
+| **3D partageable et INTERACTIF** (un fichier `.html`, ouvrable sans Python ni serveur : orbite souris, **7 curseurs articulaires**, collision recalculée en direct, fantômes de bras entier, tentatives d'évasion, corps certifié surligné + légende A40) | `benchmarks/figures/share/*_3d.html` |
 | **Interactif A24** (7 curseurs, corps = coque 40 sommets, collision GJK ≡ oracle, fantômes, boutons d'évasion) | `benchmarks/figures/S11_usecases/*_interactive.html`, `benchmarks/figures/S10_real_flagship/S6_real_shelf_interactive.html` |
 | **Figures** C-space · sweep fidèle · **partition slab-aware** (plein = prouvé, hachuré = hors-dalle où le théorème ne dit rien, A11) | `benchmarks/figures/S11_usecases/`, `benchmarks/figures/S10_real_flagship/` |
 | **Composite Figure 1** du papier (rendu 3D + coupe C-space + encadré de chiffres lus dans les JSON de bench) | `benchmarks/figures/paper/fig1.png` |
 
-Tous les artefacts qui portent un ARGUMENT sont adossés à un **invariant testé** (règle 11 / A40) :
+Tous les artefacts qui portent un ARGUMENT sont adossés à un **invariant testé** (règle 11 / A40).
+La cinématique et la collision des pages interactives (2-D et 3-D) viennent d'un **noyau JS unique
+et partagé** (`viz.JS_KINEMATICS_KERNEL`) : en écrire une seconde version, ce serait se donner un
+artefact non testé qui peut mentir. Les tests :
 `tests/test_viz_partition.py` (le plein ne peut pas sortir de la dalle et ne peut pas contredire
 l'oracle), `tests/test_share_3d_html.py` (le corps dessiné est celui du certificat ; le verdict de
 collision affiché est celui de l'oracle), `tests/test_flagship_real_interactive.py` (la collision
