@@ -2,9 +2,11 @@
 
 Trois panneaux, une histoire lisible sans légende orale (critère V7) :
 
-  (a) **rendu 3-D** : l'étagère en surplomb, le CORPS CERTIFIÉ (coque 40 sommets du
-      certificat, verbatim) aux poses start et goal — basses, libres, de part et d'autre —
-      et au TRANSIT ``q2≈0`` où le bras se redresse et percute l'étagère (rouge) ;
+  (a) **rendu 3-D du VRAI robot** : le KUKA iiwa7 entier (silhouettes convexes de ses meshes
+      de visu Drake, même doctrine « niveau 1 » que le corps certifié), l'étagère en surplomb,
+      et les trois poses — start et goal en fantômes (bras incliné, corps bas, LIBRE, de part
+      et d'autre) et le TRANSIT ``q2≈0`` en pleine opacité, où le bras se redresse et où le
+      CORPS CERTIFIÉ (coque 40 sommets du certificat, verbatim) percute l'étagère (rouge) ;
   (b) **coupe C-space** sur l'axe SÉPARATEUR (tangage d'épaule ``s1 = q2``) × le lacet de
       base : la dalle ``|φ| ≤ δ`` est un MUR de collision PLEINE HAUTEUR entre start et goal
       — c'est la déconnexion, et la redondance distale n'y change rien ;
@@ -33,6 +35,12 @@ OUT = os.path.join("benchmarks", "figures", "paper", "fig1.png")
 BENCH_GLOB = "benchmarks/results/*/flagship_S10_iiwa_real.json"
 ESCAPE = [(-0.6, 0.0), (-0.3, 0.45), (-0.1, 0.6), (0.0, 0.62), (0.1, 0.6), (0.3, 0.45),
           (0.6, 0.0)]
+START, GOAL, TRANSIT = "#4a90d9", "#3faa78", "#b8bcc4"
+
+
+def plt_patch(colour, label):
+    import matplotlib.patches as mpatches
+    return mpatches.Patch(facecolor=colour, edgecolor="none", label=label)
 
 
 def _latest_bench() -> dict:
@@ -44,11 +52,71 @@ def _latest_bench() -> dict:
 
 
 def _hull_faces(V):
+    """Triangles de la coque, ORIENTÉS vers l'extérieur (sinon le rendu paraît creux)."""
     from scipy.spatial import ConvexHull
-    return ConvexHull(V).simplices
+    V = np.asarray(V, float)
+    c = V.mean(axis=0)
+    out = []
+    for tri in ConvexHull(V).simplices:
+        a, b, d = V[tri[0]], V[tri[1]], V[tri[2]]
+        if np.dot(np.cross(b - a, d - a), (a + b + d) / 3.0 - c) < 0:
+            tri = [tri[0], tri[2], tri[1]]
+        out.append(list(tri))
+    return out
+
+
+def _drake_arm():
+    """(coques de liens en repère lien, fonction de pose) du VRAI iiwa7, via Drake.
+
+    Réutilise l'extraction déjà écrite pour l'export 3-D partageable (``export_flagship_3d_html``)
+    plutôt que de la dupliquer : mêmes meshes de VISU, même décimation par support, donc le
+    papier et l'artefact partagé montrent LE MÊME robot."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "export_flagship_3d_html", os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                "export_flagship_3d_html.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    plant, sg, ctx = mod._plant()
+    hulls = mod._link_hulls(plant, sg)
+
+    def posed(s):
+        """Les 8 coques de liens en coordonnées MONDE à la configuration ``s``."""
+        plant.SetPositions(ctx, 2.0 * np.arctan(np.asarray(s, float)))
+        out = {}
+        for L in mod.LINKS:
+            X = plant.EvalBodyPoseInWorld(ctx, plant.GetBodyByName(L)).GetAsMatrix4()
+            out[L] = (X[:3, :3] @ hulls[L].T).T + X[:3, 3]
+        return out
+
+    return mod.LINKS, mod.CERTIFIED_LINK, posed
+
+
+_LIGHT = np.array([0.45, -0.72, 0.53])
+_LIGHT = _LIGHT / np.linalg.norm(_LIGHT)
+
+
+def _shade(tri, base):
+    """Ombrage lambertien d'un triangle : sans lui, une coque convexe se lit comme une tache
+    plate et le robot n'apparaît pas comme un objet. ``base`` est une couleur matplotlib."""
+    import matplotlib.colors as mcolors
+    a, b, c = tri
+    n = np.cross(b - a, c - a)
+    nn = np.linalg.norm(n)
+    k = 0.42 if nn == 0 else 0.42 + 0.58 * max(0.0, float(np.dot(n / nn, _LIGHT)))
+    r, g, bl = mcolors.to_rgb(base)
+    return (min(1, r * k + 0.06), min(1, g * k + 0.06), min(1, bl * k + 0.06))
 
 
 def _panel_3d(ax, sc, oracle):
+    """Le VRAI iiwa7, pas seulement son corps certifié : sans le robot, la figure ne montre que
+    des capsules colorées et le lecteur ne voit ni la machine ni pourquoi elle est coincée.
+
+    Rendu : les liens viennent des meshes de VISU Drake (coques convexes décimées, doctrine
+    « niveau 1 », la même que le corps certifié) ; seul le corps CERTIFIÉ est la coque 40
+    sommets du certificat, mise en évidence. Tous les triangles d'une pose vont dans UNE seule
+    ``Poly3DCollection`` — mplot3d ne trie qu'entre collections, et une collection par lien
+    donnait un empilement faux. Éclairage lambertien pour que le bras se lise en volume."""
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
     body = scenes._body_fk(sc)
@@ -56,6 +124,41 @@ def _panel_3d(ax, sc, oracle):
     st = np.array([float(v) for v in sc.start_s])
     go = np.array([float(v) for v in sc.goal_s])
     mid = 0.5 * (st + go)
+    links, cert_link, posed = _drake_arm()
+    zmax = 0.0
+
+    def draw_arm(s, base, alpha, upto=None):
+        """``upto`` limite les liens dessinés : les poses fantômes s'arrêtent au corps certifié
+        (le reste du bras, incliné, sort du cadre et noie la lecture) ; la pose de transit est
+        dessinée entière."""
+        nonlocal zmax
+        W = posed(s)
+        tris, cols = [], []
+        for L in (links if upto is None else links[:upto]):
+            if L == cert_link:
+                continue
+            V = W[L]
+            zmax = max(zmax, float(V[:, 2].max()))
+            for f in _hull_faces(V):
+                t = [V[i] for i in f]
+                tris.append(t)
+                cols.append(_shade(t, base))
+        B = np.array([body.eval_world_point(v, s) for v in hv])      # coque DU CERTIFICAT
+        hit = bool(oracle(s))
+        assert hit == (base == TRANSIT), "la figure mentirait (A40)"
+        bcol = "#c62828" if hit else "#e0a93b"
+        for f in _hull_faces(B):
+            t = [B[i] for i in f]
+            tris.append(t)
+            cols.append(_shade(t, bcol))
+        ax.add_collection3d(Poly3DCollection(
+            tris, facecolors=cols, edgecolor="none", alpha=alpha,
+            zsort="average", rasterized=True))
+
+    # fantômes d'abord : épaule + corps certifié seulement (A24-b — chaque vue déclare ce
+    # qu'elle montre ; ici « la pose libre, jusqu'au corps certifié »)
+    draw_arm(st, START, 0.42, upto=4)
+    draw_arm(go, GOAL, 0.42, upto=4)
 
     for nm, (A, b) in sc.obstacles.items():
         bnds = viz._box_bounds(A, b)
@@ -70,34 +173,29 @@ def _panel_3d(ax, sc, oracle):
                  ([0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [2, 3, 7, 6],
                   [1, 2, 6, 5], [0, 3, 7, 4])]
         ax.add_collection3d(Poly3DCollection(faces, facecolor="0.55", edgecolor="0.3",
-                                             alpha=0.30, lw=0.5))
-        ax.text(0, y1, z1 + 0.035, nm, fontsize=7.5, weight="bold", ha="center")
+                                             alpha=0.32, lw=0.5, zsort="average"))
+        # étiquette en coordonnées d'AXES : une annotation 3-D se fait rogner par le cadre
+        ax.text2D(0.60, 0.545, f"{nm}\n(étagère, H-rep exacte)", transform=ax.transAxes,
+                  fontsize=6.8, weight="bold", ha="left", va="center", color="#2b2b2b",
+                  bbox=dict(boxstyle="round,pad=0.22", fc="white", ec="0.7", alpha=0.85))
 
-    for s, colour, lbl in ((st, "#1f77b4", "start (q2<0, bras incliné — LIBRE)"),
-                           (mid, "#d62728", "transit q2≈0 (bras DROIT — COLLISION)"),
-                           (go, "#2ca02c", "goal (q2>0, bras incliné — LIBRE)")):
-        W = np.array([body.eval_world_point(v, s) for v in hv])
-        assert (colour == "#d62728") == bool(oracle(s)), "la figure mentirait (A40)"
-        tri = [[W[i] for i in f] for f in _hull_faces(W)]
-        ax.add_collection3d(Poly3DCollection(tri, facecolor=colour, edgecolor=colour,
-                                             alpha=0.75, lw=0.3))
-        # trait épaule→corps seulement : le squelette complet (19 repères de chaîne) part
-        # loin hors cadre et brouille la lecture ; ici on situe le CORPS certifié, rien d'autre.
-        c = W.mean(axis=0)
-        ax.plot([0, c[0]], [0, c[1]], [0, c[2]], "-", color=colour, lw=1.4, alpha=0.6)
-        ax.plot([], [], [], "-", color=colour, lw=6, alpha=0.85, label=lbl)
-    ax.plot([0], [0], [0], "ks", ms=5)
+    draw_arm(mid, TRANSIT, 0.97)                 # …puis la pose de transit, opaque
 
-    ax.set_xlim(-0.42, 0.42); ax.set_ylim(-0.42, 0.42); ax.set_zlim(0, 0.88)
-    ax.set_box_aspect((1, 1, 1.15))
-    ax.view_init(elev=13, azim=-58)
+    handles = [plt_patch(START, "start (q2<0) — épaule + corps certifié, LIBRE"),
+               plt_patch(GOAL, "goal (q2>0) — épaule + corps certifié, LIBRE"),
+               plt_patch(TRANSIT, "transit q2≈0 : le bras se REDRESSE"),
+               plt_patch("#c62828", "CORPS CERTIFIÉ en collision (lien 3, coque 40 sommets)"),
+               plt_patch("#e0a93b", "corps certifié libre")]
+    ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.02), fontsize=6.6,
+              framealpha=0.94, borderpad=0.35, handlelength=1.4)
+    ax.set_xlim(-0.4, 0.4); ax.set_ylim(-0.4, 0.4); ax.set_zlim(0, max(1.05, zmax + 0.06))
+    ax.set_box_aspect((1, 1, 1.35))
+    ax.view_init(elev=15, azim=-62)
     ax.set_xlabel("x (m)", labelpad=-8, fontsize=7)
     ax.set_ylabel("y (m)", labelpad=-8, fontsize=7)
     ax.set_zlabel("z (m)", labelpad=-6, fontsize=7)
     ax.tick_params(labelsize=5.5, pad=-3)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.02), fontsize=6.8,
-              framealpha=0.94, borderpad=0.35, handlelength=1.4)
-    ax.set_title("(a) vrai KUKA iiwa7 — le corps proximal certifié\nne peut pas se redresser",
+    ax.set_title("(a) le VRAI KUKA iiwa7 — le corps proximal certifié\nne peut pas se redresser",
                  fontsize=9, pad=0)
 
 
