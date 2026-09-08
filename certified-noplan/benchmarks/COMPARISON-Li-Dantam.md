@@ -68,6 +68,16 @@ scene) exact verification is an S9 task, so the verdict is **ENGINE-PROOF** plus
 | S2_peigne (planar comb) | 3 | PROOF | 54 | ~5 s | ~0.18 s |
 | **S3_shoulder_elbow** | **4** | **ENGINE-PROOF** | **8** | **~0.5 s** | S9 (dense: 0 free / 300k) |
 | Li-Dantam Shoulder-Elbow | 4 | manifold + collision-check | ~8188 facets | **≈ 231 s** (their CPU) | — (numerical) |
+| **S6_iiwa_real_shelf** — **7-DOF iiwa7 réel (chaîne+corps gelés), piège pitch-étagère** | **7** | **PROOF** | **2** | **726 s** | **3.8 s** (dense A43: 0 free/slab, marges +91.5/+83.3 mm) |
+
+**Flagship d'en-tête (G4', S10-quinquies)** : vrai KUKA iiwa7 — cinématique fidèle à l'URDF ~2e-6 (S10-bis, A41)
++ silhouette convexe fidèle 40 sommets ~1.7e-6 (S10-ter) + déconnexion FRANCHE pitch/étagère (marge ~90 mm,
+S10-quater), certifiée **PROOF + verify exact** (A32=0, `verify.py` zéro diff). Le temps moteur **726 s** est dominé
+par la **re-résolution pleine-dim à l'export** : chaque feuille collision est re-résolue en LP **pleine-dim = 473 870
+lignes** (vs **1070** lignes réduit par la réduction A30, ×442.9) — la décision par feuille (réduit) est triviale, le
+coût est l'export soundness (SPEC : cert re-résolu pleine dim, verify arbitre pleine dim). **Caveat A41** : la fidélité
+au robot PHYSIQUE est plafonnée par la précision de l'URDF publié (~2e-6), le modèle interne est EXACT (verify recompte
+en `Fraction`) — énoncer « fidèle à l'URDF iiwa7 à 2e-6 près », PAS « le iiwa exact ».
 
 ## What this comparison CAN and CANNOT say
 

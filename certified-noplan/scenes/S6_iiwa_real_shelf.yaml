@@ -16,7 +16,9 @@
 #
 # CORPS = COQUE CONVEXE FIDÈLE (niveau 1) du mesh de visu Drake du lien 3, 40 sommets rationalisés
 # (verify recompte en Fraction), frame-chaîne après q3. Dims actives RE-MESURÉES (pair_views) =
-# (0,1,2) ; distaux (3,4,5,6) passifs AUTOMATIQUEMENT. Budget (d+1)^3 = 4^3 = 64 lignes/LP.
+# (0,1,2) ; distaux (3,4,5,6) passifs AUTOMATIQUEMENT. Budget MESURÉ (S10-quinquies) : LP réduit
+# = 1070 lignes TOTALES/feuille (750 faces + 320 lambda ; pts de contrôle Bernstein par contrainte
+# = (d+1)^3 = 5^3 = 125, DPAD=4) ; plein = 473870 (reduction A30 x442.9) ; 2 feuilles ; PROOF+verify.
 # Obstacle = étagère H-rep EXACTE (étanche). VÉRITÉ-TERRAIN dense (oracle CORPS-CONVEXE, A43) :
 # voir scripts/flagship_iiwa_real_groundtruth.py. Limites box ±70deg actifs / ±143deg passifs (A25).
 robot:

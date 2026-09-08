@@ -2991,14 +2991,96 @@ tâches de S10-quinquies déjà au plan, pas des amendements de règle).
 
 ---
 
-## 2026-07-09 — Session S10-quinquies (Claude Code, GATÉE) — interactif A24 vrai iiwa + figures + gate V6-bis + certif G4' [EN COURS]
+## 2026-07-09 / 2026-09-08 — Session S10-quinquies (Claude Code, GATÉE) — interactif A24 vrai iiwa + figures + V6-bis validé + **certif G4' vrai robot ACQUISE (PROOF exact)** ; clôture reprise après interruption
 
 Suite de S10-quater. Piège FRANC figé `scenes/S6_iiwa_real_shelf.yaml` (φ=s1 pitch q2, étagère en surplomb, marges
-+92/+83 mm) + oracle corps-convexe. `verify.py` SACRÉ — zéro diff attendu. Le robot ET le piège sont finis ; cette
-session produit les ARTEFACTS (interactif + figures), GATE V6-bis, puis certif G4' sur le vrai robot.
++92/+83 mm) + oracle corps-convexe. `verify.py` SACRÉ — zéro diff. Le robot ET le piège étant finis, la session produit
+les ARTEFACTS (interactif + figures), passe la GATE V6-bis, puis certifie G4' sur le vrai robot. **NB temporel** : les
+artefacts + le gate ont été faits le 09/07 ; la certif + la clôture ont été reprises le 08/09 après une interruption
+(voir Pièges — état hérité A33/D33).
 
-**Fait (ouverture)** : machine quiète (no Meshcat ; load ~2). `git status` propre, `origin/main` à jour au commit de
-clôture S10-quater (`4f42915`) + doc (`c746bec`). `make test` = **208 passed, 1 deselected, 0 skip/warn** confirmé à
+**Fait (ouverture, 09/07)** : machine quiète (no Meshcat ; load ~2). `git status` propre, `origin/main` à jour au commit
+de clôture S10-quater (`4f42915`) + doc (`c746bec`). `make test` = **208 passed, 1 deselected, 0 skip/warn** confirmé à
 l'ouverture. Doc circuit A16 : revue S10-quater transcrite ci-dessus (aucun diff CLAUDE.md).
 
-*(entrée en cours — Fait / Décisions / Pièges / décompte complétés à la clôture)*
+**Fait (Tâche 4 — artefacts, commités 09/07)** :
+- **Étiquettes d'axes physiques CORRIGÉES** (finding S10-quater, `viz._effective_axes`) : le type de joint est dérivé
+  de l'axe EFFECTIF (`locked·axe` — rotations verrouillées précédentes appliquées à l'axe-chaîne), PAS de l'axe-chaîne
+  brut (tous « z » à cause de la décomposition octaédrique). Résultat = pattern iiwa canonique **lacet, tangage, lacet,
+  tangage, lacet, tangage, lacet** ; le SÉPARATEUR q2 s'étiquette bien **tangage (pitch)**. `joint_limits_deg` re-mappe
+  la box sur les joints DÉBLOQUÉS (plus les 7 premiers joints-chaîne). Test `test_real_flagship_physical_axis_labels`
+  (chaîne gelée). S3/S5/S2b (chaînes tout-débloqué) inchangés (axe effectif ≡ axe brut à q=0).
+- **Interactif A24 vrai iiwa7** (`export_interactive_html(..., body_mode="hull")`, `_INTERACTIVE_TEMPLATE_HULL`) : corps =
+  **coque convexe 40 sommets** (PAS un segment), collision **GJK(coque, boîte H-rep)** en JS, reproduisant
+  `scenes.convex_collision_oracle` (A43). 7 curseurs (12 joints décomposition affichés verrouillés), fantômes start/goal,
+  chaque vue déclare son contenu, 3 boutons d'évasion adaptés au piège pitch (direct / passer dessous / distaux-redondance)
+  ⟹ tous BLOQUÉ. **Invariant A40 TESTÉ sous node** (`test_flagship_real_interactive`) : **0 écart / 694 configs** (400
+  uniformes + start/goal + 192 coins-slab). Le S5 iiwa-LIKE garde son template segment (intact).
+- **Figures V6-bis** (`scripts/make_real_flagship_figures.py`, oracle corps-convexe) : C-space (mur séparateur or+gris
+  pleine hauteur sur l'axe pitch q2, A20/A25 étiquettes corrigées) + sweep **silhouette 40-sommets fidèle** (corps rouge
+  dans l'étagère au transit q2≈0, poses libres dégageant sous l'étagère — pas de segment qui mentirait) + interactif
+  canonique archivé.
+
+**Fait (V6-bis, 09/07)** : gate présenté (interactif + figures + marge franche +92/+83 mm rappelant le 6 mm refusé +
+budget prédit unités tranchées) ; **« Validé » par Stéphane**.
+
+**Fait (Tâche 5 — certif G4' vrai robot, 08/09)** :
+- `cnp certify scenes/S6_iiwa_real_shelf.yaml` → **PROOF** ; `cnp verify <cert> scene` → **OK exact** (2 feuilles, 2
+  collision, 0 outside ; start/goal séparés par le slab |φ|≤1/5). **A32 = 0** (`n_reresolve_failed`). **`verify.py` zéro
+  diff** (confirmé `git diff --stat`).
+- **Vérité-terrain A43 ré-assertée** (sous-ensemble rapide) : start/goal libres, **0 libre / 448 coins-slab**, invariance
+  redondance (16 extrêmes distaux ⟹ tous collision), marges franches **+91,5 mm** (pénétration slab) / **+83,3 mm**
+  (dégagement start-goal).
+- **Benchmark daté (règle 7)** : `benchmarks/results/20260908T121907Z/flagship_S10_iiwa_real.json` (commit `d16ab35`,
+  `git_dirty=true` — attendu, le cert n'était pas encore commité au moment du run ; consigné tel quel). Ligne harness
+  « 7-DOF iiwa7 réel (chaîne+corps gelés), piège pitch-étagère » ajoutée à `benchmarks/COMPARISON-Li-Dantam.md`.
+- **Cert archivé** `scenes/S6_iiwa_real_shelf.cert.json` (chemin prévu — l'objet que la review amicale recomptera).
+
+**Mesuré vs prédit (unité tranchée = lignes LP TOTALES par feuille)** :
+- **feuilles : 2 mesuré vs ~8 prédit** — MOINS : la marge franche (~90 mm) rend la dalle triviale à paver (le b&b tranche
+  vite, pas de raffinement près d'une frontière serrée).
+- **lignes/feuille réduit : 1070 mesuré = 1070 prédit** (pile — 750 faces + 320 λ) ; **plein : 473 870**, réduction
+  **×442,9** (vs ×612 du banc iiwa-LIKE — l'écart vient du corps 40-sommets qui ajoute ~320 lignes λ au réduit, dérisoire).
+- **le « 64 » de la prédiction initiale était mal scopé** : c'était (d+1)^k par CONTRAINTE (une composante), et il présumait
+  DPAD=3 (4³) ; le compte réel par contrainte est **5³ = 125** (DPAD=4). Corrigé dans le commentaire de la scène.
+- **wall-clock : certify 726 s, verify 3,79 s** — le certify DÉPASSE largement l'estimation de gate (~15-30 s) : le terme
+  dominant est la **re-résolution pleine-dim à l'export** (LP 473 870 lignes par feuille collision), bien plus coûteux que
+  l'extrapolation linéaire depuis le banc n=6 (93 878 l. → 3,26 s) ne le laissait croire (le solve LP est superlinéaire en
+  taille). La décision par feuille (réduit, 1070 l.) reste triviale. Verify (pleine dim, exact `Fraction`) tient en 3,8 s.
+
+**Décisions** :
+- **G4' RÉAFFIRMÉE sur le VRAI robot** ⟹ **FLAGSHIP D'EN-TÊTE ACQUIS** : cinématique fidèle URDF ~2e-6 (S10-bis) +
+  silhouette fidèle ~1,7e-6 (S10-ter) + déconnexion franche ~90 mm certifiée **PROOF + verify exact recomptable** + A32=0.
+  Aligné avec la Figure 1 du papier (vrai iiwa7, étagère en surplomb, pitch q2). Le repli iiwa-LIKE (G4' S10) reste le filet
+  mais n'est plus nécessaire.
+- **Caveat A41 porté** : la fidélité au robot PHYSIQUE est plafonnée par la précision de l'URDF publié (~2e-6), le modèle
+  interne est EXACT (verify recompte en `Fraction`) — énoncer « fidèle à l'URDF iiwa7 à 2e-6 près », PAS « le iiwa exact ».
+- **Interactif A24 : deux modes** (`segment` pour iiwa-LIKE/planaire ↔ `hull`+GJK pour le vrai corps convexe) plutôt qu'une
+  réécriture destructive — le S5 testé reste intact.
+
+**Pièges / findings** :
+- **ÉTAT HÉRITÉ (A33/D33) — session interrompue SANS transcript** : la session du 09/07 a été interrompue pendant la Tâche 5,
+  laissant deux fichiers `??` non commités et **hors trace** : `S6_iiwa_real_shelf.cert.json` **à la RACINE** de
+  certified-noplan (mauvais chemin) et `scripts/flagship_iiwa_real_bench.py` **jamais exécuté** (aucun résultat daté). État
+  CONSTATÉ explicitement, jamais absorbé en silence : cert re-vérifié frais (OK, identique à celui régénéré) puis supprimé de
+  la racine ; bench relu LIGNE À LIGNE avant exécution (venait d'une session sans trace — `res.stats["by_status"]` confirmé
+  présent à la source, engine.py:861). Deux processus orphelins du 09/07 (`cnp show` + son zmqserver Meshcat) trouvés et tués
+  avant le bench (machine quiète, règle 7).
+- **wall-clock de la re-résolution pleine-dim sous-estimé au gate** (~15-30 s annoncé, 726 s mesuré) : le solve LP pleine-dim
+  (473 k lignes) est superlinéaire ; l'extrapolation linéaire depuis n=6 était trop optimiste. Sans impact soundness (verify
+  exact tient en 3,8 s) mais à corriger dans les futures estimations de budget.
+- Le verdict CLI `cnp verify` affiche encore les hypothèses en `q0…q6` génériques (pas les étiquettes physiques) — sans
+  conséquence (c'est l'encadré d'hypothèses, pas une viz d'argument), noté pour cohérence future avec A25.
+
+**Décompte exact (clôture)** : `make test` = **211 passed, 1 deselected, 0 skipped, 0 warnings** (208 S10-quater + 1
+`test_real_flagship_physical_axis_labels` + 2 `test_flagship_real_interactive` ; 1 deselected = `test_parallel_speedup`,
+bench A42). Confirmé après la Tâche 4 ; aucune modif de `src/` depuis (Tâche 5 = cert + bench script + docs), donc décompte
+inchangé. Aucun flake.
+
+**Diffs CLAUDE.md** (règle 14) : bullet de clôture « ✅ S10-quinquies ACTÉE » ajouté à la sous-section plan S10-quinquies
+(14b, tenue de l'état d'avancement) ; correction du commentaire budget « 64 » de la scène gelée (comment-only, n'affecte pas
+le cert).
+
+**Prochaine étape** : **revue de supervision** (flagship d'en-tête réel acquis ⟹ **Figure 1 du papier + headline débloqués**),
+puis **S11** (pack démo bin-picking + capot de sûreté certifiés 5-6 DOF ; export HTML 3D partageable ; viz complète A11/sweep/
+axes physiques standard). `verify.py` intact tout du long.

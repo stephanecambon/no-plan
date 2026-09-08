@@ -734,6 +734,17 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
 - **Tâche 5 (après V6-bis)** : `cnp certify` → PROOF ; `cnp verify` OK ; A32=0 ; vérité-terrain ré-assertée ; benchmark
   daté (règle 7). **G4' RÉAFFIRMÉE sur le vrai robot** (cinématique ~2e-6 + silhouette ~1,7e-6 + déconnexion franche).
   Caveat A41 (fidélité plafonnée par précision URDF, interne exact).
+- ✅ **S10-quinquies ACTÉE (09/07 artefacts+V6-bis, 08/09 certif+clôture après interruption)** : **FLAGSHIP D'EN-TÊTE
+  ACQUIS** — vrai KUKA iiwa7 certifié **PROOF + verify exact** (`scenes/S6_iiwa_real_shelf.cert.json` ; 2 feuilles,
+  A32=0, `verify.py` zéro diff). Tâche 4 : étiquettes d'axes physiques corrigées (axe EFFECTIF `locked·axe` ⟹ q2=pitch ;
+  `viz._effective_axes`, test chaîne gelée) ; interactif A24 corps **coque 40 sommets** + collision **GJK≡oracle
+  corps-convexe** (invariant A40 testé node, 0 écart/694) ; figures C-space+sweep silhouette fidèle. **V6-bis validé par
+  Stéphane**. Tâche 5 : vérité-terrain A43 ré-assertée (marges **+91,5/+83,3 mm**) ; budget MESURÉ (unité tranchée =
+  lignes LP totales/feuille : réduit **1070**=prédit, plein **473 870**, ×442,9 ; le « 64 » était (d+1)^k par contrainte
+  mal scopé, réel 5³=125) ; wall-clock **certify 726 s / verify 3,8 s** (dominé par la re-résolution pleine-dim à
+  l'export — sous-estimé au gate, sans impact soundness) ; benchmark daté (règle 7) + ligne harness. Caveat A41 porté.
+  `make test` = **211 passed, 1 deselected, 0 skip/warn**. État hérité (session interrompue sans transcript : cert mal
+  placé + bench non exécuté) journalisé A33/D33. (voir JOURNAL.md S10-quinquies.)
 
 ### S11 — Visualisation complète et assets (viz.py) + pack démo cas d'usage [D24]
 - Entrée : G4' (ou en parallèle après G2' si S10 traîne).
