@@ -16,6 +16,11 @@ Three commands, three honest verdicts (CLAUDE.md rules 5/6, annotation A17):
     - **UNDECIDED**   — no certificate at the given budget (NOT a proof of feasibility).
 * ``cnp verify <cert.json> [scene.yaml]`` — run the untrusted exact verifier; if a
   scene file is given, also cross-check that the certificate states the same problem.
+* ``cnp viz <cert.json> <scene.yaml> [--out DIR]`` — le pack de figures STANDARD d'un
+  certificat (S11, D10/A11) : coupe C-space (axes nommés PHYSIQUEMENT), sweep fidèle de la
+  silhouette du corps certifié, et **partition slab-aware honnête** (plein = ce que le
+  théorème prouve, hachuré = la partie hors-dalle où il ne dit rien, frontière ``|φ|=δ``
+  tracée). ``--meshcat`` ouvre en plus la vue 3-D de la scène.
 * ``cnp show <scene.yaml> [--config start|goal|sweep]`` — minimal Meshcat view of the
   scene (robot at start/goal, obstacles) for visual design inspection (SPEC §6, V3);
   ``--interactive OUT.html`` exports a self-contained interactive widget for a spatial
@@ -150,8 +155,12 @@ def _cmd_show(args) -> int:
                 active = _engine._global_active(_engine.pair_views(prob), prob)
             except Exception:                   # viz must never fail on an engine hiccup
                 active = None
+        # le modèle de corps suit la GÉOMÉTRIE de la scène : un corps à K>2 sommets exige
+        # la coque + GJK (A43) — un rendu segment mentirait sur une silhouette réelle.
+        mode = args.body_mode or ("hull" if len(scene.hull_vertices) > 2 else "segment")
         path = _viz.export_interactive_html(scene, args.interactive,
-                                            title=f"scene {args.scene}", active_dims=active)
+                                            title=f"scene {args.scene}", active_dims=active,
+                                            body_mode=mode)
         print(f"interactive HTML written to {path} (open it in a browser; no server)")
         return 0
     if args.png is not None:                    # 2-D top-down figure (planar), no server
@@ -179,6 +188,60 @@ def _cmd_show(args) -> int:
 
 
 # --------------------------------------------------------------------------- #
+# viz  (S11 — pack de figures standard d'un certificat ; D10 + A11)
+# --------------------------------------------------------------------------- #
+
+def _cmd_viz(args) -> int:
+    import os
+    from . import certificate as _cert
+    from . import scenes as _scenes
+    from . import viz as _viz
+
+    cert = _cert.load(args.cert)
+    scene, _ = _scenes.load(args.scene)
+    match, why = _scenes.scene_matches_cert(scene, cert)
+    if not match:                       # une figure ne doit jamais illustrer un autre problème
+        print(f"error: la scène ne correspond pas au certificat — {why}", file=sys.stderr)
+        return 2
+    ok, msg = _verify.verify(cert)
+    print(f"certificat : {'OK (exact)' if ok else 'REJETÉ'} — {msg}")
+
+    os.makedirs(args.out, exist_ok=True)
+    stem = os.path.splitext(os.path.basename(args.scene))[0]
+    bdim = _viz._barrier_dim(scene)
+    other = next(i for i in range(scene.robot.n) if i != bdim)
+    oracle = _scenes.convex_collision_oracle(scene)
+    caption = _viz.limits_caption(scene)
+
+    paths = [_viz.save_cspace_figure(
+        scene, oracle, os.path.join(args.out, f"{stem}_cspace.png"),
+        axes=(bdim, other), n=args.grid, axis_labels=_viz._axis_labels(scene, (bdim, other)),
+        footer=caption,
+        title=f"{stem} — coupe C-space (gris = collision ; le cadre = les limites)")]
+    paths.append(_viz.save_hull_sweep_figure(
+        scene, oracle, os.path.join(args.out, f"{stem}_sweep.png"), n=11, project=(0, 2),
+        footer=caption,
+        title=f"{stem} — sweep start→goal, silhouette FIDÈLE du corps certifié (A20)"))
+    paths.append(_viz.save_partition_figure(
+        scene, cert["leaves"], os.path.join(args.out, f"{stem}_partition.png"),
+        axes=(bdim, other), n=args.grid, footer=caption, oracle=oracle,
+        title=f"{stem} — partition certifiée slab-aware ({cert['stats']['n_leaves']} feuilles)"))
+    for pth in paths:
+        print("wrote", pth)
+
+    if args.meshcat:
+        url = _viz.show_scene(scene, config="both")
+        print(f"Meshcat: {url}  (Ctrl-C pour arrêter)")
+        try:
+            import time
+            while True:
+                time.sleep(3600)
+        except KeyboardInterrupt:
+            return 0
+    return 0
+
+
+# --------------------------------------------------------------------------- #
 # parser
 # --------------------------------------------------------------------------- #
 
@@ -200,6 +263,15 @@ def build_parser() -> argparse.ArgumentParser:
                    help="certificate output path (default: <scene>.cert.json)")
     c.set_defaults(func=_cmd_certify)
 
+    z = sub.add_parser("viz", help="standard figure pack for a certificate (C-space, "
+                                   "sweep, slab-aware partition)")
+    z.add_argument("cert", help="path to the JSON certificate")
+    z.add_argument("scene", help="path to the YAML scene (cross-checked against the cert)")
+    z.add_argument("--out", default="benchmarks/figures", help="output directory")
+    z.add_argument("--grid", type=int, default=140, help="figure sampling grid (default 140)")
+    z.add_argument("--meshcat", action="store_true", help="also open the 3-D Meshcat view")
+    z.set_defaults(func=_cmd_viz)
+
     s = sub.add_parser("show", help="minimal Meshcat view of a scene (design inspection)")
     s.add_argument("scene", help="path to the YAML scene")
     s.add_argument("--config", choices=["both", "start", "goal", "sweep"],
@@ -210,6 +282,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--png", default=None,
                    help="save a 2-D top-down figure to this path (planar scenes) "
                         "instead of launching the Meshcat server")
+    s.add_argument("--body-mode", dest="body_mode", choices=["segment", "hull"],
+                   default=None,
+                   help="modèle du corps dans l'interactif (défaut : déduit de la scène — "
+                        "'hull' + GJK dès que le corps a plus de 2 sommets, A43)")
     s.add_argument("--interactive", default=None, metavar="OUT.html",
                    help="export a self-contained interactive HTML (spatial scenes, A24): "
                         "joint sliders, live collision, start/goal ghosts, escape-attempt "

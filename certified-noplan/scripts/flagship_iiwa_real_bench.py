@@ -10,8 +10,14 @@ reduced-vs-full leaf LP rows, archives the certificate, writes a dated results d
 G4' RÉAFFIRMÉE sur le vrai robot. Caveat A41: fidélité physique plafonnée par la précision URDF
 (~2e-6), modèle interne EXACT (verify.py recompte en Fraction).
 
-Run: ``python scripts/flagship_iiwa_real_bench.py`` -> scenes/S6_iiwa_real_shelf.cert.json
-                                          + benchmarks/results/<ts>/flagship_S10_iiwa_real.json
+GÉNÉRALISÉ EN S11 : le même banc sert les DEUX cas d'usage du pack démo (bac empilé, capot de
+sûreté), qui montent le même robot gelé et la même mécanique mesurée (pitch q2 + surplomb, cf.
+``scripts/measure_iiwa7_lever.py``) sur des géométries, limites, dalles, poses et claims distincts.
+Le nom de l'obstacle, la barrière et la boîte sont lus DANS LA SCÈNE.
+
+Run: ``python scripts/flagship_iiwa_real_bench.py [scene.yaml ...]``
+     défaut = le flagship S6 -> scenes/S6_iiwa_real_shelf.cert.json
+                              + benchmarks/results/<ts>/flagship_S10_iiwa_real.json
 """
 from __future__ import annotations
 
@@ -35,19 +41,51 @@ def _lp_rows(cell, view, prob, active_dims) -> int:
 
 
 SCENE = "scenes/S6_iiwa_real_shelf.yaml"
-CERT_OUT = "scenes/S6_iiwa_real_shelf.cert.json"
-# V6-bis prediction, units RESOLVED (S10-quinquies gate): the "64" = (d+1)^k per-CONSTRAINT Bernstein
-# control points (a component, and it presumed DPAD=3); the real per-constraint count is 5^3=125.
-# The comparable unit is TOTAL LP rows per leaf (the "766" of the iiwa-LIKE bench); on S6 the 40-vertex
-# body adds ~320 lambda rows, so the reduced leaf LP predicts ~1070 total rows.
-PREDICTED = {"leaves": 8, "cost_leaf_reduced_rows": 1070, "bern_ctrl_pts_per_constraint": 125,
-             "active_dims": [0, 1, 2]}
+# Budgets PRÉDITS par cas, dans CASES ci-dessous. Unités RESOLVED au gate V6-bis : le « 64 » était
+# (d+1)^k de points de contrôle Bernstein par CONTRAINTE (une composante, et il présumait DPAD=3) ;
+# le compte réel par contrainte est 5^3 = 125. L'unité comparable est le nombre TOTAL de lignes de
+# LP par feuille (le « 766 » du banc iiwa-LIKE) ; ici le corps 40 sommets ajoute ~320 lignes lambda,
+# d'où 1070. [A44] le wall-clock se prédit sur lignes × COLONNES avec un modèle superlinéaire
+# calibré sur les benchs — jamais par extrapolation linéaire en lignes.
 
 
 def _git():
     h = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
     dirty = bool(subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True).stdout.strip())
     return h, dirty
+
+
+CASES = {
+    "scenes/S6_iiwa_real_shelf.yaml": {
+        "key": "flagship_S10_iiwa_real", "session": "S10-quinquies",
+        "gate": "G4' (réaffirmée vrai robot)",
+        "robot": "7-DOF iiwa7 réel (chaîne+corps gelés), piège pitch-étagère, q*=0",
+        "note": "FLAGSHIP d'EN-TÊTE : vrai KUKA iiwa7, cinematique+silhouette fideles, "
+                "deconnexion FRANC pitch/etagere certifiee PROOF + verify exact",
+        "predicted": {"leaves": 8, "cost_leaf_reduced_rows": 1070,
+                      "bern_ctrl_pts_per_constraint": 125, "active_dims": [0, 1, 2]}},
+    "scenes/usecase_binpicking_iiwa7.yaml": {
+        "key": "usecase_binpicking_iiwa7", "session": "S11",
+        "gate": "pack démo (cas non-flagship)",
+        "robot": "7-DOF iiwa7 réel (chaîne+corps gelés), piège pitch-bac-empilé, q*=0",
+        "note": "CAS BIN-PICKING : élagage PROUVÉ d'une branche TAMP — le colis au fond du bac "
+                "bas est inatteignable sans retirer d'abord la caisse du dessus",
+        # [A44] budget prédit AVANT le run : le LP pleine dim est IDENTIQUE au flagship (même
+        # robot, K=40, n=7, DPAD=4) ⟹ 473870 lignes × 327 colonnes, calibré le 08/09 à 290,8 s
+        # par feuille collision sur cette machine ⟹ 39 s (build FK) + 1,5 s (b&b) + 2×291 s.
+        "predicted": {"leaves": 2, "cost_leaf_reduced_rows": 1070,
+                      "cost_leaf_full_rows": 473870, "cols_full": 327,
+                      "certify_s": 620, "active_dims": [0, 1, 2]}},
+    "scenes/usecase_capot_surete_iiwa7.yaml": {
+        "key": "usecase_capot_surete_iiwa7", "session": "S11",
+        "gate": "pack démo (cas non-flagship)",
+        "robot": "7-DOF iiwa7 réel (chaîne+corps gelés), piège pitch-capot, q*=0",
+        "note": "CAS CAPOT DE SÛRETÉ : pièce géométrique EXACTEMENT RECOMPTABLE pour un dossier "
+                "de sûreté (l'organisme notifié relance cnp verify) — PAS une certification ISO",
+        "predicted": {"leaves": 2, "cost_leaf_reduced_rows": 1070,
+                      "cost_leaf_full_rows": 473870, "cols_full": 327,
+                      "certify_s": 620, "active_dims": [0, 1, 2]}},
+}
 
 
 def _groundtruth_subset(sc):
@@ -72,12 +110,12 @@ def _groundtruth_subset(sc):
                 for d in itertools.product(*[(lo[i], hi[i]) for i in range(3, n)])}
     fk = scenes._body_fk(sc)
     hv = [[float(c) for c in v] for v in sc.hull_vertices]
-    z0 = -float(sc.obstacles["SHELF_PANEL"][1][5])
+    z0 = -float(sc.obstacles[sc.pairs[0]][1][5])         # underside of the overhead obstacle
     topz = lambda s: max(fk.eval_world_point(v, np.asarray(s, float))[2] for v in hv)
     slab_min_top = min(topz([s0, s1, s2, 0, 0, 0, 0])
-                       for s0 in np.linspace(-0.7, 0.7, 5)
+                       for s0 in np.linspace(lo[0], hi[0], 5)
                        for s1 in np.linspace(-delta, delta, 3)
-                       for s2 in np.linspace(-0.7, 0.7, 5))
+                       for s2 in np.linspace(lo[2], hi[2], 5))
     sg_max_top = max(topz(sc.start_s), topz(sc.goal_s))
     return {"start_free": start_free, "goal_free": goal_free, "slab_corner_free": corner_free,
             "redundancy_all_collide": (verdicts == {True}),
@@ -85,12 +123,15 @@ def _groundtruth_subset(sc):
             "startgoal_clearance_mm": round((z0 - sg_max_top) * 1000, 1)}
 
 
-def main():
-    sc, _ = scenes.load(SCENE)
+def run_case(scene_path: str) -> int:
+    meta = CASES[scene_path]
+    predicted = meta["predicted"]
+    cert_out = scene_path.replace(".yaml", ".cert.json")
+    sc, _ = scenes.load(scene_path)
     prob = scenes.build_problem(sc)
     views = engine.pair_views(prob)
     active = list(engine._global_active(views, prob))
-    assert active == [0, 1, 2], f"active dims {active} != predicted {{0,1,2}}"
+    assert active == predicted["active_dims"], f"active dims {active} != predicted"
 
     gt = _groundtruth_subset(sc)                            # re-assert ground truth (A43)
 
@@ -107,11 +148,12 @@ def main():
     reduced = _lp_rows(cell, vw, prob, vw.active)          # 3 active dims (A30 reduced)
     full = _lp_rows(cell, vw, prob, None)                  # all 7 dims (full re-resolution at export)
 
-    cert.save(c, CERT_OUT)
+    cert.save(c, cert_out)
 
     row = {
-        "scene": SCENE,
-        "robot": "7-DOF iiwa7 réel (chaîne+corps gelés), piège pitch-étagère, q*=0",
+        "scene": scene_path,
+        "obstacle": sc.pairs[0],
+        "robot": meta["robot"],
         "kinematics_parity_urdf": "~2e-6 (S10-bis, A41)", "body_parity": "~1.7e-6 (S10-ter)",
         "verdict": res.verdict, "verify_ok": ok, "verify_msg": msg,
         "n_active": len(active), "active_dims": active,
@@ -121,18 +163,15 @@ def main():
         "cost_leaf_reduced_rows": reduced, "cost_leaf_full_rows": full,
         "reduction_x": round(full / reduced, 1),
         "certify_s": round(t_certify, 2), "verify_s": round(t_verify, 2),
-        "groundtruth": gt, "predicted": PREDICTED,
+        "groundtruth": gt, "predicted": predicted,
     }
     h, dirty = _git()
     ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     outdir = os.path.join("benchmarks", "results", ts)
     os.makedirs(outdir, exist_ok=True)
-    payload = {"session": "S10-quinquies", "gate": "G4' (réaffirmée vrai robot)",
-               "commit": h, "git_dirty": dirty,
-               "note": "FLAGSHIP d'EN-TÊTE : vrai KUKA iiwa7, cinematique+silhouette fideles, "
-                       "deconnexion FRANC pitch/etagere certifiee PROOF + verify exact",
-               "row": row}
-    with open(os.path.join(outdir, "flagship_S10_iiwa_real.json"), "w") as f:
+    payload = {"session": meta["session"], "gate": meta["gate"],
+               "commit": h, "git_dirty": dirty, "note": meta["note"], "row": row}
+    with open(os.path.join(outdir, meta["key"] + ".json"), "w") as f:
         json.dump(payload, f, indent=2, default=str)
 
     print(f"verdict={res.verdict} verify_ok={ok} A32={row['n_reresolve_failed']} "
@@ -141,16 +180,30 @@ def main():
           f"slab_corner_free={gt['slab_corner_free']} redundancy_all_collide={gt['redundancy_all_collide']}")
     print(f"franc margins: slab penetration +{gt['slab_penetration_mm']} mm / "
           f"start-goal clearance +{gt['startgoal_clearance_mm']} mm")
-    print(f"active_dims={active}  reduced_rows={reduced} (predit {PREDICTED['cost_leaf_reduced_rows']})  "
+    print(f"active_dims={active}  reduced_rows={reduced} "
+          f"(predit {predicted['cost_leaf_reduced_rows']})  "
           f"full_rows={full}  reduction={row['reduction_x']}x")
-    print(f"certify={row['certify_s']}s  verify={row['verify_s']}s")
-    print(f"cert archived: {CERT_OUT}   results: {outdir}/flagship_S10_iiwa_real.json  "
+    print(f"certify={row['certify_s']}s  verify={row['verify_s']}s"
+          + (f"   (prédit A44 ~{predicted['certify_s']} s ⟹ écart "
+             f"{100*(row['certify_s']-predicted['certify_s'])/predicted['certify_s']:+.0f} %)"
+             if "certify_s" in predicted else ""))
+    print(f"cert archived: {cert_out}   results: {outdir}/{meta['key']}.json  "
           f"commit={h} dirty={dirty}")
     okall = (res.verdict == "PROOF" and ok and row["n_reresolve_failed"] == 0
              and gt["start_free"] and gt["goal_free"] and gt["slab_corner_free"] == 0
              and gt["redundancy_all_collide"] and gt["slab_penetration_mm"] > 40
              and gt["startgoal_clearance_mm"] > 40)
     return 0 if okall else 1
+
+
+def main(argv=None) -> int:
+    import sys
+    paths = (argv if argv is not None else sys.argv[1:]) or [SCENE]
+    rc = 0
+    for pth in paths:
+        print(f"######## {pth}")
+        rc |= run_case(pth)
+    return rc
 
 
 if __name__ == "__main__":

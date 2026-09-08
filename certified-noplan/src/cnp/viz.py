@@ -856,3 +856,251 @@ def show_scene(scene: _cert.Scene, config: str = "both"):
             _draw_robot(vis, scene, cfg, _CONFIG_COLOUR[cfg])
 
     return vis.url()
+
+
+# --------------------------------------------------------------------------- #
+# S11 — composants STANDARD des figures (D10 : sweep + axes physiques ; A11 : partition
+# slab-aware honnête). Le nommage physique des axes vient de ``joint_limits_deg`` /
+# ``_effective_axes`` (finding S10-quater) ; l'encadré de limites vient de ``limits_caption``
+# (A25). Toute figure qui porte un ARGUMENT est adossée à un invariant testé (A40).
+# --------------------------------------------------------------------------- #
+
+def phi_eval(scene: _cert.Scene, s) -> float:
+    """Valeur flottante de la barrière φ au point ``s`` (tenseur creux {exposants: coeff})."""
+    acc = 0.0
+    for e, c in scene.phi.items():
+        term = float(_cert.Q(c))
+        for i, p in enumerate(e):
+            if p:
+                term *= float(s[i]) ** p
+        acc += term
+    return acc
+
+
+def _phi_grid(scene: _cert.Scene, axes, xs, ys, fixed) -> np.ndarray:
+    """φ sur la grille du plan ``axes`` (les autres dims figées) — ``(len(ys), len(xs))``."""
+    i, j = axes
+    s = np.zeros(scene.robot.n)
+    for k, v in (fixed or {}).items():
+        s[k] = v
+    out = np.zeros((len(ys), len(xs)))
+    for b, sy in enumerate(ys):
+        for a, sx in enumerate(xs):
+            s[i], s[j] = sx, sy
+            out[b, a] = phi_eval(scene, s)
+    return out
+
+
+def certified_collision_mask(scene: _cert.Scene, leaves, axes, xs, ys, fixed=None):
+    """[A11] Le masque de ce que le certificat PROUVE réellement sur cette coupe.
+
+    Un témoin de feuille est **slab-aware** : il établit ``g_j - mu_j·T >= 0`` avec
+    ``T = delta² - φ²``. Là où ``T < 0`` (HORS de la dalle) la contrainte n'impose plus
+    ``g_j >= 0`` : **le théorème ne dit RIEN de la partie hors-dalle d'une feuille**. Peindre
+    la feuille entière en « collision certifiée » ferait croire au lecteur qu'on certifie de la
+    collision en zone libre (dette V1/A11). Ce masque vaut donc ``True`` exactement sur
+    ``(∪ feuilles collision) ∩ {|φ| <= delta}``.
+
+    Retourne ``(certified, in_slab, leaf_of)`` : le masque certifié, le masque de dalle, et
+    l'indice de feuille de chaque point (``-1`` hors de toute feuille de la coupe)."""
+    i, j = axes
+    fixed = fixed or {}
+    delta = float(scene.delta)
+    P = _phi_grid(scene, axes, xs, ys, fixed)
+    in_slab = np.abs(P) <= delta
+
+    leaf_of = np.full((len(ys), len(xs)), -1, dtype=int)
+    collision = np.zeros((len(ys), len(xs)), dtype=bool)
+    X, Y = np.meshgrid(xs, ys)
+    for k, lf in enumerate(leaves):
+        cell = lf["cell"] if isinstance(lf, dict) else lf.cell
+        status = lf["status"] if isinstance(lf, dict) else lf.status
+        cell = [(float(_cert.Q(lo)), float(_cert.Q(hi))) for lo, hi in cell]
+        # la coupe ne rencontre cette feuille que si les dims FIGÉES y tombent
+        if any(not (cell[d][0] <= fixed.get(d, 0.0) <= cell[d][1])
+               for d in range(len(cell)) if d not in (i, j)):
+            continue
+        m = ((X >= cell[i][0]) & (X <= cell[i][1])
+             & (Y >= cell[j][0]) & (Y <= cell[j][1]))
+        leaf_of[m] = k
+        if status == "collision":
+            collision |= m
+    return collision & in_slab, in_slab, leaf_of
+
+
+def save_partition_figure(scene: _cert.Scene, leaves, path, axes=(0, 1), n=340,
+                          fixed=None, title=None, axis_labels=None, footer=None,
+                          oracle=None):
+    """[A11, dette V1 — composant STANDARD de ``cnp viz``] Partition certifiée HONNÊTE.
+
+    Ce que la figure dit, et rien de plus :
+      * **plein** (couleur de la paire) = ``feuille collision ∩ dalle`` — ce que le théorème
+        PROUVE : tout point de la dalle est en collision, donc aucun chemin ne la traverse ;
+      * **hachuré** = la partie HORS-DALLE des mêmes feuilles — le témoin slab-aware n'y
+        impose rien ; c'est de l'espace où le robot bouge librement, pas une prétention de
+        collision (c'était le contresens que la V1 pouvait induire) ;
+      * la **frontière de dalle** ``{|φ| = delta}`` est tracée en trait épais ;
+      * les **bords de feuilles** montrent le pavage (le raffinement du b&b).
+
+    ``leaves`` accepte les feuilles d'un ``EngineResult`` ou les dicts d'un certificat."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
+
+    i, j = axes
+    fixed = fixed or {}
+    leaves = list(leaves)
+    xs = np.linspace(float(scene.box[i][0]), float(scene.box[i][1]), n)
+    ys = np.linspace(float(scene.box[j][0]), float(scene.box[j][1]), n)
+    certified, in_slab, _ = certified_collision_mask(scene, leaves, axes, xs, ys, fixed)
+    P = _phi_grid(scene, axes, xs, ys, fixed)
+    delta = float(scene.delta)
+    ext = [xs[0], xs[-1], ys[0], ys[-1]]
+
+    fig, ax = plt.subplots(figsize=(7.8, 6.6))
+    if oracle is not None:                       # fond : vérité-terrain (intention, pas preuve)
+        s = np.zeros(scene.robot.n)
+        for k, v in fixed.items():
+            s[k] = v
+        gt = np.zeros((n, n))
+        for b, sy in enumerate(ys):
+            for a, sx in enumerate(xs):
+                s[i], s[j] = sx, sy
+                gt[b, a] = 1.0 if oracle(s) else 0.0
+        ax.imshow(gt, origin="lower", extent=ext, aspect="auto", cmap="Greys",
+                  vmin=0, vmax=2.6, alpha=0.55, zorder=1)
+
+    ax.imshow(np.where(certified, 1.0, np.nan), origin="lower", extent=ext, aspect="auto",
+              cmap=matplotlib.colors.ListedColormap(["#c62828"]), vmin=0, vmax=1,
+              alpha=0.80, zorder=3)
+    ax.contourf(xs, ys, np.where(in_slab, 0.0, 1.0), levels=[0.5, 1.5],
+                colors="none", hatches=["////"], zorder=4)
+    ax.contour(xs, ys, P, levels=[-delta, delta], colors="#b8860b",
+               linewidths=2.2, zorder=5)
+
+    for lf in leaves:
+        cell = lf["cell"] if isinstance(lf, dict) else lf.cell
+        status = lf["status"] if isinstance(lf, dict) else lf.status
+        cell = [(float(_cert.Q(lo)), float(_cert.Q(hi))) for lo, hi in cell]
+        if any(not (cell[d][0] <= fixed.get(d, 0.0) <= cell[d][1])
+               for d in range(len(cell)) if d not in (i, j)):
+            continue
+        ax.add_patch(Rectangle((cell[i][0], cell[j][0]),
+                               cell[i][1] - cell[i][0], cell[j][1] - cell[j][0],
+                               facecolor="none",
+                               edgecolor="#1a237e" if status == "collision" else "#607d8b",
+                               lw=1.4, ls="-" if status == "collision" else "--", zorder=6))
+
+    st = [float(v) for v in scene.start_s]
+    go = [float(v) for v in scene.goal_s]
+    ax.plot(st[i], st[j], "*", color="#1f77b4", ms=20, mec="k", zorder=7, label="start")
+    ax.plot(go[i], go[j], "P", color="#2ca02c", ms=16, mec="k", zorder=7, label="goal")
+
+    handles = [plt.Rectangle((0, 0), 1, 1, fc="#c62828", alpha=0.8),
+               plt.Rectangle((0, 0), 1, 1, fc="white", ec="k", hatch="////"),
+               plt.Line2D([0], [0], color="#b8860b", lw=2.2),
+               plt.Line2D([0], [0], color="#1a237e", lw=1.4),
+               plt.Line2D([0], [0], ls="", marker="*", color="#1f77b4", ms=12, mec="k"),
+               plt.Line2D([0], [0], ls="", marker="P", color="#2ca02c", ms=10, mec="k")]
+    labels = ["PROUVÉ : collision (feuille ∩ dalle)",
+              "hors dalle — le théorème ne dit rien ici",
+              f"frontière de dalle |φ| = {scene.delta}",
+              "feuilles certifiées (pavage b&b)", "start", "goal"]
+    if oracle is not None:
+        handles.insert(1, plt.Rectangle((0, 0), 1, 1, fc="0.62", alpha=0.55))
+        labels.insert(1, "vérité-terrain échantillonnée (oracle) : collision")
+    ax.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=2,
+              fontsize=7.2, framealpha=0.96, borderaxespad=0.0)
+    xl, yl = axis_labels or _axis_labels(scene, axes)
+    ax.set_xlabel(xl)
+    ax.set_ylabel(yl)
+    ax.set_title(title or "partition certifiée (le cadre = les limites articulaires)")
+    fig.tight_layout()
+    if footer:                                   # A25 : les limites, sous la légende
+        fig.text(0.5, -0.055, footer, ha="center", va="top", fontsize=6.8,
+                 bbox=dict(boxstyle="round", fc="#fff7e0", ec="#e0c060"))
+    fig.savefig(path, dpi=130, bbox_inches="tight")
+    plt.close(fig)
+    return path
+
+
+def _axis_labels(scene: _cert.Scene, axes) -> tuple:
+    """[D10] Nommage PHYSIQUE des axes du C-space, dérivé de l'axe EFFECTIF (S10-quater)."""
+    names = [n for n, _, _ in joint_limits_deg(scene)]
+    bdim = _barrier_dim(scene)
+    out = []
+    for a in axes:
+        nm = names[a] if a < len(names) else f"s{a}"
+        out.append(f"{nm}  s{a}  (q{a+1} = 2·arctan s{a})"
+                   + ("  ★ SÉPARATEUR" if a == bdim else ""))
+    return tuple(out)
+
+
+def save_hull_sweep_figure(scene: _cert.Scene, oracle, path, n=11, project=(0, 2),
+                           title=None, footer=None):
+    """[A20/D10 — composant STANDARD] Sweep FIDÈLE : à chacune des ``n`` poses interpolées
+    start→goal, la SILHOUETTE du corps certifié (coque convexe de ses sommets FK, projetée)
+    colorée par l'oracle CORPS-CONVEXE — vert libre / rouge collision — au-dessus des
+    obstacles. Contrairement à un éventail de squelette, elle montre exactement la géométrie
+    sur laquelle le certificat raisonne : une pose libre ne dessine JAMAIS son corps dans
+    l'obstacle (A40 : la figure ne doit pas mentir)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Polygon, Rectangle
+    from scipy.spatial import ConvexHull
+
+    i, j = project
+    body = _scenes_body_fk(scene)
+    hv = [[float(c) for c in v] for v in scene.hull_vertices]
+    st = np.array([float(v) for v in scene.start_s])
+    go = np.array([float(v) for v in scene.goal_s])
+
+    fig, ax = plt.subplots(figsize=(7.8, 7.2))
+    for nm, (A, b) in scene.obstacles.items():
+        bnds = _box_bounds(A, b)
+        if bnds is None:
+            continue
+        (xlo, xhi), (ylo, yhi) = bnds[i], bnds[j]
+        ax.add_patch(Rectangle((xlo, ylo), xhi - xlo, yhi - ylo,
+                               facecolor="0.6", edgecolor="0.3", alpha=0.85, zorder=1))
+        ax.text((xlo + xhi) / 2, yhi + 0.02, nm, ha="center", va="bottom",
+                fontsize=8, weight="bold", zorder=6)
+
+    n_coll = 0
+    for k in range(n):
+        s = st + (go - st) * (k / (n - 1))
+        colliding = bool(oracle(s))
+        n_coll += colliding
+        colour = "#d62728" if colliding else "#2ca02c"
+        W = np.array([body.eval_world_point(v, s) for v in hv])
+        base = W.mean(axis=0)
+        ax.plot([0, base[i]], [0, base[j]], "-", color=colour, lw=0.8, alpha=0.35, zorder=2)
+        P = W[:, [i, j]]
+        try:
+            ax.add_patch(Polygon(P[ConvexHull(P).vertices], closed=True, facecolor=colour,
+                                 edgecolor=colour, alpha=0.45, lw=1.0, zorder=3))
+        except Exception:                       # pragma: no cover - dégénérescence numérique
+            ax.plot(P[:, 0], P[:, 1], "o", color=colour, ms=2, zorder=3)
+    ax.plot(0, 0, "ks", ms=9, zorder=7)
+    ax.set_aspect("equal")
+    ax.grid(True, ls=":", alpha=0.5)
+    ax.set_xlabel(f"axe monde {'xyz'[i]} (m)")
+    ax.set_ylabel(f"axe monde {'xyz'[j]} (m)")
+    ax.set_title(title or f"balayage start→goal : {n_coll}/{n} corps en collision (rouge)",
+                 fontsize=10)
+    if footer:
+        ax.text(0.015, 0.015, footer, transform=ax.transAxes, fontsize=6.8,
+                va="bottom", ha="left", zorder=10,
+                bbox=dict(boxstyle="round", fc="#fff7e0", ec="#e0c060"))
+    fig.tight_layout()
+    fig.savefig(path, dpi=130, bbox_inches="tight")
+    plt.close(fig)
+    return path
+
+
+def _scenes_body_fk(scene: _cert.Scene):
+    """Indirection paresseuse vers ``cnp.scenes._body_fk`` (viz ne doit pas créer de cycle)."""
+    from . import scenes as _sc
+    return _sc._body_fk(scene)

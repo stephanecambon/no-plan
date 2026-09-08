@@ -1,0 +1,154 @@
+# S11 — CAS D'USAGE « BIN-PICKING LOGISTIQUE » sur le VRAI iiwa7 : élagage PROUVÉ d'une branche TAMP.
+#
+# RÉCIT. Poste de prélèvement à rack deux niveaux. Le colis cible est au FOND d'un bac du niveau
+# BAS, dans la baie de droite ; le bras est au repos au-dessus de la baie de gauche. Un bac plein
+# est rangé au niveau HAUT, juste au-dessus de l'épaule du robot. Le planificateur TAMP ouvre la
+# branche « saisir le colis dans le bac du bas SANS dépiler ». Le colis est VISIBLE et PROCHE
+# (apparence faisable, A20). Pour passer de la baie gauche à la baie droite, le BRAS doit se
+# REDRESSER (q2 change de signe, donc passe par q2~0, bras vertical) — et c'est là que le SEGMENT
+# PROXIMAL (lien 3) percute le bac du niveau haut. AUCUN des 4 joints distaux ne l'en sort.
+# VALEUR : le planificateur ÉLAGUE la branche AVEC UNE PREUVE (« ce colis est inatteignable sans
+# retirer d'abord la caisse du dessus »), au lieu d'échantillonner jusqu'au timeout.
+#
+# MÉCANIQUE (mesurée, pas choisie — scripts/measure_iiwa7_lever.py, [A43]) : sur le VRAI link 3
+# du iiwa7 (blob compact ~0,13 m), le SEUL piège proximal franc est « tangage d'épaule q2 +
+# obstacle en SURPLOMB » (+174,8 mm). Le lacet de base est NÉGATIF dans les 6 directions (le
+# blob tourne sur lui-même sans se déplacer) ; le roulis q3 aussi ; et le motif « traverser une
+# paroi verticale » est négatif partout (le corps reste ancré à l'épaule, il ne peut jamais être
+# entièrement d'un côté). Les trois cas du portefeuille partagent donc cette mécanique — c'est la
+# thèse « une seule machinerie, trois marchés » (PORTFOLIO.md), pas une redite dissimulée.
+#
+# CORPS = coque convexe FIDÈLE du lien 3 (40 sommets rationalisés, parité Drake ~1,7e-6, S10-ter),
+# sur la chaîne GELÉE fidèle à l'URDF iiwa7 à ~2e-6 (S10-bis). Dims actives (0,1,2) ; les 4 joints
+# distaux sont PASSIFS automatiquement (en aval du corps) = la thèse « robuste à la redondance ».
+# Obstacle H-rep EXACTE (étanche par construction). Barrière phi = s1 (q2, tangage d'épaule).
+#
+# FENÊTRE FRANCHE MESURÉE : dalle min haut-du-corps A1 = 0.7869 m ; poses max haut-du-corps
+# B = 0.6483 m ; dessous de l'obstacle posé au MILIEU, z0 = 0.720 m
+# ⟹ +66.9 mm de pénétration dans la dalle / +71.7 mm de dégagement aux poses.
+# (Lignée S10-ter : on refuse le marginal — les ~6 mm du lacet de base ont été rejetés.)
+robot:
+  kind: spatial_revolute
+  q_star: ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
+  joints:
+  - offset: ['0', '0', 63/400]
+    axis: ['0', '0', '1']
+  - offset: ['0', '0', '0']
+    axis: ['0', '0', '1']
+  - offset: ['0', '0', 183/1000]
+    axis: ['1', '0', '0']
+  - offset: ['0', '0', '0']
+    axis: ['0', '1', '0']
+  - offset: ['0', '0', '0']
+    axis: ['0', '0', '1']
+  - offset: ['0', 23/125, -1/1000000]
+    axis: ['1', '0', '0']
+  - offset: ['0', '0', '0']
+    axis: ['0', '1', '0']
+  - offset: ['0', '0', '0']
+    axis: ['0', '0', '1']
+  - offset: ['0', '0', 431/2000]
+    axis: ['1', '0', '0']
+  - offset: ['0', '0', '0']
+    axis: ['0', '0', '1']
+  - offset: ['0', 23/125, -1/1000000]
+    axis: ['1', '0', '0']
+  - offset: ['0', '0', '0']
+    axis: ['0', '1', '0']
+  - offset: ['0', '0', '0']
+    axis: ['0', '0', '1']
+  - offset: ['0', '0', 431/2000]
+    axis: ['1', '0', '0']
+  - offset: ['0', '0', '0']
+    axis: ['0', '0', '1']
+  - offset: ['0', 161/2000, '0']
+    axis: ['1', '0', '0']
+  - offset: ['0', '0', '0']
+    axis: ['0', '1', '0']
+  - offset: ['0', '0', '0']
+    axis: ['0', '0', '1']
+  - offset: ['0', '0', '0']
+    axis: ['0', '0', '1']
+  locked:
+    '0': {cos: '1', sin: '0'}
+    '2': {cos: '0', sin: '1'}
+    '3': {cos: '-1', sin: '0'}
+    '5': {cos: '0', sin: '1'}
+    '6': {cos: '-1', sin: '0'}
+    '8': {cos: '0', sin: '1'}
+    '10': {cos: '0', sin: '1'}
+    '11': {cos: '-1', sin: '0'}
+    '13': {cos: '0', sin: '1'}
+    '15': {cos: '0', sin: '1'}
+    '16': {cos: '-1', sin: '0'}
+    '18': {cos: '1', sin: '0'}
+body:
+  link: 7
+  hull_vertices:
+  - [-62307/916549, 380/758483, 56679/263047]
+  - [-11082/401449, 10445/261937, 81013/293913]
+  - [-14791/581293, 380/758483, 233843/838670]
+  - [27112/864789, 25889/242268, 3802/19187]
+  - [-788/110861, 36492/539599, '0']
+  - [11545/977727, -53617/800660, '0']
+  - [37986/560059, 380/758483, 57711/262144]
+  - [31962/976237, 25306/641519, 172271/630136]
+  - [-12479/469506, 52103/481121, 82643/383391]
+  - [-2751/46951, 39551/853717, 150955/634937]
+  - [1109/471113, 380/758483, 239503/844927]
+  - [-12796/257113, 380/758483, 251003/955805]
+  - [-788/110861, -30608/452607, '0']
+  - [19727/661780, -20817/340609, '0']
+  - [44381/988507, 39701/449834, 194619/835942]
+  - [7063/1000000, 380/758483, 963/3401]
+  - [-12175/208762, 380/758483, 157123/626008]
+  - [1304/35171, 35417/416225, 136869/544042]
+  - [1507/137613, 106938/992593, 231713/987311]
+  - [-13927/718405, -42941/678952, 32225/640707]
+  - [-4721/424474, 64567/725203, 235883/907340]
+  - [-33988/999647, -58307/990117, '0']
+  - [34969/671306, -3105/71038, '0']
+  - [39896/659231, 380/758483, 243143/984568]
+  - [-30914/751215, 43893/505441, 57653/234238]
+  - [-37969/906939, -51147/954520, '0']
+  - [8585/147296, 380/758483, 131735/524734]
+  - [21/500, 380/758483, 243642/902575]
+  - [-23235/386992, -25561/800708, '0']
+  - [42496/631085, -2770/292719, '0']
+  - [42496/631085, 7126/752879, '0']
+  - [-61996/913937, 4339/914629, '0']
+  - [31081/500330, 22355/808236, '0']
+  - [-49086/768181, 18059/776464, '0']
+  - [34969/671306, 32875/752099, '0']
+  - [-9013/163834, 26914/673355, '0']
+  - [-37969/906939, 23312/435039, '0']
+  - [15465/735973, 3737/57783, '0']
+  - [-12281/746520, 62363/945166, '0']
+  - [16572/765415, -2344/187535, -1/100]
+obstacles:
+  CRATE_ABOVE:
+    hrep:
+      A:
+      - ['1', '0', '0']
+      - ['0', '1', '0']
+      - ['0', '0', '1']
+      - ['-1', '0', '0']
+      - ['0', '-1', '0']
+      - ['0', '0', '-1']
+      b: [3/10, 1/5, 47/50, 3/10, 1/5, -18/25]
+phi:
+  degree_per_var: 2
+  coeffs: {'0,1,0,0,0,0,0': '1'}
+delta: 3/20
+box:
+- [-3/5, 3/5]
+- [-3/5, 3/5]
+- [-3/5, 3/5]
+- ['-3', '3']
+- ['-3', '3']
+- ['-3', '3']
+- ['-3', '3']
+start_s: ['0', -1/2, '0', '0', '0', '0', '0']
+goal_s: ['0', 1/2, '0', '0', '0', '0', '0']
+pairs: [CRATE_ABOVE]
+budget: {max_depth: 24, axis: margin}

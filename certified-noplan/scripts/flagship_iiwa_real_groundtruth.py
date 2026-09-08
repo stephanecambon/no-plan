@@ -1,6 +1,9 @@
-"""S10-quater Tâche 3 — dense seeded ground truth for the REAL iiwa7 flagship, BEFORE
-certification (règle 9). Uses the CONVEX-BODY oracle (A43): the faithful 40-vertex silhouette
-needs `scenes.convex_collision_oracle` (LP), NOT the segment-sampling `collision_oracle`.
+"""S10-quater Tâche 3 (généralisé S11) — dense seeded ground truth for ANY of the REAL iiwa7
+scenes, BEFORE certification (règle 9): the flagship shelf (S6) and the two S11 use cases
+(bac empilé, capot de sûreté). Uses the CONVEX-BODY oracle (A43): the faithful 40-vertex
+silhouette needs `scenes.convex_collision_oracle` (LP), NOT the segment-sampling
+`collision_oracle`. The obstacle name, the barrier dim and the box are all read FROM THE SCENE
+(nothing is hardcoded), so the same checks guard the three cases identically.
 
 Barrier is on s1 = q2 (shoulder PITCH, the big-lever separator — A43; base-yaw is marginal on
 the compact real link 3). slab {|s1|<=delta} = arm straight up = proximal body hits the overhead
@@ -18,7 +21,7 @@ Checks (seeded, reproducible):
   (E) free on BOTH sides of the slab.
   + the measured franc separation MARGIN ; A25 joint limits in degrees.
 
-Run: ``python scripts/flagship_iiwa_real_groundtruth.py [scenes/S6_iiwa_real_shelf.yaml]``.
+Run: ``python scripts/flagship_iiwa_real_groundtruth.py [scene.yaml]``  (défaut : le flagship S6).
 """
 from __future__ import annotations
 
@@ -54,6 +57,8 @@ def main(nb=40_000):
     print(f"(0) dims actives = {active} ({len(active)})   distaux passifs = {passive}   barrière sur s{bdim} (q{bdim+1})")
     assert active == (0, 1, 2) and passive == (3, 4, 5, 6), (active, passive)
     assert bdim == 1, f"barrière attendue sur s1 (q2 pitch), obtenu s{bdim}"
+    obstacle = sc.pairs[0]
+    print(f"    obstacle certifié : {obstacle!r}")
 
     print("    A25 limites (degrés, q=2·atan(s)) :")
     for nm, lo_, hi_ in viz.joint_limits_deg(sc):
@@ -117,13 +122,13 @@ def main(nb=40_000):
     # franc separation margin (body-top z vs shelf underside)
     fk = scenes._body_fk(sc)
     hv = [[float(c) for c in v] for v in sc.hull_vertices]
-    z0 = -float(sc.obstacles["SHELF_PANEL"][1][5])         # shelf underside (face -z: -z<=b5)
+    z0 = -float(sc.obstacles[obstacle][1][5])              # underside (face -z: -z <= b5)
     def topz(s):
         return max(fk.eval_world_point(v, np.asarray(s, float))[2] for v in hv)
     slab_min_top = min(topz([s0, s1, s2, 0, 0, 0, 0])
-                       for s0 in np.linspace(-0.7, 0.7, 7)
+                       for s0 in np.linspace(lo[0], hi[0], 7)
                        for s1 in np.linspace(-delta, delta, 5)
-                       for s2 in np.linspace(-0.7, 0.7, 7))
+                       for s2 in np.linspace(lo[2], hi[2], 7))
     sg_max_top = max(topz([float(x) for x in sc.start_s]), topz([float(x) for x in sc.goal_s]))
 
     print(f"(A) start libre : {a_start}   goal libre : {a_goal}")
@@ -131,7 +136,7 @@ def main(nb=40_000):
     print(f"(C) libre dans la dalle (coins {n_corner} = 2^6 × {len(s1_levels)} s1) : {free_corner}   (0 attendu)")
     print(f"(D) INVARIANCE REDONDANCE : 2^4=16 extrêmes distaux ⟹ verdicts {verdicts}   (tous collision = {redundancy_invariant})")
     print(f"(E) libre à gauche : {free_left}/{NS}   libre à droite : {free_right}/{NS}")
-    print(f"MARGE FRANCHE : étagère z0={z0:.3f} ; slab min top-corps={slab_min_top:.3f} (+{slab_min_top-z0:.3f} pénétration) ; "
+    print(f"MARGE FRANCHE : {obstacle} dessous z0={z0:.3f} ; slab min top-corps={slab_min_top:.3f} (+{slab_min_top-z0:.3f} pénétration) ; "
           f"start/goal max top-corps={sg_max_top:.3f} ({z0-sg_max_top:+.3f} dégagement)")
 
     ok = (a_start and a_goal and free_unif == 0 and free_corner == 0
