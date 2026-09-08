@@ -3126,3 +3126,63 @@ CLAUDE.md **v1.19** + changelog « v1.18→v1.19 (revue S10-quinquies, A44, L6) 
 vrai iiwa7 ; budget wall-clock lignes×colonnes superlinéaire ; piste export cert réduit à évaluer ».
 
 **Décision Stéphane** : **S11 (pack démo) AVANT le preprint** — matière deck en priorité.
+
+## 2026-09-08 — Session S11 (Claude Code, GATÉE) — ouverture : **ÉVALUATION [L6] — verify ACCEPTE l'export embedé (×2018 sur le terme d'export)** + [A44] hypothèse COLONNES confirmée
+
+**Ouverture** : machine quiète (aucun orphelin Meshcat/`cnp show` ; load ~2,3). `git status` PROPRE,
+`main` synchronisé avec `origin/main` au commit de clôture S10-quinquies `ab16a53` (A33/D33 : rien à
+journaliser). `make test` d'ouverture = **211 passed, 1 deselected, 0 skipped, 0 warnings** (263 s).
+Doc circuit A16 : revue S10-quinquies transcrite ci-dessus + D57/D58/D59 appliqués (commit `e48ac27`).
+
+### Tâche 0 — ÉVALUATION [L6] (MESURE SEULE — le contrat d'export n'est PAS modifié)
+
+Outil : `scripts/eval_L6_embedding.py` (nouveau). **Hors chemin par défaut** : il n'appelle pas
+`make_certificate` pour produire le candidat, il assemble l'en-tête par la sérialisation existante
+puis remplace les FEUILLES par des feuilles **embedées**, et soumet le tout à `verify.verify` +
+au cross-check de scène. Aucun module de `src/cnp` touché ; **`verify.py` zéro diff**.
+
+**Condition d'applicabilité — VÉRIFIÉE, pas présumée** (c'était la question ouverte de la revue) :
+sur `scenes/S6_iiwa_real_shelf.yaml`, **A29 n'a divisé AUCUN facteur (1+s²)** (`a29_removed = ∅`) et
+les 4 dims passives (3,4,5,6) sont **absentes de D ET de tous les numérateurs N ORIGINAUX** (avant
+toute simplification) ⟹ le polynôme plein est littéralement le réduit vu comme constant le long des
+axes passifs. **L6 applicable sur S6 : oui.**
+
+**Résultat binaire : `verify` ACCEPTE l'embedding**, en arithmétique exacte, plus cross-check scène OK
+— même verdict, même énoncé (« PROOF verified exactly: 2 leaves (2 collision, 0 outside) »).
+
+**Temps mesurés (même machine, même run, bench daté `benchmarks/results/20260908T141015Z/L6_eval.json`)** :
+
+| phase | chemin par DÉFAUT | candidat L6 embedé |
+|---|---|---|
+| parse + build FK (sympy) | 38,7 s | 38,7 s (identique) |
+| décision b&b | 1,4 s | 1,4 s (identique) |
+| **export du certificat** | **581,5 s** | **0,29 s** |
+| verify (exact, pleine dim) | 2,4 s | 2,4 s (identique) |
+| **`certify` bout-en-bout** | **621,6 s** | **40,4 s** |
+
+⟹ **×2018 sur le TERME D'EXPORT** (bien au-delà du ×100 espéré), mais **×15,4 seulement bout-en-bout** :
+en supprimant la re-résolution on fait apparaître un NOUVEAU terme dominant, le **build FK sympy à
+38,7 s** (96 % du temps restant). *Note pour le papier* : « minutes → secondes » devient possible, mais
+la phrase honnête serait « ~40 s, dont 39 s de mise en place symbolique » — le goulot suivant n'est plus
+le LP. (Mesure de contrôle antérieure dans la même session, sans le bench : export plein 638,6 s,
+`certify` total 678,3 s — même ordre, variation machine ; la valeur retenue est celle du bench daté.)
+
+**[A44] Hypothèse COLONNES — CONFIRMÉE** (`A44_columns_check.json`, lecture des deux benchs archivés,
+aucune extrapolation) :
+
+| | lignes | colonnes | K sommets | export s/feuille |
+|---|---|---|---|---|
+| témoin S9f k=7 (corps-SEGMENT) | 469 006 | 23 | 2 | 7,29 s |
+| flagship S6 (coque fidèle) | 473 870 | 327 | 40 | 290,8 s |
+| ratio | **×1,010** | **×14,2** | ×20 | **×39,9** |
+
+À **lignes quasi identiques**, ×14,2 colonnes ⟹ ×39,9 de temps d'export par feuille, soit ≈ colonnes^1,39.
+Les lignes ne peuvent structurellement PAS expliquer l'écart (elles sont égales) : **ce sont les colonnes**.
+*Précision par rapport à la revue* : le « ×5 » de la revue comparait les 72 s TOTAUX de S9f k=7
+(engine 65,1 + cert 14,6) aux ~360 s/feuille de S6 ; la comparaison apparaît-à-apparaît (export par
+feuille) donne **×40**, ce qui renforce l'explication au lieu de l'affaiblir.
+
+**Sortie de la tâche 0** : accepté / 0,29 s vs 581,5 s / colonnes 327 vs 23 / condition A29 remplie
+(∅ divisé). **L'export par défaut n'est PAS basculé** (D58) — la décision est de pilotage, à la revue
+suivante. Note pour le papier si adopté : le wall-clock de `certify` passerait de « minutes » à
+« ~40 s dominés par la mise en place symbolique », et le terme LP restant est parallélisable par feuille.
