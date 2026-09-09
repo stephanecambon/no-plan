@@ -3635,3 +3635,33 @@ diff.** **Diffs CLAUDE.md** : **aucun** (voir circuit A16 ci-dessus). **Diff SPE
 soient appliqués ; (2) arbitrer D-P1 et D-P2 ; (3) intégrer les corrections de
 `FACTCHECK-v0.1.md` §2 au brouillon, en commençant par **§2.1 (preuve du théorème)**, le seul
 point qu'un relecteur attaquerait frontalement.
+
+### Addendum P1 — **[A48] portée à la règle 9** (instruction directe de Stéphane, règle 14a)
+
+Décision de supervision reçue en fin de session P1 et appliquée immédiatement — Code réconcilie
+CLAUDE.md avec une décision journalisée, il ne rédige pas de règle de sa propre initiative.
+
+> **[A48, P1]** Les affirmations du papier sur l'IMPLÉMENTATION (ce que verify teste, seuils,
+> défauts, décomptes) sont confirmées par Code contre `fichier:ligne` **AVANT toute
+> circulation** ; la supervision ne reconstruit pas le comportement du code depuis le journal.
+> Leçon P1 : la preuve du théorème rédigée par la supervision supposait un test strict
+> inexistant — le code large était correct et la preuve était mal construite (choisir
+> `φ(s*)=0`, pas `|φ|≤δ`) ; 3 affirmations fausses et 5 imprécises attrapées sur 31.
+> **Corollaire : un fact-check P-n précède chaque bloc de rédaction qui touche au code.**
+
+Placée en **règle 9**, à la suite d'A46 : même famille qu'A28 (toute référence externe est
+vérifiée à sa première utilisation), A41 (toute tolérance posée en prompt est vérifiée contre la
+précision de la source) et A46 (tout contrôle de parité prend sa référence hors de l'objet
+testé) — **on vérifie la source avant d'affirmer**. A48 étend la doctrine à la source la plus
+proche et la plus facile à oublier : **le code lui-même**.
+
+**Diffs CLAUDE.md** (règle 14) : (1) **règle 9** — bloc A48 ajouté après A46, verbatim ;
+(2) **en-tête** — note d'application. **Le numéro v1.21 n'a PAS été consommé** : il reste
+réservé à **D66** (bascule groupée avec la transcription de la revue S12 + D64/D65, toujours non
+fournie), où A48 sera absorbée. Choix explicité dans l'en-tête plutôt que tranché en silence.
+**Aucune autre règle, aucun critère de sortie, aucune porte touchée. `src/`, `tests/` et
+`verify.py` : zéro diff** (la session P1 reste une session de lecture).
+
+**Conséquence opérationnelle immédiate** : `FACTCHECK-v0.1.md` **est** le fact-check P-1 exigé
+par A48 pour les §§ 1-5. Les §§ 6-9 à venir (Cost model, Experiments, Limitations, Reviewer note)
+sont **massivement chiffrés** et déclencheront donc un **P-2** avant circulation.

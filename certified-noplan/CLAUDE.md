@@ -1,6 +1,10 @@
 # CLAUDE.md — certified-noplan
 
 Version 1.20 — 9 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revue S11 ; v1.0..v1.19 dans git).
+**[A48 appliquée hors bascule, P1, 9 septembre 2026]** — annotation ajoutée à la règle 9 sur
+instruction directe de Stéphane (règle 14a). Le numéro **v1.21 reste réservé à D66** (bascule
+groupée avec la transcription de la revue S12 + D64/D65, non fournie à ce jour) : A48 y sera
+absorbée à ce moment-là. Aucune autre règle, aucun critère de sortie, aucune porte n'est touchée.
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -261,6 +265,13 @@ supervision S11 » de JOURNAL.md.
    robot qui bouge faux ; remplacé par un ancrage des 8 liens sur 200 configurations aléatoires
    (1,14e-6). **Règle : tout contrôle de parité échantillonne TOUS les DOF et prend sa référence
    HORS de l'objet testé.** (Même famille qu'A28/A41 : on vérifie la source avant d'affirmer.)
+   **[A48, P1] Les affirmations du papier sur l'IMPLÉMENTATION (ce que verify teste, seuils,
+   défauts, décomptes) sont confirmées par Code contre fichier:ligne AVANT toute circulation ;
+   la supervision ne reconstruit pas le comportement du code depuis le journal.** Leçon P1 : la
+   preuve du théorème rédigée par la supervision supposait un test strict inexistant — le code
+   large était correct et la preuve était mal construite (choisir φ(s*)=0, pas |φ|≤δ) ;
+   3 affirmations fausses et 5 imprécises attrapées sur 31. **Corollaire : un fact-check P-n
+   précède chaque bloc de rédaction qui touche au code.**
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
