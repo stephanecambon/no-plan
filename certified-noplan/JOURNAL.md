@@ -3186,3 +3186,139 @@ feuille) donne **×40**, ce qui renforce l'explication au lieu de l'affaiblir.
 (∅ divisé). **L'export par défaut n'est PAS basculé** (D58) — la décision est de pilotage, à la revue
 suivante. Note pour le papier si adopté : le wall-clock de `certify` passerait de « minutes » à
 « ~40 s dominés par la mise en place symbolique », et le terme LP restant est parallélisable par feuille.
+
+### Tâches 1-2 — les DEUX cas d'usage certifiés sur le VRAI iiwa7 (pas de coupe : le capot est fait)
+
+**Méthode S10-quater appliquée à la lettre : MESURER le levier AVANT de choisir le séparateur (A43).**
+`scripts/measure_iiwa7_lever.py` (nouveau) balaie **3 axes actifs × 6 directions × 2 motifs
+d'obstacle** (demi-espace « plafond » et plaque « paroi à traverser ») et rend la marge franche
+A(dalle) − B(poses). Validé d'abord sur le flagship S6 comme témoin (+174,8 mm, cohérent avec les
++91,5/+83,3 mm du certificat une fois l'étagère posée à z0=0,68).
+
+| séparateur | meilleure marge | verdict |
+|---|---|---|
+| **s1 = q2 tangage d'épaule + obstacle en SURPLOMB** | **+174,8 mm** | **le seul franc** |
+| s0 = lacet de base | **négatif dans les 6 directions** (−73 à −299 mm) | mort |
+| s2 = q3 roulis du bras | négatif partout | mort |
+| motif PLAQUE (« traverser une paroi de bac ») | négatif partout | mort |
+
+**C'est un RÉSULTAT, pas un choix de confort.** Le vrai lien 3 est un blob compact **ancré à
+l'épaule** : il tourne sur lui-même sans se déplacer (le finding A43 des ~6 mm, ici généralisé aux
+6 directions) et il ne peut **jamais** être entièrement d'un côté d'une paroi verticale — donc le
+récit « traverser la paroi du bac » de la spec S9b **ne tient pas** sur le robot fidèle. Sur ce robot
+et ce lien, le piège proximal franc **est unique**. Les trois cas partagent donc la mécanique et se
+différencient par géométrie d'obstacle, limites, dalle, poses, récit et claim — la thèse « une seule
+machinerie, trois marchés » du PORTFOLIO, **écrite en clair** dans les en-têtes de scène, le
+PORTFOLIO et les one-pagers plutôt que maquillée.
+
+**Conception par MESURE** (`scripts/build_usecase_scenes.py`) : la fenêtre franche (A1 = min du
+haut-du-corps sur la dalle, B = max aux poses) est mesurée, l'obstacle est posé **au milieu**, et la
+scène est **refusée** si la fenêtre est < 80 mm (⟹ ≥ 40 mm de chaque côté ; lignée S10-ter).
+
+| | bin-picking `CRATE_ABOVE` | capot `GUARD_PANEL` |
+|---|---|---|
+| récit | bac empilé — « retirer d'abord la caisse du dessus » (élagage TAMP) | capot horizontal — l'auditeur RECOMPTE |
+| géométrie | bac euro 600×400, h=220 mm, dessous z0=0,720 | panneau mince 50 mm, large ±0,60 m, dessous z0=0,695 |
+| limites actives / dalle | ±62° / δ=3/20 | ±66° / δ=9/50 |
+| fenêtre franche mesurée | +138,7 mm ⟹ **+66,9 / +71,7 mm** | +168,4 mm ⟹ **+83,1 / +85,3 mm** |
+| verdict | **PROOF**, 2 feuilles, `verify` **OK exact** 2,45 s, **A32=0** | **PROOF**, 4 feuilles (2 coll + 2 hors-dalle), **OK exact** 2,54 s, **A32=0** |
+| `certify` mesuré vs **prédit A44** | 567 s vs ~620 s (**−9 %**) | 498 s vs ~620 s (**−20 %**) |
+| bench daté | `benchmarks/results/20260908T150151Z/` | `benchmarks/results/20260908T151019Z/` |
+
+**Budget prédit AVANT le run selon A44** (et pas par extrapolation linéaire) : le LP pleine dim est
+**identique** au flagship — même robot, K=40, n=7, DPAD=4 ⟹ 473 870 lignes × **327 colonnes** —, donc
+pas d'extrapolation du tout, une mesure directe existait (290,8 s/feuille collision, calibré le même
+jour sur la même machine) ⟹ 39 s (build FK) + 1,5 s (b&b) + 2×291 s ≈ 620 s. Écart réel −9 % / −20 %.
+
+**Vérité-terrain dense** (oracle CORPS-CONVEXE, seedée, indépendante du certificat) pour les deux :
+start/goal libres · **0 libre / 40 000** dans la dalle · **0 libre / 448 coins** (extrêmes distaux
+balayés) · **invariance de redondance** (2⁴ extrêmes distaux ⟹ tous collision) · libre des 2 côtés.
+`scripts/flagship_iiwa_real_groundtruth.py` et `scripts/flagship_iiwa_real_bench.py` ont été
+**généralisés** (nom d'obstacle, barrière et boîte lus DANS la scène) pour servir les trois scènes —
+contrôle re-passé à l'identique sur S6.
+
+### Tâche 3 — viz complète, pack partageable, Figure 1
+
+- **[A11, dette depuis V1] `viz.save_partition_figure`** : le plein (rouge) est **feuille ∩ dalle**
+  = ce que le théorème PROUVE ; le **hachuré** est la partie HORS-DALLE des mêmes feuilles, où le
+  témoin slab-aware n'impose rien ; la **frontière |φ|=δ** est tracée ; les bords de feuilles
+  montrent le pavage. **Invariant TESTÉ (A40)** `tests/test_viz_partition.py` : certifié ⊆ dalle,
+  certifié ⟹ l'oracle voit une collision, et la dalle est couverte **sans trou**.
+- **[D10] composants STANDARD** : `viz.save_hull_sweep_figure` (sweep de la silhouette fidèle) et
+  `viz._axis_labels` (nommage physique par axe EFFECTIF) ; nouvelle commande **`cnp viz <cert>
+  <scene>`** qui produit le pack C-space + sweep + partition après cross-check de scène.
+- **`cnp show --interactive`** choisit désormais le modèle de corps d'après la scène (hull+GJK dès
+  K>2 sommets, A43) ; `--body-mode` pour forcer.
+- **Export HTML 3D PARTAGEABLE et INTERACTIF** (`scripts/export_flagship_3d_html.py`, 3 fichiers de
+  ~64 ko) : vrai iiwa7, **7 curseurs**, collision **recalculée en direct**, fantômes de **bras
+  entier** aux poses, tentatives d'évasion avec verdict chiffré, corps certifié surligné + légende
+  A40, orbite maison. Three.js par CDN (dit dans la page).
+- **Composite Figure 1** (`benchmarks/figures/paper/fig1.png`, 300 dpi) : rendu 3-D du vrai robot +
+  coupe C-space (mur de dalle pleine hauteur) + encadré « ce que le certificat établit / NE prouve
+  PAS », **chiffres LUS dans le JSON de bench archivé** (critère V7 : jamais retapés).
+- **One-pagers + PORTFOLIO** aux chiffres réels ; claims du capot développés pour le contexte
+  réglementaire ; montée en gamme « 6 axes générique → vrai iiwa7 » dite explicitement.
+
+### Décisions
+
+- **Le noyau JS de cinématique + collision est FACTORISÉ** (`viz.JS_KINEMATICS_KERNEL`) et partagé
+  par le widget 2-D et la page 3-D. C'est le code que l'invariant A40 teste sous node contre
+  `scenes.convex_collision_oracle` ; en écrire une seconde version pour la page 3-D aurait donné un
+  artefact d'argument **non testé**, donc capable de mentir. Export du widget 2-D inchangé octet
+  pour octet (son test A40 passe sans modification).
+- **La page 3-D pose le robot avec la chaîne DU CERTIFICAT**, pas avec Drake : offset rigide par
+  lien lu à q=0 puis vérifié sur **200 configurations aléatoires** (1,14e-06 ; l'export ÉCHOUE
+  au-delà de 5e-06).
+- **L'export par défaut n'est PAS basculé sur L6** (D58) — mesure livrée, décision de pilotage.
+- **Le récit « traverser la paroi du bac » de la spec S9b est abandonné** au profit du bac empilé :
+  la mesure établit qu'il est infaisable sur le robot fidèle. Le repli « certifier la spec
+  iiwa-LIKE » n'a pas été nécessaire.
+
+### Pièges / findings
+
+- **Deux artefacts d'argument ont menti, tous deux attrapés par le GATE HUMAIN, pas par un test.**
+  (a) Le panneau (a) de Fig 1 ne dessinait que la coque du corps certifié aux trois poses — « je ne
+  vois pas de kuka, juste des suppositoires de couleur » ; (b) la page 3-D ne rejouait qu'un
+  balayage start→goal pré-calculé (or start et goal ne diffèrent que par q2 ⟹ **un seul DOF
+  mobile**) et ses fantômes n'étaient que la coque du corps. Les invariants A40 en place étaient
+  **corrects mais hors sujet** : ils vérifient que ce qui est dessiné ne ment pas, pas que ce qui
+  est dessiné **suffit à porter l'argument**. La règle 11 (« la validation vérifie l'intention et la
+  conception ») a joué exactement son rôle — à noter pour la revue.
+- **Garde de parité CIRCULAIRE** (trouvé en relisant une mesure trop belle) : le premier contrôle
+  chaîne↔Drake de l'export 3-D reconstruisait le corps de référence *à partir de la chaîne*, ce qui
+  annulait tout décalage de repère constant, et n'échantillonnait que la ligne de balayage (un seul
+  axe mobile). Il rendait **2,2e-16** — un chiffre qui aurait dû alerter — et n'aurait pas attrapé
+  un robot qui bouge faux. Remplacé par un ancrage des **8 liens** vérifié sur **200 configurations
+  aléatoires** (1,14e-06, cohérent avec le plancher URDF ~2e-6). **Une parité au niveau du bruit
+  machine sur un modèle rationalisé est un signal d'erreur de mesure, pas un succès.**
+- **`_spatial_joint_names` renvoie un nom par joint de CHAÎNE (19 ici), pas par curseur (7)** : la
+  page 3-D itérait dessus et le destructuring de `SC.box[7]` (undefined) coupait le script en
+  silence — sliders partiels, canvas noir, aucune erreur console. Utiliser `joint_limits_deg`, qui
+  filtre les joints verrouillés. Le widget 2-D fait déjà ce filtrage à l'affichage.
+- **Deux `const SC` = SyntaxError silencieuse** : le noyau JS partagé déclare lui-même `const SC =
+  __SCENE__`, la page 3-D le re-déclarait. Rien en console, page morte. Le noyau s'alimente, il ne
+  se re-déclare pas.
+- **Précision sur le « ×5 » de la revue** (A44) : il comparait les **72 s totaux** de S9f k=7
+  (engine 65,1 + cert 14,6) aux ~360 s/feuille de S6. La comparaison apparaît-à-apparaît (export par
+  feuille : 7,29 s vs 290,8 s) donne **×40** — ce qui **renforce** l'explication « colonnes » au lieu
+  de l'affaiblir, puisque les lignes sont égales à ×1,010 près.
+
+**Décompte exact (clôture)** : `make test` = **224 passed, 1 deselected, 0 skipped, 0 warnings**
+(211 hérités de S10-quinquies + 6 `test_usecase_iiwa7` + 6 `test_share_3d_html` + 1
+`test_viz_partition` ; 1 deselected = `test_parallel_speedup`, bench A42). **Aucun flake** sur les
+trois exécutions complètes de la session (211 à l'ouverture, 221, 224). **`verify.py` zéro diff**
+vérifié à chaque commit.
+
+**Gate VUE** : pack présenté (Fig 1, 3 pages 3-D, 6 figures de cas, one-pagers, PORTFOLIO) ; deux
+retours de Stéphane traités (Fig 1 sans robot ; page 3-D à un seul DOF) ; **« VALIDÉ S11 »** le
+09/09.
+
+**Diffs CLAUDE.md** (règle 14) : D57/D58/D59 appliqués à l'ouverture (commit doc séparé) ; bullet de
+clôture « ✅ S11 ACTÉE » ajouté à la section plan S11 (14b, tenue de l'état d'avancement).
+
+**Prochaine étape** : **revue de supervision** — deux décisions de pilotage en attente : (1) **L6**,
+bascule ou non du contrat d'export (mesuré : verify accepte, ×2018 sur le terme d'export, ×15,4
+bout-en-bout ; changement de contrat ⟹ règle 1, adversarial) ; (2) faut-il un **mécanisme
+géométriquement distinct** pour le deck (lien plus distal, 5 dims actives, budget S9f OK) ou
+assume-t-on la mécanique unique mesurée. Puis **rédaction preprint/papier** (côté supervision, Fig 1
+disponible) + review amicale.

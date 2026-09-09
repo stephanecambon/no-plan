@@ -794,6 +794,29 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   axes du C-space par leur sens — lacet/tangage) deviennent des composants
   STANDARD de `cnp viz` et des figures (leçon V3 : 5 itérations pour rendre la
   déconnexion lisible).
+- ✅ **S11 ACTÉE (08-09/09/2026), pack démo COMPLET (aucune coupe — le capot est fait)** :
+  **Tâche 0 [L6] ÉVALUÉE, PAS basculée** (D58) — `verify` **ACCEPTE** l'export du certificat réduit
+  embedé en pleine dim (condition d'applicabilité VÉRIFIÉE : A29 n'a rien divisé, passives absentes
+  de D et N originaux) ; **0,29 s vs 581,5 s** (×2018 sur le terme d'export) mais **×15,4 seulement
+  bout-en-bout** (le build FK sympy, 38,7 s, devient dominant) ; **[A44] hypothèse COLONNES
+  CONFIRMÉE** (S6 vs témoin S9f k=7 : lignes ×1,010, colonnes ×14,2 ⟹ export/feuille ×39,9).
+  **Tâches 1-2** — méthode A43 appliquée (MESURER le levier avant de choisir le séparateur,
+  `scripts/measure_iiwa7_lever.py`) : sur le vrai lien 3, « tangage q2 + surplomb » est le **SEUL**
+  piège franc (+174,8 mm) ; lacet de base et roulis q3 NÉGATIFS dans les 6 directions ; motif
+  « traverser une paroi » négatif partout (corps ancré à l'épaule) — un RÉSULTAT, énoncé en clair
+  dans le PORTFOLIO. **bin-picking** (`usecase_binpicking_iiwa7`, bac empilé) et **capot de sûreté**
+  (`usecase_capot_surete_iiwa7`) certifiés **PROOF + verify exact + A32=0**, marges franches
+  +66,9/+71,7 et +83,1/+85,3 mm, `certify` 567 s / 498 s (prédit A44 ~620 s : −9 % / −20 %), benchs
+  datés. **Tâche 3** — **[A11] dette V1 payée** (`viz.save_partition_figure` : plein = feuille ∩
+  dalle, hachuré = hors-dalle, frontière |φ|=δ tracée ; invariant TESTÉ) ; **[D10]** sweep fidèle +
+  axes physiques = composants standard, commande **`cnp viz`** ; **export HTML 3D partageable et
+  INTERACTIF** (7 curseurs, collision en direct, fantômes de bras entier, évasions) adossé au
+  **noyau JS PARTAGÉ** `viz.JS_KINEMATICS_KERNEL` — le code que l'invariant A40 teste sous node ;
+  **composite Figure 1** du papier. **VUE VALIDÉE** par Stéphane (09/09), après deux retours traités
+  (Fig 1 sans robot ; page 3-D à un seul DOF mobile — deux artefacts d'argument corrects mais
+  INSUFFISANTS, attrapés par le gate humain et non par les invariants A40 en place).
+  `make test` = **224 passed, 1 deselected, 0 skip/warn**, aucun flake. (voir JOURNAL.md S11.)
+
 - **[V7] Validation visuelle** : pack de figures prêt-papier.
   Vérifier : (1) chaque figure raconte une histoire lisible sans légende orale ;
   (2) les chiffres des tables correspondent aux JSON de benchmarks/results/ ;
