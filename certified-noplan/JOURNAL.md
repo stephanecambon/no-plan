@@ -3377,3 +3377,147 @@ suffisance des viz ; parité trop belle = erreur ».
 
 **Papier** : Figure 1 disponible, résultat de sélection mesuré versé au §6 ; le chiffre de temps du
 flagship passe à « ~40 s » **SEULEMENT** après le bench S12 archivé.
+
+## 2026-09-09 — Session S12 (Claude Code, AUTONOME) — **BASCULE DU CONTRAT D'EXPORT [L6] FAITE** sous les quatre gardes ; `verify.py` zéro diff ; `certify` ×15,5 / ×12,3 / ×10,6 sur les trois iiwa7
+
+**Ouverture [A33]** : `git status` propre, HEAD == `origin/main` (99fdffa, clôture S11 poussée).
+Circuit A16 appliqué en commit doc séparé (dbaaab8) : revue S11 transcrite, D60-D63.
+
+### Fait
+
+**Tâche 1 — condition d'applicabilité À L'EXÉCUTION.** `engine.embedding_applicable(problem)`
+rend un `EmbeddingCheck` **par paire** (`applicable` + `reason` en clair, journalisable et
+affiché par le banc). Deux clauses, toutes deux nécessaires : **(i)** A29 n'a divisé aucun
+facteur `(1+s_i²)` pour cette paire (`a29_removed == ()`) ; **(ii)** chaque dim passive de la
+vue est absente de `D`, de **TOUS** les `N_k` **et** de `phi` **ORIGINAUX** — test tensoriel
+exact sur les tenseurs d'AVANT simplification, pas la détection conservatrice. Table de vérité
+mesurée : **VRAI** sur S1 (∅ passive), S2 (passive (2,)), S2b (∅), S4 (passives (3,4)) et les
+**trois iiwa7** (passives (3,4,5,6)) ; **FAUX** sur **S3 shoulder-elbow**, où A29 divise le roll
+coaxial `s2` — la géométrie réduite y est l'originale divisée par un facteur positif que la
+dalle `T = δ²−φ²` ne porte pas, donc `g − μT` pleine dim est un AUTRE polynôme.
+
+**Tâche 2 — export embedé + repli.** `make_certificate` route chaque feuille collision :
+condition vraie ⟹ `_embedded_collision_leaf` (le témoin du LP de **DÉCISION** réduit, exposants
+nuls sur les axes passifs ; même builder de LP, même arrondi A13 barycentre/`limit_denominator`
+appliqué sur les coefficients **RÉDUITS AVANT** embedding, même champ `margin`) ; condition
+fausse ⟹ `_collision_leaf` **inchangé**. `verify_loop` et l'escalade `max_den` s'appliquent aux
+deux chemins. **Format de feuille identique** : `verify` ne distingue pas les deux chemins.
+
+**A32 étendu.** Chaque embedding est **audité feuille par feuille avec le vérificateur exact
+LUI-MÊME** (`_ExactLeafAudit` appelle `verify._check_collision_leaf` sur la FK exacte que
+`verify` re-dérive — aucune ré-implémentation, aucun monkey-patch, `verify.py` non modifié). Un
+rejet ⟹ la feuille **bascule sur la re-résolution**, est **comptée**
+(`stats['n_embed_rejected']`, attendu ZÉRO) et `EmbeddingRejected` est **levée bruyamment** en
+fin d'assemblage, **le certificat complet et valide attaché à l'exception**. Audit exposé :
+`n_leaves_embedded` / `n_leaves_resolved`.
+
+**Tâche 3 — règle 1.** `make test` = **240 passed, 1 deselected, 0 skipped, 0 warnings** ;
+**0 changement de verdict** sur toute la suite (planaire E3/E4, S1/S2, S2b, S3, S4, S5, S6, S7,
+S8, wall bench) ; adversarial re-vert (`test_verify` 28 + `test_adversarial` 6 + spatial +
+locked + flagship). **16 tests nouveaux** (`tests/test_L6_embedding.py`) :
+table de vérité de l'applicabilité (dont clause (ii) lue sur les tenseurs ORIGINAUX) ; **repli
+EXERCÉ** (S3 : 4/4 feuilles re-résolues, 0 embedée) ; embedding = **identité** vérifiée
+coefficient par coefficient contre `_collision_leaf` là où aucun axe n'est passif (S1, S2b) ;
+λ constant le long des axes passifs (S2, S4) ; **deux mutations** forçant un embedding FAUX —
+(a) coefficient non nul sur un axe passif, (b) λ/μ d'une **AUTRE** feuille (celle-ci passe
+l'identité `Σλ≡1` et ne peut être attrapée que par la positivité de Bernstein SUR CETTE
+CELLULE, donc elle exerce vraiment l'audit) — les deux : **verify REJETTE ⟹ compté ⟹ repli ⟹
+certificat final toujours PROOF vérifié exact** ; les trois certs iiwa7 ARCHIVÉS re-vérifiés
+exact avec leurs compteurs L6.
+
+**Certs canoniques régénérés** (`cnp verify <cert> <scene>` **OK exact** sur les trois) :
+`S6_iiwa_real_shelf`, `usecase_binpicking_iiwa7`, `usecase_capot_surete_iiwa7`.
+
+**Tâche 4 — bench daté** (règle 7), **à froid, UN PROCESS PAR SCÈNE** (`benchmarks/results/`
+`20260909T092652Z` / `092748Z` / `092845Z`) :
+
+| scène | build FK | b&b | export | **certify** | verify | S11 (avant L6) | gain |
+|---|---|---|---|---|---|---|---|
+| flagship S6 iiwa7 | 39,09 s | 1,30 s | 6,34 s | **46,73 s** | 2,42 s | 726 s | **×15,5** |
+| bin-picking | 38,36 s | 1,33 s | 6,40 s | **46,08 s** | 2,43 s | 567 s | **×12,3** |
+| capot de sûreté | 38,98 s | 1,55 s | 6,59 s | **47,12 s** | 2,50 s | 498 s | **×10,6** |
+
+Compteurs, identiques sur les trois : **embedded = 2, resolved = 0, rejected = 0**, A32 = 0.
+LP de feuille : réduit 1 070 lignes vs plein 473 870 (×442,9), colonnes 327.
+**Mesuré vs prédit [A44]** : prédit ~40 s, mesuré 46-47 s ⟹ **+15 à +18 %**. La prédiction
+portait sur le seul terme LP ; décomposition mesurée des 6,4 s d'export du flagship :
+**1,21 s** second `_body_numerators` dans `_assemble_certificate` (cache sympy chaud) +
+**0,29 s** LP réduits + arrondi A13 — *exactement* la mesure S11, le terme L6 proprement dit —
++ **2,45 s** audit exact par feuille (**NOUVEAU**, la garde) + **2,41 s** `verify_loop` complet
+(préexistant). Autrement dit : après la bascule, `certify` fait tourner le **vérificateur exact
+deux fois** (une fois par feuille comme garde, une fois en entier) pour ~4,9 s — prix assumé de
+la garde bruyante et du repli par feuille.
+**Nouveau terme dominant : le build FK sympy (~39 s), soit 83 % du wall-clock** — *future
+work*, **PAS traité ici** (cache par scène / Drake RationalFK).
+
+**SPEC §4 amendée (v1.7, règle 12)** : contrat d'export énoncé (embedding sous condition (i)-(ii)
+vérifiée à l'exécution, re-résolution en repli, `verify.py` arbitre pleine dim dans les deux cas,
+sémantique inchangée) ; schéma `stats` mis à jour.
+
+### Décisions
+
+- **Compteurs d'audit dans `stats`** (consigne de la revue) ⟹ le certificat n'est PAS
+  octet-identique au bit près : il gagne trois clés que **`verify` ne lit jamais**. La consigne
+  « certs planaires/S3 octet-identiques » est donc tenue **sur l'objet certifié** (tout sauf
+  `stats`) — mesuré, pas supposé : **S3 (repli) et S2b/S1 (aucun axe passif) sont identiques
+  hors stats**. Écart assumé et signalé plutôt que contourné.
+- **Surprise mesurée, dans le bon sens** : sur le **flagship** et le **bin-picking**, les
+  feuilles du cert régénéré sont **OCTET-IDENTIQUES** à celles de S11 (`3+/0-` de diff : les
+  seules trois clés de stats). Le témoin réduit s'arrondit exactement sur les mêmes rationnels
+  que la re-résolution à 473 870 lignes. Sur le **capot de sûreté** les λ/μ **diffèrent**
+  (44 lignes) : HiGHS choisit un autre sommet optimal du LP — l'optimum n'est pas unique, les
+  deux certificats sont valides et `verify` accepte les deux. À dire tel quel : la bascule ne
+  garantit pas le même témoin, elle garantit un témoin **également vérifié**.
+- **`scenes/S5_iiwa_shelf.cert.json` (iiwa-LIKE, S10) NON régénéré** : hors périmètre de la
+  consigne (« les trois iiwa7 »), aucun test ni figure ne le lit, et il est l'artefact apparié
+  d'un run de banc S10 daté et journalisé. Il reste valide et verify-exact ; sa paire serait
+  embeddable (condition VRAIE) si on le régénérait un jour.
+- **`test_certificate.py::test_e3_roundtrip_46_leaves`** comparait `stats` par **égalité exacte
+  de dict** : seul test cassé par la session. Attendu mis à jour **en gardant l'égalité exacte**
+  (elle épingle désormais aussi les compteurs L6, donc un contrat d'export changé en silence ne
+  passerait pas) — décomptes et verdict inchangés (PROOF, 46/38/8).
+
+### Pièges / findings
+
+- **Le build FK sympy est CACHÉ PAR PROCESS.** Le premier banc, qui enchaînait les trois scènes
+  dans un seul run, a rendu **38,5 s** pour la première et **~1,3 s** pour les deux suivantes,
+  soit un « certify = 9,2 s » flatteur et **faux** pour `cnp certify <scene>`. Chiffre trop beau
+  ⟹ **[A46]** appliqué : re-mesure **un process par scène**, qui rend 46-47 s pour les trois.
+  Les benchs enchaînés (`20260909T0925xxZ`) sont conservés comme trace du phénomène ; un
+  avertissement est écrit dans `flagship_iiwa_real_bench.py`. Le banc chronomètre désormais les
+  **trois phases séparément** au lieu d'un `certify_s` opaque.
+- **`certify` payait déjà `_body_numerators` DEUX fois** (dans `scene_to_problem` puis dans
+  `_assemble_certificate`) — invisible tant que l'export coûtait 580 s, visible maintenant
+  (1,21 s sur 6,4 s). Non corrigé ici : c'est le même chantier que le build FK, à traiter
+  ensemble. `_problem_from_geometry` a été extrait pour que l'assemblage n'en paie pas une
+  **troisième**.
+- **La mutation qui compte n'est pas la plus simple.** Un coefficient non nul sur un axe passif
+  casse `Σλ_k ≡ 1` et tombe au premier test de `verify` — utile mais peu informatif. Rejouer
+  les λ/μ d'une **AUTRE** feuille passe l'identité et n'est attrapé que par la positivité de
+  Bernstein de `g − μT` **sur cette cellule** : c'est celle-là qui prouve que l'audit par
+  feuille fait son travail. Les deux sont dans la suite.
+- **L'audit par feuille coûte à peu près un `verify` complet** (2,45 s vs 2,41 s sur 2 feuilles).
+  Sur une scène à beaucoup de feuilles il dominerait. Optimisation évidente non faite (réutiliser
+  le résultat de l'audit comme `verify_loop`, ou n'auditer qu'en cas d'échec global) — elle
+  échangerait de la vitesse contre la lisibilité de la garde, à arbitrer si le besoin apparaît.
+
+**Décompte exact (clôture)** : `make test` = **240 passed, 1 deselected, 0 skipped, 0 warnings**
+(224 hérités de S11 + 16 `test_L6_embedding.py` ; 1 deselected = `test_parallel_speedup`, bench
+A42). Baseline S11 re-mesurée à l'ouverture de la session : **224 passed, 1 deselected** en
+325 s. **Aucun flake**. **`verify.py` zéro diff** vérifié (`git diff 99fdffa -- src/cnp/verify.py`
+vide) — c'est précisément ce qui rend la bascule sound.
+
+**Compteurs embed/resolved/rejected par scène** : flagship S6 **2/0/0** · bin-picking **2/0/0** ·
+capot de sûreté **2/0/0** · S4 iiwa-bin **4/0/0** · S2 peigne **46/0/0** · S1 relais **38/0/0** ·
+S2b spatial **4/0/0** · **S3 shoulder-elbow 0/4/0 (repli)** · E3 planaire **38/0/0**.
+
+**Diffs CLAUDE.md** (règle 14) : D60/D61/D62/D63 appliqués à l'ouverture (commit doc séparé) ;
+bullet de clôture « ✅ S12 ACTÉE » ajouté à la section plan S12 ; ligne « architecture soundness
+S8 … cert re-résolu pleine dim » de l'État S9a **annotée « amendée S12 [L6] »** (14b, tenue de
+l'état d'avancement). **Diff SPEC** : v1.6 → **v1.7**, §4 (règle 12).
+
+**Prochaine étape** : **revue de supervision** — le chiffre **« ~40 s »** est **débloqué pour le
+papier** sous sa forme mesurée : *« ~47 s bout-en-bout, dont ~39 s de construction FK symbolique
+et ~1,3 s de décision ; re-vérification exacte en 2,4 s »*. Puis **rédaction preprint**
+(supervision, Figure 1 disponible) + review amicale. **S12-bis** (mécanisme géométriquement
+distinct pour le deck) **OPTIONNEL**, sur décision de Stéphane APRÈS le preprint.

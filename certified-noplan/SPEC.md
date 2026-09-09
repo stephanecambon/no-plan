@@ -1,6 +1,14 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
-Version 1.6 — 12 juin 2026 (amendée post-S7/S8/S9c ; v1.0..v1.5 dans git).
+Version 1.7 — 9 septembre 2026 (amendée post-S7/S8/S9c/S12 ; v1.0..v1.6 dans git).
+Amendement v1.6→v1.7 (acté S12, décision de pilotage [L6], règle 12) : §4 — **contrat
+d'EXPORT** du certificat. Le témoin exporté pour une feuille collision est, **quand la
+condition d'applicabilité (i)-(ii) est vérifiée à l'exécution**, l'**embedding pleine
+dimension du témoin RÉDUIT** (celui que la décision a déjà résolu, exposants nuls sur les
+axes passifs) ; **sinon**, la **re-résolution pleine dimension** (le chemin S4-S11, conservé
+comme repli). Dans les deux cas `verify.py` arbitre en pleine dimension : **format,
+sémantique et soundness inchangés** — le vérificateur ne peut pas distinguer les deux
+chemins, et c'est précisément ce qui rend la bascule sûre.
 Amendement v1.5→v1.6 (acté S9c) : §2 + §5 + §1 + §6 — le vérificateur exact supporte les
 **joints VERROUILLÉS** (cos/sin rationnels exacts, `cos²+sin²=1` vérifié ; ré-indexation
 des débloqués 0..n−1) ; une scène q*=0 à joints verrouillés rend désormais **PROOF**
@@ -183,7 +191,10 @@ que verify recalcule ; le croisement avec un YAML externe arrive en S6).
      "lambda": [{"0,0":"1/2", ...}, ...],        // K tenseurs ; Σλ_k ≡ 1 (exact)
      "mu": ["...", ...], "margin": "..."}         // μ par face ; marge LP (info)
   ],
-  "stats": {"n_leaves": 46, "n_collision": 38, "n_outside": 8}
+  "stats": {"n_leaves": 46, "n_collision": 38, "n_outside": 8,
+            // compteurs d'AUDIT du générateur (verify ne les lit pas) : A32 et A32-étendu
+            "n_reresolve_failed": 0, "n_embed_rejected": 0,
+            "n_leaves_embedded": 38, "n_leaves_resolved": 0}
 }
 ```
 Tous les nombres du certificat sont des **rationnels exacts** (coupes dyadiques ;
@@ -194,6 +205,35 @@ reste exact, le dernier sommet étant DÉRIVÉ par soustraction), puis arrondi �
 `max_den` ; μ arrondi inférieurement ≥ 0. Re-vérification flottante à marge stricte,
 escalade (α, max_den) si besoin (SPEC §5 « re-résolution »). Le vérificateur exact
 (§5) est l'arbitre final ; le test round-trip generate→verify est la garantie.
+
+**Contrat d'EXPORT du témoin [amendé en S12, décision de pilotage L6 — règle 12].** Le
+chemin de décision (b&b) résout chaque LP de feuille **réduit** aux dims actives de sa paire
+(A30) sur la géométrie A29-simplifiée. Ce que le certificat EXPORTE pour une feuille
+`collision` est :
+
+* **l'embedding pleine dimension de ce témoin réduit** — les mêmes (λ, μ), lus comme des
+  polynômes pleine dim avec **exposant 0 sur chaque axe passif** — **quand la condition
+  d'applicabilité est VÉRIFIÉE À L'EXÉCUTION** pour cette paire (jamais présumée) :
+  **(i)** A29 n'a divisé aucun facteur `(1+s_i²)` pour cette paire, **et (ii)** chaque dim
+  passive de la vue est **absente de `D`, de tous les `N_k` et de `phi` ORIGINAUX** (test
+  tensoriel exact sur les tenseurs d'avant simplification). Sous (i)-(ii) les polynômes
+  pleine dim sont constants le long des axes passifs, donc leurs coefficients de Bernstein
+  pleine dim sont ceux du réduit répliqués : un certificat réduit EST un certificat plein.
+  L'arrondi A13 (mélange barycentrique + `limit_denominator`, dernier λ dérivé) s'applique
+  aux coefficients **réduits AVANT** l'embedding, ce qui préserve `Σλ_k ≡ 1` (identité
+  exacte ancrée sur l'exposant origine, que l'embedding envoie sur l'origine) ;
+* **la re-résolution pleine dimension** (le chemin S4-S11) **sinon** — en particulier dès
+  qu'A29 a divisé un facteur : la géométrie réduite est alors l'originale divisée par un
+  facteur positif que la dalle `T = δ² − φ²` ne porte pas, donc `g − μT` pleine dim est un
+  AUTRE polynôme et l'embedding ne le certifierait pas.
+
+**Le format de la feuille est identique dans les deux cas** et `verify.py` est inchangé : il
+arbitre en pleine dimension sans savoir quel chemin a produit le témoin. La **soundness est
+donc inchangée** — un embedding faux est REJETÉ (verdict retombé à ENGINE-PROOF / UNDECIDED),
+jamais transformé en faux PROOF (l'argument S8). Le générateur audite chaque embedding avec
+le vérificateur exact avant de l'expédier, **bascule la feuille sur la re-résolution** en cas
+de rejet, le **compte** (`stats.n_embed_rejected`, attendu ZÉRO) et **lève bruyamment** en fin
+d'assemblage — extension d'A32.
 
 ## 5. Vérificateur indépendant (clé de crédibilité)
 

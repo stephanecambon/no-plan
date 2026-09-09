@@ -330,6 +330,84 @@ def passive_dims(problem: Problem) -> tuple:
     return tuple(sorted(passive))
 
 
+@dataclass
+class EmbeddingCheck:
+    """[L6, S12] Whether one pair's REDUCED witness may be EMBEDDED in full dimension
+    instead of being re-solved there (:mod:`cnp.certificate`).
+
+    ``applicable`` is the run-time answer for THIS pair on THIS problem — never presumed,
+    never cached across scenes.  ``reason`` says why in one line (it is journalled and
+    surfaced by the CLI)."""
+
+    pair: str
+    active: tuple
+    passive: tuple
+    a29_removed: tuple      # axes A29 had to divide a (1+s^2) factor out of  ⇒ blocks (i)
+    blocking: tuple         # passive axes STILL present in the ORIGINAL D / N_k / phi ⇒ (ii)
+    applicable: bool
+    reason: str
+
+
+def embedding_applicable(problem: Problem) -> dict:
+    """[L6, S12] Per-pair run-time test: is the DIRECT EMBEDDING of the reduced witness
+    SOUND for this pair?  Returns ``{pair_name: EmbeddingCheck}``.
+
+    The decision path solves each leaf LP on the pair's A29-simplified geometry, reduced to
+    the pair's own active axes (A30).  Exporting that witness *as is* — its lambda tensors
+    read as full-dimensional polynomials with ZERO exponents on the passive axes — is only
+    legitimate when the reduced problem IS the full problem restricted, i.e. when the full
+    polynomials are genuinely CONSTANT along the passive axes of the ORIGINAL geometry:
+
+      (i)  **A29 divided nothing** for this pair (``a29_removed == ()``).  When A29 had to
+           divide a ``(1 + s_i^2)`` factor out of ``D`` and every numerator to expose the
+           passivity, the reduced geometry is the original one divided by ``P(s) > 0``
+           (``D_full = P * D_reduced``) while the slab tensor ``T = delta^2 - phi^2`` is NOT
+           divided — so ``g - mu*T`` at full dimension is a DIFFERENT polynomial and the
+           embedded multipliers do not certify it.  Re-resolution stays mandatory.
+      (ii) Every passive axis of the pair's view is **absent from the ORIGINAL tensors**:
+           the raw ``D``, every raw vertex numerator ``N_k[i]``, and ``phi``.  This is the
+           EXACT tensor test on the pre-simplification tensors, not the conservative
+           detection used to pick active axes.
+
+    Under (i) and (ii) the full-dimensional Bernstein coefficients of every product are the
+    reduced ones replicated along the passive axes, so a reduced certificate is a full one.
+
+    Soundness does not RELY on this test: :mod:`cnp.verify` re-checks the exported
+    certificate at full dimension with no shared code, so a wrong embedding is REJECTED
+    (verdict falls back to ENGINE-PROOF / UNDECIDED), never turned into a false PROOF — the
+    S8 argument.  The test is what keeps that rejection from ever happening in practice, and
+    :mod:`cnp.certificate` counts every rejection loudly (A32 extended)."""
+    n = problem.n
+    views = {v.pair.name: v for v in pair_views(problem)}
+    out = {}
+    for pr in problem.pairs:
+        _v, _D, removed = _simplify_geometry(pr.verts_num, pr.D, n)
+        view = views[pr.name]
+        passive = tuple(i for i in range(n) if i not in view.active)
+        blocking = tuple(
+            i for i in passive
+            if _tensor_depends(pr.D, i)
+            or any(_tensor_depends(c, i) for v in pr.verts_num for c in v)
+            or _tensor_depends(problem.phi, i))
+        applicable = (not removed) and (not blocking)
+        if removed:
+            reason = (f"A29 divided (1+s^2) on axes {removed} ⇒ the reduced geometry is the "
+                      f"original divided by a positive factor the slab T does not carry; "
+                      f"full-dim re-resolution required")
+        elif blocking:
+            reason = (f"passive axes {blocking} still occur in the ORIGINAL D / numerators / "
+                      f"phi ⇒ the full polynomial is not constant along them; full-dim "
+                      f"re-resolution required")
+        elif not passive:
+            reason = "no passive axis: the reduced LP already IS the full-dim LP"
+        else:
+            reason = (f"passive axes {passive} absent from the ORIGINAL D, numerators and "
+                      f"phi, and A29 divided nothing ⇒ direct embedding is exact")
+        out[pr.name] = EmbeddingCheck(pr.name, view.active, passive, removed, blocking,
+                                      applicable, reason)
+    return out
+
+
 def active_axes(problem: Problem) -> tuple:
     """The axes worth BRANCHING on = all dims minus :func:`passive_dims` (= the union of the
     pairs' active axes; always non-empty for a real disconnection: ``phi`` separates start

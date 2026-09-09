@@ -105,5 +105,6 @@ def test_usecase_certificate_verifies_exactly(path, obstacle):
     match, why = scenes.scene_matches_cert(sc, cert)
     assert match, why
     assert cert["stats"]["n_reresolve_failed"] == 0            # A32
+    assert cert["stats"]["n_embed_rejected"] == 0              # A32 étendu (S12/L6)
     assert cert["stats"]["n_collision"] >= 1
     assert cert["obstacles"].keys() == {obstacle}

@@ -970,7 +970,10 @@
   ],
   "stats": {
     "n_collision": 2,
+    "n_embed_rejected": 0,
     "n_leaves": 2,
+    "n_leaves_embedded": 2,
+    "n_leaves_resolved": 0,
     "n_outside": 0,
     "n_reresolve_failed": 0
   },

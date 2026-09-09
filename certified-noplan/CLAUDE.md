@@ -422,7 +422,9 @@ benchmark vs Li-Dantam (4-DOF) — portes G0'-G4' dans SPEC §8.
   (`passive_dims(S3)` = (2,3), était (3,)) ; **[A30] réduction PAR-PAIRE** — chaque LP de
   feuille réduit aux dims actives de SA paire (`_PairView`), branchement sur l'union
   globale. Architecture soundness S8 préservée (décision seulement, cert re-résolu pleine
-  dim, **verify.py INTACT** — 499 l., zéro diff). Bonus non-porte : **S3 ~19× de coût LP
+  dim — **amendée S12 [L6] : embedding sous condition d'applicabilité vérifiée à l'exécution,
+  re-résolution pleine dim en REPLI ; `verify.py` toujours arbitre pleine dim, zéro diff** —,
+  **verify.py INTACT** — 499 l., zéro diff). Bonus non-porte : **S3 ~19× de coût LP
   bout-en-bout** (feuilles × lignes Bernstein, ≥10× acquis). Suite adversariale (spatiale +
   planaire) + frontière à deux couches re-vertes ; **178 passed, 0 skip, 0 warning** (170 +
   8 `test_reductions.py`) ; SPEC v1.5, CLAUDE.md v1.9. **Reste de S9 (= S9c)** : scène 5-6
@@ -892,6 +894,23 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   l'argument S8). Contrat A14 engine↔verify NON touché. UNDECIDED ≠ infaisable.
 - Sortie : `make test` vert sans changement de verdict ; `n_embed_rejected = 0` ; bench archivé
   (le chiffre « ~40 s » n'est débloqué pour le papier qu'après ce bench).
+
+- ✅ **S12 ACTÉE (09/09/2026), bascule L6 FAITE sous les quatre gardes** : condition
+  d'applicabilité établie **À L'EXÉCUTION** par paire (`engine.embedding_applicable` : (i)
+  `a29_removed = ∅` ET (ii) dims passives absentes de `D`, de TOUS les `N_k` et de `phi`
+  **ORIGINAUX**) ; **repli** re-résolution pleine-dim **EXERCÉ par un test** (S3, où A29 divise
+  le roll coaxial ⟹ condition FAUSSE ⟹ 4/4 feuilles re-résolues, cert octet-identique à l'ancien
+  chemin) ; **A32 étendu** (`n_embed_rejected`, attendu 0 — audit par feuille avec le vérificateur
+  exact LUI-MÊME, repli + comptage + levée bruyante ; **testé** par deux mutations : coefficient
+  non nul sur un axe passif, et λ d'une AUTRE feuille) ; **SPEC §4 amendée** (v1.7, règle 12).
+  **`verify.py` zéro diff** — c'est ce qui rend la bascule sound. **Format cert inchangé** (verify
+  ne voit pas la différence) ; `stats` gagne 3 compteurs d'AUDIT que verify ne lit pas.
+  **Bench daté à froid, un process par scène** (le build FK sympy est caché par process — A46) :
+  `certify` **46,7 / 46,1 / 47,1 s** sur flagship / bin-picking / capot (contre **726 / 567 /
+  498 s** en S11 ⟹ **×15,5 / ×12,3 / ×10,6**), `verify` 2,4-2,5 s ; **prédit A44 ~40 s ⟹ +15 à
+  +18 %**. Terme dominant désormais le **build FK sympy (~39 s)** — *future work*, non traité ici
+  (cache par scène / Drake RationalFK). `make test` = **240 passed, 1 deselected, 0 skip/warn**,
+  **0 changement de verdict**. (voir JOURNAL.md S12.)
 
 ### S12-bis — Mécanisme géométriquement distinct pour le deck [OPTIONNEL, D62]
 - **NON pour le papier** (la mécanique unique EST le résultat de sélection A35 mesuré en S11 ; le

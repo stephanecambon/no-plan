@@ -63,6 +63,24 @@ class ReResolutionFailed(ValueError):
     made loud here rather than degrading quietly. Expected ZERO on every shipped scene."""
 
 
+class EmbeddingRejected(ValueError):
+    """[A32 extended, S12/L6] One or more collision leaves whose REDUCED witness was embedded
+    in full dimension (:func:`cnp.engine.embedding_applicable` said the embedding is exact)
+    were nevertheless REJECTED by the exact verifier's own per-leaf check.
+
+    Soundness is untouched — the leaf falls back to full-dimensional re-resolution and the
+    certificate that comes out is a normal, fully verified one (it is attached as
+    ``.certificate``). But a rejection means the run-time applicability test and the exact
+    arbiter disagree, which is exactly the dissonance A32 was written to refuse to hide:
+    it is COUNTED (``cert['stats']['n_embed_rejected']``) and made loud here. Expected ZERO
+    on every shipped scene."""
+
+    def __init__(self, msg, certificate=None, rejected=None):
+        super().__init__(msg)
+        self.certificate = certificate
+        self.rejected = list(rejected or [])
+
+
 def Q(x) -> Fraction:
     """Coerce ``x`` (int/str/Fraction/float) to an exact Fraction. A float is taken
     at face value (use :meth:`Fraction.limit_denominator` upstream to get a tidy
@@ -208,14 +226,23 @@ def _polytope(A, b) -> witness.Polytope:
                             np.array([float(x) for x in b]))
 
 
-def scene_to_problem(scene: Scene, **kw) -> engine.Problem:
-    """Build the float :class:`cnp.engine.Problem` the branch-and-bound solves."""
-    verts, D = _body_numerators(scene)
+def _problem_from_geometry(scene: Scene, verts, D, **kw) -> engine.Problem:
+    """The scene's :class:`cnp.engine.Problem` built on ALREADY-COMPUTED body geometry.
+
+    Split out so the certificate assembly can ask the engine for the per-pair views and the
+    L6 applicability verdict (:func:`cnp.engine.embedding_applicable`) WITHOUT paying the
+    sympy FK build a second time — that build is now the dominant term of ``certify``."""
     pairs = [engine.Pair(nm, verts, D, _polytope(*scene.obstacles[nm]))
              for nm in scene.pairs]
     return engine.Problem(box=[(float(lo), float(hi)) for lo, hi in scene.box],
                           phi=_phi_tensor(scene), delta=float(scene.delta),
                           pairs=pairs, lam_degree=scene.lam_degree, **kw)
+
+
+def scene_to_problem(scene: Scene, **kw) -> engine.Problem:
+    """Build the float :class:`cnp.engine.Problem` the branch-and-bound solves."""
+    verts, D = _body_numerators(scene)
+    return _problem_from_geometry(scene, verts, D, **kw)
 
 
 # --------------------------------------------------------------------------- #
@@ -336,6 +363,104 @@ def _collision_leaf(scene: Scene, lf, verts, D, backend, max_den: int) -> dict:
 
 
 # --------------------------------------------------------------------------- #
+# [L6, S12] Embedded export: ship the REDUCED witness, read at full dimension
+# --------------------------------------------------------------------------- #
+#
+# CONTRACT (SPEC §4, rule 12): when :func:`cnp.engine.embedding_applicable` says the
+# pair's reduced problem IS the full problem restricted, the leaf's witness is exported
+# straight from the DECISION LP — the same (lambda, mu) the branch-and-bound already
+# solved, with ZERO exponents written on the passive axes.  Otherwise the leaf takes the
+# historical path (:func:`_collision_leaf`, full-dimensional re-resolution).  The two
+# paths emit the SAME leaf format; :mod:`cnp.verify` cannot tell them apart, and that is
+# the whole point — the verifier stays byte-identical, arbitrating in full dimension.
+#
+# The reduced LP is (d+1)^{n-k} times smaller in rows and carries K*|basis| fewer
+# columns; on the iiwa7 flagship the export term collapses from ~10 min to under a
+# second (S11 measurement, x2018).  Nothing about soundness rests on that: a wrong
+# embedding is REJECTED by the exact verifier, the leaf falls back to re-resolution, and
+# the rejection is counted loudly (:class:`EmbeddingRejected`, A32 extended).
+
+
+def _embed_tensor(t: dict, active: tuple, n_full: int) -> dict:
+    """Read a reduced ``{expo: coeff}`` tensor as a full-dimensional one: the exponent on
+    every ACTIVE axis is kept, every PASSIVE axis gets exponent 0 — i.e. the very same
+    polynomial, seen as constant along the axes it does not depend on."""
+    out = {}
+    for e, c in t.items():
+        full = [0] * n_full
+        for pos, ax in enumerate(active):
+            full[ax] = int(e[pos])
+        out[tuple(full)] = c
+    return out
+
+
+def _embedded_collision_leaf(lf, view, problem, backend, max_den: int) -> dict:
+    """Solve the leaf's REDUCED (decision) witness LP and embed exact λ, μ in full dim.
+
+    Mirrors :func:`_collision_leaf` step for step — same LP builder, same A13 inward
+    rounding (barycentre blend + ``limit_denominator``, applied to the REDUCED coefficients
+    BEFORE embedding), same margin field — but on ``len(view.active)`` axes instead of
+    ``problem.n``.  ``sum_k lambda_k == 1`` survives the embedding because it is an exact
+    coefficient identity anchored on the origin exponent, and the origin of the reduced
+    basis embeds to the origin of the full one."""
+    cell = [(float(lo), float(hi)) for lo, hi in lf.cell]
+    lp = witness.build_witness_lp(cell, view.verts_num, view.D, view.pair.obstacle,
+                                  phi=problem.phi, delta=problem.delta,
+                                  lam_degree=problem.lam_degree, active_dims=view.active)
+    res = backend.solve(lp)
+    if res.z is None or res.t is None or res.t <= 0:
+        raise ReResolutionFailed(f"leaf {lf.cell} did not re-solve to a positive margin "
+                                 f"on its own DECISION LP (status={res.status})")
+    lam_red, mu = _export_multipliers(res, lp, max_den)
+    lam = [_embed_tensor(t, view.active, problem.n) for t in lam_red]
+    return {"cell": [[str(lo), str(hi)] for lo, hi in lf.cell], "status": "collision",
+            "obstacle": lf.pair, "lambda": [_tensor_str(t) for t in lam],
+            "mu": [str(m) for m in mu],
+            "margin": str(Fraction(float(res.t)).limit_denominator(max_den))}
+
+
+class _ExactLeafAudit:
+    """Per-leaf EXACT audit performed by :mod:`cnp.verify`'s OWN checker.
+
+    The public ``verify.verify`` only speaks about a WHOLE certificate (it re-checks the
+    partition cover), so it cannot say WHICH leaf it rejected — and the L6 fallback is a
+    per-leaf decision.  Rather than re-implement the check (which would break the "the
+    arbiter shares no code with the generator" split from the wrong side), this calls the
+    verifier's own ``_check_collision_leaf`` on the verifier's own exactly re-derived FK.
+    ``verify.py`` is not modified, not subclassed and not monkey-patched: it is used.
+
+    The final word still belongs to the public ``verify.verify`` run by
+    :func:`make_certificate`'s verify loop — this only decides, leaf by leaf, whether to
+    ship the embedded witness or fall back to full-dimensional re-resolution."""
+
+    def __init__(self, header: dict):
+        from . import verify as _verify
+        self._v = _verify
+        self.header = header
+        self.n = int(header["robot"]["n"])
+        self.dphi = int(header["phi"]["degree_per_var"])
+        self.phi = _verify._parse_tensor(header["phi"]["coeffs"], self.n)
+        self.delta = Fraction(header["delta"])
+        T, D, fk_n = _verify._body_fk(header["robot"], int(header["body"]["link"]))
+        if fk_n != self.n:
+            raise ValueError("certificate FK arity disagrees with the robot arity")
+        self.D = D
+        self.verts = _verify._vertex_numerators(T, D, header["body"]["hull_vertices"],
+                                                self.n)
+
+    def accepts(self, leaf: dict) -> tuple:
+        """``(True, "")`` if the exact verifier certifies this collision leaf as written."""
+        try:
+            self._v._check_collision_leaf(leaf, self.header, self.verts, self.D, self.n,
+                                          self.phi, self.delta, self.dphi)
+        except self._v.CertificateRejected as exc:
+            return False, str(exc)
+        except (KeyError, ValueError, ZeroDivisionError, TypeError) as exc:
+            return False, f"malformed embedded leaf ({exc!r})"
+        return True, ""
+
+
+# --------------------------------------------------------------------------- #
 # Certificate assembly
 # --------------------------------------------------------------------------- #
 
@@ -371,28 +496,14 @@ def make_certificate(scene: Scene, result: engine.EngineResult, backend=None,
     return cert
 
 
-def _assemble_certificate(scene: Scene, result: engine.EngineResult,
-                          backend, max_den: int) -> dict:
-    """Build the JSON certificate dict at a fixed rounding denominator ``max_den``."""
-    verts, D = _body_numerators(scene)
+def _certificate_header(scene: Scene) -> dict:
+    """Everything in the certificate EXCEPT ``leaves`` and ``stats`` — the certified object
+    itself (robot, body, obstacles, barrier, box, endpoints, assumptions).
 
-    leaves = []
-    reresolve_failed = []        # [A32] collision-decided leaves that fail full-dim re-solve
-    for lf in result.leaves:
-        if lf.status == "outside":
-            leaves.append({"cell": [[str(lo), str(hi)] for lo, hi in lf.cell],
-                           "status": "outside"})
-        elif lf.status == "collision":
-            try:
-                leaves.append(_collision_leaf(scene, lf, verts, D, backend, max_den))
-            except ReResolutionFailed:
-                # Count ALL failures (not just the first) for an honest at-scale diagnostic.
-                reresolve_failed.append([[str(lo), str(hi)] for lo, hi in lf.cell])
-        else:  # pragma: no cover - guarded by the verdict check above
-            raise ValueError(f"undecided leaf in a PROOF result: {lf.status}")
-
+    Split out because the per-leaf exact audit (:class:`_ExactLeafAudit`) needs the header
+    to re-derive the verifier's FK BEFORE the leaves are written."""
     r = scene.robot
-    cert = {
+    return {
         "spec_version": SPEC_VERSION,
         "theorem": "disconnection",
         "robot": {
@@ -425,17 +536,96 @@ def _assemble_certificate(scene: Scene, result: engine.EngineResult,
                    "phi_goal": str(_phi_eval(scene, scene.goal_s))},
         "lam_degree": scene.lam_degree,
         "pairs": list(scene.pairs),
-        "leaves": leaves,
-        "stats": {"n_leaves": len(leaves),
-                  "n_collision": sum(1 for l in leaves if l["status"] == "collision"),
-                  "n_outside": sum(1 for l in leaves if l["status"] == "outside"),
-                  "n_reresolve_failed": len(reresolve_failed)},   # [A32] expected 0
+        "leaves": [],
+        "stats": {},
+    }
+
+
+def _assemble_certificate(scene: Scene, result: engine.EngineResult,
+                          backend, max_den: int) -> dict:
+    """Build the JSON certificate dict at a fixed rounding denominator ``max_den``.
+
+    [L6, S12 — export contract] Each collision leaf takes ONE of two paths, chosen by the
+    RUN-TIME applicability test (:func:`cnp.engine.embedding_applicable`), never presumed:
+
+      * **embedded** — the pair's reduced decision witness read at full dimension
+        (:func:`_embedded_collision_leaf`), when the reduced problem provably IS the full
+        one restricted, and the exact verifier's own per-leaf check accepts it;
+      * **re-resolved** — the historical full-dimensional re-solve
+        (:func:`_collision_leaf`), used whenever the test says no, and as the FALLBACK
+        whenever an embedded leaf is rejected.
+
+    Either way the emitted leaf format is identical and ``verify.py`` is untouched: it
+    arbitrates in full dimension, so a wrong embedding costs a rejection (⇒ fall back,
+    count, be loud) and can never become a false PROOF."""
+    verts, D = _body_numerators(scene)
+    problem = _problem_from_geometry(scene, verts, D)
+    checks = engine.embedding_applicable(problem)
+    views = {v.pair.name: v for v in engine.pair_views(problem)}
+
+    cert = _certificate_header(scene)
+    audit = None                 # built lazily: only scenes with an embeddable pair pay it
+
+    leaves = []
+    reresolve_failed = []        # [A32] collision-decided leaves that fail full-dim re-solve
+    embed_rejected = []          # [A32 extended, L6] embeddings the exact verifier refused
+    n_embedded = 0
+    for lf in result.leaves:
+        if lf.status == "outside":
+            leaves.append({"cell": [[str(lo), str(hi)] for lo, hi in lf.cell],
+                           "status": "outside"})
+            continue
+        if lf.status != "collision":  # pragma: no cover - guarded by the verdict check
+            raise ValueError(f"undecided leaf in a PROOF result: {lf.status}")
+
+        leaf = None
+        if checks[lf.pair].applicable:
+            if audit is None:
+                audit = _ExactLeafAudit(cert)
+            try:
+                candidate = _embedded_collision_leaf(lf, views[lf.pair], problem,
+                                                     backend, max_den)
+            except ReResolutionFailed:
+                candidate = None
+            if candidate is not None:
+                ok, why = audit.accepts(candidate)
+                if ok:
+                    leaf, n_embedded = candidate, n_embedded + 1
+                else:
+                    embed_rejected.append(
+                        {"cell": [[str(lo), str(hi)] for lo, hi in lf.cell],
+                         "obstacle": lf.pair, "reason": why})
+        if leaf is None:                      # not applicable, or embedding rejected
+            try:
+                leaf = _collision_leaf(scene, lf, verts, D, backend, max_den)
+            except ReResolutionFailed:
+                # Count ALL failures (not just the first) for an honest at-scale diagnostic.
+                reresolve_failed.append([[str(lo), str(hi)] for lo, hi in lf.cell])
+                continue
+        leaves.append(leaf)
+
+    n_collision = sum(1 for l in leaves if l["status"] == "collision")
+    cert["leaves"] = leaves
+    cert["stats"] = {
+        "n_leaves": len(leaves),
+        "n_collision": n_collision,
+        "n_outside": sum(1 for l in leaves if l["status"] == "outside"),
+        "n_reresolve_failed": len(reresolve_failed),        # [A32] expected 0
+        "n_leaves_embedded": n_embedded,                    # [L6] audit
+        "n_leaves_resolved": n_collision - n_embedded,      # [L6] audit
+        "n_embed_rejected": len(embed_rejected),            # [A32 extended] expected 0
     }
     if reresolve_failed:
         raise ReResolutionFailed(
             f"{len(reresolve_failed)} collision-decided leaf/leaves failed full-dim "
             f"re-resolution (A32 decision<->certificate dissonance; at worst UNDECIDED, "
             f"never a false PROOF): {reresolve_failed[:3]}")
+    if embed_rejected:
+        raise EmbeddingRejected(
+            f"{len(embed_rejected)} leaf/leaves declared L6-embeddable were REJECTED by the "
+            f"exact verifier and fell back to full-dim re-resolution (A32-extended "
+            f"dissonance; the attached certificate is complete and valid): "
+            f"{embed_rejected[:3]}", certificate=cert, rejected=embed_rejected)
     return cert
 
 

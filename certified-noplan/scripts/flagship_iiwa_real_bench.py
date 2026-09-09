@@ -15,6 +15,12 @@ sûreté), qui montent le même robot gelé et la même mécanique mesurée (pit
 ``scripts/measure_iiwa7_lever.py``) sur des géométries, limites, dalles, poses et claims distincts.
 Le nom de l'obstacle, la barrière et la boîte sont lus DANS LA SCÈNE.
 
+ÉTENDU EN S12 [L6] : le banc chronomètre désormais les TROIS PHASES séparément (build FK sympy /
+b&b / export) au lieu d'un seul ``certify_s``, parce que la bascule du contrat d'export a déplacé
+le terme dominant. Il consigne aussi les compteurs de la bascule
+(``n_leaves_embedded`` / ``n_leaves_resolved`` / ``n_embed_rejected``, A32 étendu) et la réponse
+de la condition d'applicabilité PAR PAIRE, telle qu'établie à l'exécution.
+
 Run: ``python scripts/flagship_iiwa_real_bench.py [scene.yaml ...]``
      défaut = le flagship S6 -> scenes/S6_iiwa_real_shelf.cert.json
                               + benchmarks/results/<ts>/flagship_S10_iiwa_real.json
@@ -63,7 +69,10 @@ CASES = {
         "note": "FLAGSHIP d'EN-TÊTE : vrai KUKA iiwa7, cinematique+silhouette fideles, "
                 "deconnexion FRANC pitch/etagere certifiee PROOF + verify exact",
         "predicted": {"leaves": 8, "cost_leaf_reduced_rows": 1070,
-                      "bern_ctrl_pts_per_constraint": 125, "active_dims": [0, 1, 2]}},
+                      "bern_ctrl_pts_per_constraint": 125, "active_dims": [0, 1, 2],
+                      # [S12/L6] budget re-prédit APRÈS la bascule : build FK ~39 s + b&b ~1,5 s
+                      # + export « <1 s » (mesure S11 : 0,29 s pour le seul terme LP embedé).
+                      "certify_s": 40, "certify_s_before_L6": 726}},
     "scenes/usecase_binpicking_iiwa7.yaml": {
         "key": "usecase_binpicking_iiwa7", "session": "S11",
         "gate": "pack démo (cas non-flagship)",
@@ -75,7 +84,7 @@ CASES = {
         # par feuille collision sur cette machine ⟹ 39 s (build FK) + 1,5 s (b&b) + 2×291 s.
         "predicted": {"leaves": 2, "cost_leaf_reduced_rows": 1070,
                       "cost_leaf_full_rows": 473870, "cols_full": 327,
-                      "certify_s": 620, "active_dims": [0, 1, 2]}},
+                      "certify_s": 40, "certify_s_before_L6": 620, "active_dims": [0, 1, 2]}},
     "scenes/usecase_capot_surete_iiwa7.yaml": {
         "key": "usecase_capot_surete_iiwa7", "session": "S11",
         "gate": "pack démo (cas non-flagship)",
@@ -84,7 +93,7 @@ CASES = {
                 "de sûreté (l'organisme notifié relance cnp verify) — PAS une certification ISO",
         "predicted": {"leaves": 2, "cost_leaf_reduced_rows": 1070,
                       "cost_leaf_full_rows": 473870, "cols_full": 327,
-                      "certify_s": 620, "active_dims": [0, 1, 2]}},
+                      "certify_s": 40, "certify_s_before_L6": 620, "active_dims": [0, 1, 2]}},
 }
 
 
@@ -128,16 +137,34 @@ def run_case(scene_path: str) -> int:
     predicted = meta["predicted"]
     cert_out = scene_path.replace(".yaml", ".cert.json")
     sc, _ = scenes.load(scene_path)
+    t0 = time.monotonic()
     prob = scenes.build_problem(sc)
+    # [S12] the sympy FK build is now the dominant term — and it is CACHED PER PROCESS by
+    # sympy. Benching several scenes in ONE run therefore measures ~39 s for the first and
+    # ~1.3 s for the rest, which is NOT what `cnp certify <scene>` costs (A46: a number that
+    # suddenly looks too good is a measurement artefact). Run ONE SCENE PER PROCESS for a
+    # cold, quotable end-to-end figure.
+    t_build = time.monotonic() - t0
     views = engine.pair_views(prob)
     active = list(engine._global_active(views, prob))
     assert active == predicted["active_dims"], f"active dims {active} != predicted"
 
+    # [S12/L6] the export contract's applicability, established AT RUN TIME on this scene.
+    checks = engine.embedding_applicable(prob)
+    l6 = {nm: {"applicable": ck.applicable, "active": list(ck.active),
+               "passive": list(ck.passive), "a29_removed": list(ck.a29_removed),
+               "blocking": list(ck.blocking), "reason": ck.reason}
+          for nm, ck in checks.items()}
+
     gt = _groundtruth_subset(sc)                            # re-assert ground truth (A43)
 
     t0 = time.monotonic()
-    res, c = cert.certify(sc, axis="margin")
-    t_certify = time.monotonic() - t0
+    res = engine.solve(prob, axis="margin")
+    t_engine = time.monotonic() - t0
+    t0 = time.monotonic()
+    c = cert.make_certificate(sc, res, verify_loop=True)
+    t_export = time.monotonic() - t0
+    t_certify = t_build + t_engine + t_export               # what `cnp certify` pays end to end
     t1 = time.monotonic()
     ok, msg = verify.verify(c)
     t_verify = time.monotonic() - t1
@@ -160,8 +187,16 @@ def run_case(scene_path: str) -> int:
         "passive_dims": [i for i in range(len(sc.box)) if i not in active],
         "leaves": len(c["leaves"]), "by_status": res.stats["by_status"],
         "n_reresolve_failed": c["stats"]["n_reresolve_failed"],            # A32
+        # [S12/L6] export contract
+        "l6_applicability": l6,
+        "n_leaves_embedded": c["stats"]["n_leaves_embedded"],
+        "n_leaves_resolved": c["stats"]["n_leaves_resolved"],
+        "n_embed_rejected": c["stats"]["n_embed_rejected"],                # A32 extended
         "cost_leaf_reduced_rows": reduced, "cost_leaf_full_rows": full,
         "reduction_x": round(full / reduced, 1),
+        "phases_s": {"build_fk_sympy": round(t_build, 2),
+                     "branch_and_bound": round(t_engine, 2),
+                     "export_certificate": round(t_export, 2)},
         "certify_s": round(t_certify, 2), "verify_s": round(t_verify, 2),
         "groundtruth": gt, "predicted": predicted,
     }
@@ -183,6 +218,13 @@ def run_case(scene_path: str) -> int:
     print(f"active_dims={active}  reduced_rows={reduced} "
           f"(predit {predicted['cost_leaf_reduced_rows']})  "
           f"full_rows={full}  reduction={row['reduction_x']}x")
+    print(f"[L6] embedded={row['n_leaves_embedded']} resolved={row['n_leaves_resolved']} "
+          f"rejected={row['n_embed_rejected']} (attendu 0) | "
+          + " ; ".join(f"{nm}: applicable={v['applicable']} passives={v['passive']}"
+                       for nm, v in l6.items()))
+    print(f"phases: build FK sympy {row['phases_s']['build_fk_sympy']} s + b&b "
+          f"{row['phases_s']['branch_and_bound']} s + export "
+          f"{row['phases_s']['export_certificate']} s")
     print(f"certify={row['certify_s']}s  verify={row['verify_s']}s"
           + (f"   (prédit A44 ~{predicted['certify_s']} s ⟹ écart "
              f"{100*(row['certify_s']-predicted['certify_s'])/predicted['certify_s']:+.0f} %)"
@@ -190,6 +232,7 @@ def run_case(scene_path: str) -> int:
     print(f"cert archived: {cert_out}   results: {outdir}/{meta['key']}.json  "
           f"commit={h} dirty={dirty}")
     okall = (res.verdict == "PROOF" and ok and row["n_reresolve_failed"] == 0
+             and row["n_embed_rejected"] == 0
              and gt["start_free"] and gt["goal_free"] and gt["slab_corner_free"] == 0
              and gt["redundancy_all_collide"] and gt["slab_penetration_mm"] > 40
              and gt["startgoal_clearance_mm"] > 40)
