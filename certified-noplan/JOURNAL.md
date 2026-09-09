@@ -3322,3 +3322,58 @@ bout-en-bout ; changement de contrat ⟹ règle 1, adversarial) ; (2) faut-il un
 géométriquement distinct** pour le deck (lien plus distal, 5 dims actives, budget S9f OK) ou
 assume-t-on la mécanique unique mesurée. Puis **rédaction preprint/papier** (côté supervision, Fig 1
 disponible) + review amicale.
+
+## 2026-09-09 — Revue de supervision S11 (claude.ai, transcrite Code, circuit A16) — pack démo acquis, décisions L6 et mécanisme unique, [A45-A46]
+
+**Verdict : S11 validée** (« VALIDÉ S11 » 09/09). 224/1/0/0 sans flake, `verify.py` zéro diff, trois cas
+certifiés PROOF exact sur le VRAI iiwa7, Figure 1 produite (chiffres lus dans les JSON archivés), pages 3D
+partageables, viz A11 (dette V1) soldée avec invariant testé.
+
+**Trois résultats.** (1) **L6 fonctionne** — `verify` accepte l'embedding du réduit, condition
+d'applicabilité VÉRIFIÉE (A29 ∅, dims passives absentes de D et N originaux), **×2018 sur l'export**,
+**×15,4 bout-en-bout** car le goulot suivant apparaît (build FK sympy 38,7 s, cachable / remplaçable par
+Drake RationalFK — future work). (2) **Le piège proximal franc est UNIQUE sur link3** (3 axes × 6
+directions × 2 motifs : seul q2+surplomb, +175 mm ; lacet/roulis/paroi négatifs partout) — un RÉSULTAT,
+l'effet de sélection A35 mesuré sur robot réel ; les trois cas partagent la mécanique, dit en clair. Récit
+« traverser la paroi du bac » abandonné honnêtement. (3) **Deux artefacts d'argument ont menti** (Fig 1
+sans robot ; page 3D à un seul DOF), attrapés par le **GATE HUMAIN**, pas par les tests — les invariants
+A40 étaient corrects mais **hors sujet** (fidélité ≠ suffisance). Règle 11 a joué son rôle.
+
+**Salués** : parité circulaire 2,2e-16 détectée comme TROP belle et remplacée (ancrage 8 liens × 200
+configs, 1,14e-6) ; correction du « ×5 » de la revue précédente (apparaît-à-apparaît = ×40 à lignes
+égales ⟹ l'explication colonnes A44 est **RENFORCÉE**, colonnes^1,39).
+
+**DÉCISION (1) — L6 : BASCULE en S12** sous quatre gardes :
+(a) embedding direct **SEULEMENT si la condition d'applicabilité est vérifiée À L'EXÉCUTION**
+(`a29_removed = ∅` ET dims passives absentes de D et de tous les N originaux), **re-résolution pleine-dim
+SINON** (chemin actuel = repli) ;
+(b) **règle 1** : 0 changement de verdict sur toute la suite + adversarial re-vert + un test qui **FORCE**
+une condition non remplie et vérifie qu'on re-résout ;
+(c) **A32 étendu** : « embedding rejeté par verify » compté, attendu zéro, bruyant si > 0 ;
+(d) **SPEC §4 amendée** (règle 12).
+**Soundness inchangée** : `verify` reste l'arbitre pleine dim (embedding faux ⇒ rejet ⇒ ENGINE-PROOF,
+jamais faux PROOF — l'argument S8). Contrat A14 engine↔verify **NON touché**.
+
+**DÉCISION (2) — mécanisme distinct pour le deck** : **NON pour le papier** (la mécanique unique EST le
+résultat de sélection ; le bench S9f couvre déjà k≤7) ; **OPTIONNEL pour le deck** (S12-bis : lien distal
+~5 dims actives, faisable, scellement fiddly), à décider par Stéphane après le preprint si la répétition
+gêne en prospection. **Preprint d'abord.**
+
+**[A45] Deux niveaux de garantie viz : FIDÉLITÉ et SUFFISANCE.** FIDÉLITÉ = ce qui est dessiné ne ment pas
+(invariant testé, A40). SUFFISANCE = ce qui est dessiné **porte l'argument** (gate humain, règle 11). Un
+test ne remplace pas le gate. À dire dans la note au relecteur.
+
+**[A46] Une parité au niveau du bruit machine (~1e-16) sur un modèle RATIONALISÉ contre une référence
+flottante est un signal d'ERREUR DE MESURE**, pas un succès (contrôle circulaire, référence reconstruite
+depuis l'objet testé, un seul axe échantillonné) : le plancher attendu est celui de la source (~2e-6
+URDF). Tout contrôle de parité échantillonne **TOUS** les DOF et prend sa référence **HORS** de l'objet
+testé.
+
+**Diffs appliqués (ouverture S12, règle 14)** : **[D60]** A45 → règle 11 ; **[D61]** A46 → règle 9
+(famille A28/A41) ; **[D62]** décision L6 (bascule S12 sous gardes a-d) → **section S12 insérée au plan**
+(Durcissement et Reproductibilité décalées en S13/S14) ; **[D63]** header CLAUDE.md **v1.20** + changelog
+« v1.19→v1.20 (revue S11, A45-A46, L6) : pack démo acquis ; L6 basculé sous gardes ; fidélité ≠
+suffisance des viz ; parité trop belle = erreur ».
+
+**Papier** : Figure 1 disponible, résultat de sélection mesuré versé au §6 ; le chiffre de temps du
+flagship passe à « ~40 s » **SEULEMENT** après le bench S12 archivé.

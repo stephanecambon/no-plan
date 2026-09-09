@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.19 — 8 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 ; v1.0..v1.18 dans git).
+Version 1.20 — 9 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revue S11 ; v1.0..v1.19 dans git).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -148,6 +148,25 @@ gain potentiel ~×100 → **[D58]** tâche d'OUVERTURE de S11, **mesure seule, d
 suivante**. **[D59]** ce header+changelog. Décision Stéphane : **S11 (pack démo) AVANT le preprint** —
 matière deck en priorité. Détail : entrée « Revue de supervision S10-quinquies » de JOURNAL.md.
 
+Changements v1.19 → v1.20 (revue S11, **[A45-A46]**, D60-D63) : **S11 validée — pack démo ACQUIS**
+(224/1/0/0 sans flake, `verify.py` zéro diff, trois cas PROOF exact sur le vrai iiwa7, Figure 1,
+pages 3D partageables, dette V1/A11 soldée). **[D62] L6 BASCULÉ en S12 sous quatre gardes** :
+(a) embedding direct SEULEMENT si la condition d'applicabilité est vérifiée **À L'EXÉCUTION**
+(`a29_removed = ∅` ET dims passives absentes de D et de TOUS les N originaux), **re-résolution
+pleine-dim en REPLI** sinon ; (b) règle 1 (0 changement de verdict + adversarial + un test qui FORCE
+le repli) ; (c) A32 étendu (« embedding rejeté par verify » compté, attendu zéro, bruyant) ;
+(d) SPEC §4 amendée (règle 12). Soundness inchangée — `verify` reste l'arbitre pleine dim (embedding
+faux ⇒ rejet ⇒ ENGINE-PROOF, jamais un faux PROOF, l'argument S8) ; contrat A14 engine↔verify NON
+touché. **Mécanisme géométriquement distinct** : NON pour le papier (la mécanique unique EST le
+résultat de sélection A35 mesuré ; le bench S9f couvre k≤7), OPTIONNEL pour le deck (S12-bis, décision
+Stéphane APRÈS le preprint). **[A45]** deux niveaux de garantie viz — **FIDÉLITÉ** (ce qui est dessiné
+ne ment pas : invariant TESTÉ, A40) et **SUFFISANCE** (ce qui est dessiné PORTE l'argument : gate
+humain, règle 11) ; un test ne remplace pas le gate → **[D60]** règle 11. **[A46]** une parité au
+niveau du **bruit machine** (~1e-16) d'un modèle RATIONALISÉ contre une référence flottante est un
+signal d'**ERREUR DE MESURE**, pas un succès (le plancher attendu est celui de la SOURCE, ~2e-6 URDF)
+→ **[D61]** règle 9, à côté d'A28/A41. **[D63]** ce header+changelog. Détail : entrée « Revue de
+supervision S11 » de JOURNAL.md.
+
 ---
 
 ## Règles non négociables
@@ -233,6 +252,15 @@ matière deck en priorité. Détail : entrée « Revue de supervision S10-quinqu
    de SEGMENT de `collision_oracle` (scenes.py) — sinon vérité-terrain fausse ⟹ régression
    micro-canal/scène-leaky. C'est aussi un RÉSULTAT du papier (un humain ne voit pas qu'un blob
    proximal est piégé — l'outil le prouve).
+   **[A46, revue S11] Une parité au niveau du BRUIT MACHINE est un signal d'ERREUR DE MESURE.**
+   Un contrôle de parité qui rend ~1e-16 entre un modèle RATIONALISÉ et une référence flottante
+   n'est pas un succès : le plancher attendu est celui de la SOURCE (~2e-6 pour l'URDF iiwa7,
+   A41). Un tel chiffre trahit un contrôle CIRCULAIRE — référence reconstruite depuis l'objet
+   testé (tout décalage de repère constant s'annule) et/ou un seul axe échantillonné. Leçon S11 :
+   le premier contrôle chaîne↔Drake de la page 3-D rendait 2,2e-16 et n'aurait pas attrapé un
+   robot qui bouge faux ; remplacé par un ancrage des 8 liens sur 200 configurations aléatoires
+   (1,14e-6). **Règle : tout contrôle de parité échantillonne TOUS les DOF et prend sa référence
+   HORS de l'objet testé.** (Même famille qu'A28/A41 : on vérifie la source avant d'affirmer.)
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
@@ -292,6 +320,14 @@ matière deck en priorité. Détail : entrée « Revue de supervision S10-quinqu
     contre `scenes.collision_oracle`, 0 écart). La discipline verify (« sound parce qu'on
     recompte ») s'étend à la viz argumentative : sans cet invariant, un gate visuel peut valider un
     artefact qui ment (bug S10 : base du corps prise à l'origine monde, attrapé par le test).
+    **[A45, revue S11] FIDÉLITÉ ≠ SUFFISANCE — deux niveaux de garantie, deux instruments.**
+    Un artefact de viz doit être (1) **FIDÈLE** : ce qui est dessiné ne ment pas — garanti par
+    l'invariant TESTÉ d'A40 ; et (2) **SUFFISANT** : ce qui est dessiné **porte l'argument** —
+    garanti par le GATE HUMAIN de cette règle, et par rien d'autre. **Un test ne remplace pas le
+    gate.** Leçon S11 : la Figure 1 (coques du corps certifié sans le robot) et la page 3-D (un
+    seul DOF réellement mobile) étaient toutes deux FIDÈLES — leurs invariants A40 passaient — et
+    toutes deux INSUFFISANTES ; seul l'œil de Stéphane les a attrapées. Les invariants en place
+    étaient corrects mais HORS SUJET. À énoncer dans la note au relecteur du papier.
 
 12. **Anti-dérive de spec (NOUVEAU).** Si l'implémentation diverge délibérément de
     SPEC.md (exemples actés en S1-S2 : s = tan((q−q*)/2) avec q* de référence au
@@ -823,16 +859,56 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   (3) la figure flagship (7-DOF) est compréhensible par un non-spécialiste.
 - Sortie : `cnp viz` fonctionne ; pack dans benchmarks/figures/ ; **V7 validée**.
 
-### S12 — Durcissement
-- Entrée : S11.
+### S12 — BASCULE DU CONTRAT D'EXPORT [L6] [NOUVELLE, D62 — revue S11]
+- Entrée : S11 (mesure L6 livrée : `verify` ACCEPTE l'embedding, ×2018 sur l'export).
+  Session COURTE, **AUTONOME** (pas de gate humain — le certificat s'auto-valide, `verify` arbitre).
+- Tâches :
+  1. **Condition d'applicabilité À L'EXÉCUTION** (dans engine/certificate, JAMAIS dans verify) :
+     pour une paire/vue, l'embedding direct est SOUND ssi (i) A29 n'a divisé aucun facteur
+     `(1+s²)` pour cette paire (`a29_removed = ∅`) ET (ii) chaque dim passive de la vue est
+     ABSENTE de `D` et de TOUS les `N_k` **ORIGINAUX** (tenseurs avant toute simplification —
+     test tensoriel exact, pas la détection conservatrice). Retourne vrai/faux **+ raison**.
+     Jamais présumée : établie à chaque run.
+  2. **Export embedé + REPLI** dans `make_certificate` : condition vraie ⟹ embarquer (λ, μ) du LP
+     de DÉCISION réduit en pleine dim (coefficients nuls sur les axes passifs ; même DPAD ; Σλ≡1
+     et l'arrondi A13 barycentre/`limit_denominator` appliqués sur les coefficients RÉDUITS AVANT
+     embedding) ; condition fausse ⟹ **re-résolution pleine-dim** (chemin actuel, inchangé). La
+     `verify_loop` et l'escalade `max_den` (A13) s'appliquent aux DEUX chemins. **Format du
+     certificat INCHANGÉ** (SPEC §4) : `verify` ne voit pas la différence — c'est le point.
+  3. **A32 étendu** : `stats['n_embed_rejected']` (embedding refusé par `verify` ⟹ la feuille
+     bascule sur la re-résolution, on COMPTE, et on lève si > 0 en fin, comme A32) — attendu
+     **ZÉRO** ; `stats['n_leaves_embedded']` / `n_leaves_resolved` exposés pour l'audit.
+  4. **Règle 1** : 0 changement de verdict sur TOUTE la suite ; adversarial re-vert ; tests
+     nouveaux (a) iiwa7 export embedé ⟹ PROOF + verify OK + `n_embed_rejected=0` ; (b) S3 ⟹
+     condition FAUSSE ⟹ `n_leaves_resolved > 0` (**repli exercé**) ; (c) mutation forçant un
+     embedding volontairement FAUX ⟹ `verify` REJETTE ⟹ compté, repli, cert final valide.
+     Certs canoniques iiwa7 régénérés (`cnp verify` OK exact) ; certs planaires/S3
+     **OCTET-IDENTIQUES** (repli ⟹ même sortie).
+  5. Bench daté (règle 7) `certify` bout-en-bout sur les trois iiwa7 ; mesuré vs prédit A44 ;
+     nouveau terme dominant (build FK sympy) noté **future work** (cache par scène / Drake
+     RationalFK), PAS traité ici. **SPEC §4 amendée** (règle 12).
+- **Garde-fous** : `verify.py` **SACRÉ, zéro diff** — c'est précisément parce qu'il ne change pas
+  que la bascule est sound (embedding faux ⇒ rejet ⇒ ENGINE-PROOF, jamais un faux PROOF,
+  l'argument S8). Contrat A14 engine↔verify NON touché. UNDECIDED ≠ infaisable.
+- Sortie : `make test` vert sans changement de verdict ; `n_embed_rejected = 0` ; bench archivé
+  (le chiffre « ~40 s » n'est débloqué pour le papier qu'après ce bench).
+
+### S12-bis — Mécanisme géométriquement distinct pour le deck [OPTIONNEL, D62]
+- **NON pour le papier** (la mécanique unique EST le résultat de sélection A35 mesuré en S11 ; le
+  bench S9f couvre déjà k≤7). **OPTIONNEL pour le deck** : lien plus distal (~5 dims actives),
+  faisable, scellement fiddly. **Décision Stéphane APRÈS le preprint**, si la répétition gêne en
+  prospection. Preprint d'abord.
+
+### S13 — Durcissement [ex-S12, décalée par D62]
+- Entrée : S12.
 - Tâches : élargir l'adversarial (fuzzing de scènes à prémisse fausse,
   micro-canaux générés aléatoirement, limites frôlant ±π → refus propre) ;
   messages d'erreur ; README honnête (verdicts, hypothèses, limites).
 - Sortie : CI complète verte, zéro skip requis ; zéro faux certificat sur ≥ 200
   scènes adversariales générées.
 
-### S13 — Reproductibilité et buffer
-- Entrée : S12.
+### S14 — Reproductibilité et buffer [ex-S13, décalée par D62]
+- Entrée : S13.
 - Tâches : `make reproduce` one-shot (toutes scènes + benchmarks + figures) ;
   gel des versions ; rattrapage ; revue finale JOURNAL → liste des claims
   soutenus par artefacts (matière à papier).
