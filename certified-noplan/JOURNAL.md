@@ -3521,3 +3521,117 @@ papier** sous sa forme mesurée : *« ~47 s bout-en-bout, dont ~39 s de construc
 et ~1,3 s de décision ; re-vérification exacte en 2,4 s »*. Puis **rédaction preprint**
 (supervision, Figure 1 disponible) + review amicale. **S12-bis** (mécanisme géométriquement
 distinct pour le deck) **OPTIONNEL**, sur décision de Stéphane APRÈS le preprint.
+
+---
+
+## 2026-09-09 — Session P1 (Claude Code, AUTONOME) — **fact-check du brouillon de papier §§ 1-5 contre le code** ; 3 FAUX dont un dans la preuve du théorème ; `verify.py` intact
+
+Session de **lecture et de rapport uniquement**. Aucune ligne de `src/` n'a été touchée.
+Livrable unique : `docs/papers/FACTCHECK-v0.1.md` (31 affirmations confrontées, table
+affirmation / verdict / preuve `fichier:ligne`, phrases de remplacement prêtes à coller).
+
+**Ouverture [A33]** : `git status` = trois fichiers non suivis dans **`docs/papers/`**
+(`PAPER-SKELETON.md`, `BIBLIO-VERIFIED.md`, `PAPER-DRAFT.md`), déposés par Stéphane, et rien
+d'autre. Conforme à l'attendu **à un détail près, constaté et non absorbé en silence** : le
+répertoire s'appelle `docs/papers/` (pluriel), le prompt annonçait `docs/paper/`. Le chemin
+réel fait foi. `make test` à l'ouverture : **240 passed, 1 deselected, 0 skipped, 0 warnings**
+(368 s) — état vert conforme à la clôture S12.
+
+### Fait
+
+**Cas frontière du théorème [point critique du prompt] — verdict : PAS DE TROU.** Le test
+« outside » de `verify.py` est **LARGE** (`_bern_all_nonneg` = `all(v >= 0 ...)`,
+`verify.py:139-141`, appelé `verify.py:390`), et la dalle est **fermée** `|φ| ≤ δ` dans les
+trois sources (`SPEC.md:82`, `engine.py:145-149`, `verify.py:16`) — **cohérentes entre elles**.
+Le brouillon §4 affirme que « the shipped verifier uses the strict test » : **c'est FAUX**.
+Mais la conclusion qu'en tirait le brouillon (il faudrait un test strict) est fausse aussi :
+la preuve n'a jamais besoin d'ouvrir le cas `φ(s*) = ±δ`. Par le TVI, un chemin qui va de
+`φ < −δ` à `φ > +δ` **atteint 0** ; en prenant `s*` au niveau zéro, aucune feuille *outside*
+ne peut le contenir (il faudrait `|φ| ≥ δ > 0`), et sur la feuille *collision* qui le contient
+`T(s*) = δ² > 0` donne directement `g_j(s*) ≥ 0`. **Ce que le certificat prouve est la dalle
+OUVERTE `{|φ| < δ} ⊆ C_obs`** — plus faible à prouver, et suffisant pour le lemme. Correction
+**purement rédactionnelle**, `verify.py` **n'est pas touché** (le zéro-diff de S12 tient).
+
+**Trois affirmations FAUSSES.** (1) le test outside « strict » ci-dessus ; (2) l'abstract et
+(C2) annoncent **« 28 adversarial mutations »** — décompte exact : **26** mutations planaires
+(`test_verify.py::test_mutation_is_rejected`) + **6** mutations de verrou
+(`test_locked_joints.py::test_lock_mutation_is_rejected`) + 3 mutations spatiales dans
+`test_adversarial.py` ; **le 28 est le nombre de fonctions de test du fichier `test_verify.py`**,
+pas un nombre de mutations (§5 du brouillon, lui, dit « 26 + suites » et est juste) ; (3)
+« it **never raises** on a corrupted certificate » — `verify.py:490` n'attrape qu'une liste
+**énumérée**, et **un contre-exemple a été reproduit** : `obstacles` passé comme liste au lieu
+d'un dict fait remonter `AttributeError` (`verify.py:331`). **Pas un défaut de soundness** (le
+vérificateur plante au lieu d'accepter), mais réfutable en trente secondes par un relecteur.
+
+**Cinq imprécisions** : imports de `verify.py` (`math.comb` oublié dans l'énumération du
+papier, `verify.py:29` ; l'audit AST autorise `{__future__, json, fractions, math}`) ; le
+look-ahead de §3.5 n'est **pas** le défaut de la bibliothèque (`engine.solve` défaut
+`axis="oracle"` = **axe le plus large**, `engine.py:841` / `scenes.py:144` ; `margin` est posé
+dans le YAML de toutes les scènes rapportées, mais **S1 et S2b tournent en `oracle`**) ; le
+seuil d'acceptation d'une feuille est `best_t > tol = 1e-6` (`engine.py:472,94`) et **avant**
+l'arrondi exact, pas `t ≥ 0` « after exact rounding » ; la « marge de 90 mm » de l'abstract ne
+dit pas laquelle des deux (`slab_penetration_mm = 91,5` vs `startgoal_clearance_mm = 83,3`) ;
+**aucune scène robot 6-DOF n'est livrée** (S4 = 5 DOF ; le seul k=6 est le mur synthétique).
+
+**Deux chiffres à renforcer, mesurés cette session.** (a) **Palier d'arrondi [E2]** :
+l'information n'était **pas journalisée** (aucun compteur dans `certificate.py`), donc
+**mesurée** par instrumentation en scratchpad (hors dépôt) sur les **7 scènes livrées** —
+`rungs = 1` **partout**, échelle `[10⁶]` jamais escaladée. Le papier peut affirmer **le
+premier palier**, plus fort que le « premier ou deuxième » du brouillon. Piège relevé : le
+**max des dénominateurs d'un certificat n'est pas un indicateur du palier** (le dernier λ est
+fixé par soustraction pour rendre `Σλ ≡ 1` exact ⇒ dénominateur = ppcm des autres, d'où des
+10¹⁸ observés à `max_den = 10⁶`). (b) **k ≤ 7** → le banc mur scellé S9f couvre **k = 3..7**,
+pas k = 1,2.
+
+**Vérifié VRAI (19)** — notamment : `verify.py` = **499 lignes** ; `DPAD = max(d_lam + d_N,
+2·d_phi)` avec `d_N = 2` **constante** (`verify.py:313`) et **DPAD = 4 sur les quatre
+certificats livrés, S6 flagship inclus** (le « S6 = 7 » du prompt était erroné : 7 est la
+dimension `n`) — corroboré par la loi `(d+1)^k` du mur scellé (766 → 3 782 → 18 814 → 93 878
+→ 469 006 = **×4,99 par dimension**) ; φ **linéaire déclarée à degré 2** donne bien DPAD = 4
+(`verify.py:466` lit le champ **déclaré**) ; ordre A29 **puis** détection de passivité
+(`engine.py:301-302`) et condition L6 lisant bien les tenseurs **ORIGINAUX**
+(`engine.py:387-390`) ; verify flagship **2,42 s** et ancrage 4-DOF **0,0415 s** (relus dans
+les JSON archivés, pas de mémoire) ; double passage du vérificateur **~4,9 s** (`JOURNAL:3446`) ;
+parités **1,985e-6** (chaîne, re-mesurée) et **1,674e-6 / 1,682e-6** (corps, 200 / 400 cfg) sous
+le plancher SDF **3,67e-6** ; **zéro SDP** sur le chemin critique (le SOS vit dans
+`tests/regref.py:110`, seul fichier à importer cvxpy) et back-end **`highspy`** direct
+(`engine.py:61`), garde Mosek verte ; **`n_embed_rejected = 0`** sur les trois certificats
+post-S12, le repli plein-dim étant réellement exercé par **S3 shoulder-elbow (0/4/0)**.
+
+### Décisions requises de la supervision (proposées, NON appliquées)
+
+- **D-P1** — `SPEC.md:80` pose (i) **large** (`≤ −δ` / `≥ +δ`) là où `verify.py:342-345` est
+  **strict**. Écart de sens **sûr** (verify plus strict ⇒ au pire un faux rejet), mais dérive
+  de spec (règle 12). Proposition : **amender SPEC §2 (i) en strict**. Aucun code touché.
+- **D-P2** — `verify.verify` peut lever (`AttributeError`, contre-exemple reproduit).
+  **(a)** affaiblir la phrase du papier — texte prêt, **recommandé** ; **(b)** élargir
+  `except` à `verify.py:490` — touche le **module SACRÉ** (règle 4), impose la suite
+  adversariale complète (règle 1) et **casse le zéro-diff S12**. Recommandation : **(a)
+  maintenant, (b) plus tard et jamais seul**.
+- **D-P3** — dans le code, `axis="oracle"` désigne **l'axe le plus large**, pas une
+  vérité-terrain. Le papier ne doit jamais employer ce mot sans le traduire (« widest-axis »).
+
+### Circuit A16 (ouverture DOC) — **NON EXÉCUTÉ, faute de matière** [règle 13]
+
+Le prompt demandait de transcrire la **revue S12** et d'appliquer **D64 (A47 → règle 9)**,
+**D65 (FW-perf → section S13)** et **D66 (header v1.21)**, en précisant que Stéphane collerait
+le bloc de revue « s'il n'est pas déjà dans le prompt ». **Le bloc n'était ni dans le prompt ni
+ailleurs dans la session.** Le contenu d'A47 et celui de FW-perf ne sont donc **pas connus**, et
+la règle 14 interdit à Code de rédiger de sa propre initiative une règle, un critère de sortie
+ou une porte. **Rien n'a été appliqué à CLAUDE.md — header laissé en v1.20.** Constaté ici plutôt
+qu'absorbé en silence ; la transcription + D64/D65/D66 sont à reprendre en ouverture de la
+prochaine session, dès que le bloc de revue est fourni.
+
+**Documents de supervision ajoutés au dépôt** : `docs/papers/PAPER-SKELETON.md`,
+`BIBLIO-VERIFIED.md`, `PAPER-DRAFT.md` — **Code ne les modifie pas de sa propre initiative**
+(esprit règle 14) ; le fact-check les commente dans un fichier séparé et la supervision intègre.
+
+**Décompte exact (clôture)** : `make test` = **240 passed, 1 deselected, 0 skipped, 0 warnings**.
+Inchangé — aucune ligne de `src/` ni de `tests/` modifiée par cette session. **`verify.py` zéro
+diff.** **Diffs CLAUDE.md** : **aucun** (voir circuit A16 ci-dessus). **Diff SPEC** : **aucun**
+(D-P1 proposé, non appliqué).
+
+**Prochaine étape** : **supervision** — (1) fournir le bloc de revue S12 pour que D64/D65/D66
+soient appliqués ; (2) arbitrer D-P1 et D-P2 ; (3) intégrer les corrections de
+`FACTCHECK-v0.1.md` §2 au brouillon, en commençant par **§2.1 (preuve du théorème)**, le seul
+point qu'un relecteur attaquerait frontalement.
