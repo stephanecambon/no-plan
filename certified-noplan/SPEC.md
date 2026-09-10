@@ -1,6 +1,13 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
-Version 1.7 — 9 septembre 2026 (amendée post-S7/S8/S9c/S12 ; v1.0..v1.6 dans git).
+Version 1.8 — 10 septembre 2026 (amendée post-S7/S8/S9c/S12/P2 ; v1.0..v1.7 dans git).
+Amendement v1.7→v1.8 (acté P2, décision de supervision [D67] — revue P1, règle 12) : §2 (i) —
+la condition de séparation start/goal est **stricte** : φ(s_start) < −δ et φ(s_goal) > +δ
+(était « ≤ −δ / ≥ +δ »). Aligné sur `verify.py:342-345` (qui teste strict depuis S4, cf. §2
+« Condition (i) en espace-s ») et sur le papier ; **sens sûr** (la forme stricte ne peut que
+refuser davantage, jamais accepter un faux certificat). Aucun changement de code. La dalle (ii)
+reste fermée |φ| ≤ δ et le test outside reste large : le certificat établit la dalle OUVERTE
+{|φ| < δ} ⊆ C_obs, ce dont la preuve a besoin (fact-check P1, point A4).
 Amendement v1.6→v1.7 (acté S12, décision de pilotage [L6], règle 12) : §4 — **contrat
 d'EXPORT** du certificat. Le témoin exporté pour une feuille collision est, **quand la
 condition d'applicabilité (i)-(ii) est vérifiée à l'exécution**, l'**embedding pleine
@@ -78,7 +85,8 @@ hypothèse wrap-around, relative à q*). Les joints verrouillés sont substitué
 leurs cos/sin numériques, sans variable s ni facteur (1+s²) ; n = nombre de
 joints débloqués, ré-indexés 0..n−1. Soit φ : R^n → R polynomiale,
 δ > 0. Si :
-(i) φ(s_start) ≤ −δ et φ(s_goal) ≥ +δ ;
+(i) φ(s_start) < −δ et φ(s_goal) > +δ ; [amendé P2, D67 — aligné sur verify.py:342-345 et
+     sur le papier ; sens sûr]
 (ii) la dalle S = {s ∈ P : |φ(s)| ≤ δ} est entièrement en collision
      (∀s ∈ S, ∃ paire (corps robot, obstacle) en intersection) ;
 alors start et goal sont dans des composantes connexes distinctes de C_free.

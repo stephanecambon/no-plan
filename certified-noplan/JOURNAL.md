@@ -3665,3 +3665,48 @@ fournie), où A48 sera absorbée. Choix explicité dans l'en-tête plutôt que t
 **Conséquence opérationnelle immédiate** : `FACTCHECK-v0.1.md` **est** le fact-check P-1 exigé
 par A48 pour les §§ 1-5. Les §§ 6-9 à venir (Cost model, Experiments, Limitations, Reviewer note)
 sont **massivement chiffrés** et déclencheront donc un **P-2** avant circulation.
+
+## 2026-09-09 — Revue de supervision P1 (claude.ai) — fact-check §§1-5 endossé, A48, décisions D-P1/D-P2/D-P3
+
+*(transcrite par Code en ouverture P2, circuit A16 — texte de la revue verbatim)*
+
+Verdict : P1 validée — 31 affirmations vérifiées à la ligne, 3 FAUSSES (test outside
+« strict », « 28 mutations », « never raises »), 5 IMPRÉCISES (imports, heuristique d'axe,
+seuil t, marge « 90 mm », « 5-6 DOF »), 3 à renforcer (palier d'arrondi = toujours le
+premier, k = 3..7, parité corps à 200 cfg), 19 vraies. Toutes intégrées au brouillon v0.2.
+Aucun code touché ; verify.py intact ; décisions isolées et non appliquées — conforme.
+Le point critique : la supervision avait rédigé une preuve du théorème supposant un test
+outside STRICT ; le code est LARGE partout (SPEC, engine, verify — cohérents) et c'est
+CORRECT : la preuve doit choisir s* avec φ(s*) = 0 (TVI), à distance δ de toute feuille
+outside — pas de trou, correction purement rédactionnelle. Le certificat établit la dalle
+OUVERTE {|φ| < δ} ⊆ C_obs, ce dont le lemme a besoin. Un test strict aurait AFFAIBLI le
+vérificateur (faux rejets). Preuve réécrite par Code, plus courte et plus forte.
+Mesure bonus : palier d'arrondi = premier (10⁶) sur les 7 scènes livrées (aucun compteur
+n'existait ; mesuré en scratchpad, hors dépôt).
+DÉCISIONS : D-P1 → OUI, SPEC §2 (i) passe en strict (règle 12 ; code et papier sont
+stricts, sens sûr) = D67. D-P2 → (a) phrase honnête au papier (fait) ; (b) `except
+Exception` + vrai fuzz → S13 GROUPÉ avec un autre chantier verify.py, jamais isolé (le
+zéro diff depuis S9c vaut plus qu'une ligne) = D69. D-P3 → le papier ne nomme jamais le
+mode « oracle » ; « widest-axis » si nécessaire (convention binding du squelette).
+[A48] Les affirmations du papier sur l'IMPLÉMENTATION (ce que verify teste, seuils,
+défauts, décomptes) sont confirmées par Code contre fichier:ligne AVANT toute
+circulation ; la supervision ne reconstruit pas le comportement du code depuis le
+journal.
+
+**Application (ouverture P2, Code — circuit A16, commit doc séparé)** :
+- **[D67]** `SPEC.md` §2 (i) : « φ(s_start) ≤ −δ et φ(s_goal) ≥ +δ » → « **< −δ / > +δ** »,
+  mention « amendé P2, D67 — aligné sur verify.py:342-345 et sur le papier ; sens sûr » ; en-tête
+  SPEC **v1.7 → v1.8** avec note d'amendement (règle 12). Aucun code touché.
+- **[D68]** A48 → règle 9 : **déjà présente verbatim** depuis l'addendum P1 (`6bd66cc`). Seul diff :
+  la mention « ratifiée revue P1, D68 » dans l'intitulé du bloc A48. Aucun changement de fond.
+- **[D69]** section **S13** du plan : puce D-P2 (b) (`except Exception` à `verify.py:490` + vrai fuzz
+  de garbage), **groupée avec tout autre chantier `verify.py`, jamais isolée**. Non appliqué au code.
+- **[D70]** en-tête CLAUDE.md **v1.22** + paragraphe de changelog v1.20 → v1.22. **Constat de
+  numérotation** : l'en-tête était en **v1.20** (et non v1.21 comme annoncé par le prompt P2) ;
+  **v1.21 reste réservé à D66** (transcription de la revue S12 + D64/D65, jamais fournie — voir
+  entrée P1, « Circuit A16 NON EXÉCUTÉ »). Question posée à Stéphane, sans préférence exprimée ;
+  choix retenu : appliquer D70 tel qu'écrit (v1.22) et laisser le trou v1.21 **visible** dans
+  l'en-tête plutôt que de consommer silencieusement le numéro réservé.
+- Constat de vérification (règle 9, A48) : `git log -- src/cnp/verify.py` confirme le « zéro diff
+  depuis S9c » de la revue — dernier commit touchant `verify.py` = `3d2f00f` (S9c, joints
+  verrouillés).

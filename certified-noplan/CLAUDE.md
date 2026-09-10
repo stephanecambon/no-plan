@@ -1,10 +1,10 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.20 — 9 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revue S11 ; v1.0..v1.19 dans git).
-**[A48 appliquée hors bascule, P1, 9 septembre 2026]** — annotation ajoutée à la règle 9 sur
-instruction directe de Stéphane (règle 14a). Le numéro **v1.21 reste réservé à D66** (bascule
-groupée avec la transcription de la revue S12 + D64/D65, non fournie à ce jour) : A48 y sera
-absorbée à ce moment-là. Aucune autre règle, aucun critère de sortie, aucune porte n'est touchée.
+Version 1.22 — 10 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/P1 ; v1.0..v1.20 dans git).
+**[Numérotation, P2]** — le numéro **v1.21 reste réservé à D66** (bascule groupée avec la
+transcription de la revue S12 + D64/D65, **toujours non fournie** au 10 septembre 2026). Le lot
+de la revue P1 (D67-D70) prend **v1.22** sur instruction D70 : le trou de numérotation est voulu
+et visible, pas une omission. A48 (appliquée en addendum P1) est ratifiée par ce lot (D68).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -171,6 +171,19 @@ signal d'**ERREUR DE MESURE**, pas un succès (le plancher attendu est celui de 
 → **[D61]** règle 9, à côté d'A28/A41. **[D63]** ce header+changelog. Détail : entrée « Revue de
 supervision S11 » de JOURNAL.md.
 
+Changements v1.20 → v1.22 (revue P1, **[A48]**, D67-D70 ; **v1.21 réservé à D66**, revue S12 non
+fournie) : **P1 validée** — fact-check §§ 1-5 endossé (31 affirmations : 3 FAUSSES, 5 IMPRÉCISES,
+3 à renforcer, 19 vraies ; toutes intégrées au brouillon v0.2). Point critique : la preuve du
+théorème rédigée par la supervision supposait un test outside STRICT ; le code est LARGE partout
+(SPEC, engine, verify) et c'est CORRECT — la preuve choisit φ(s*) = 0 (TVI), correction purement
+rédactionnelle. **[D67]** SPEC §2 (i) passe en strict « < −δ / > +δ » (SPEC v1.8, règle 12 ;
+aligné sur `verify.py:342-345` et sur le papier ; sens sûr). **[D68]** A48 ratifiée en règle 9
+(déjà appliquée verbatim en addendum P1 ; seule la mention de ratification est ajoutée). **[D69]**
+D-P2 (b) `except Exception` + vrai fuzz de garbage → section S13, GROUPÉ avec tout autre chantier
+`verify.py`, jamais isolé. D-P3 (le papier ne nomme jamais le mode « oracle » ; « widest-axis »
+si nécessaire) = convention binding du squelette, pas une règle. **[D70]** ce header+changelog.
+Détail : entrée « Revue de supervision P1 » de JOURNAL.md.
+
 ---
 
 ## Règles non négociables
@@ -265,7 +278,7 @@ supervision S11 » de JOURNAL.md.
    robot qui bouge faux ; remplacé par un ancrage des 8 liens sur 200 configurations aléatoires
    (1,14e-6). **Règle : tout contrôle de parité échantillonne TOUS les DOF et prend sa référence
    HORS de l'objet testé.** (Même famille qu'A28/A41 : on vérifie la source avant d'affirmer.)
-   **[A48, P1] Les affirmations du papier sur l'IMPLÉMENTATION (ce que verify teste, seuils,
+   **[A48, P1 — ratifiée revue P1, D68] Les affirmations du papier sur l'IMPLÉMENTATION (ce que verify teste, seuils,
    défauts, décomptes) sont confirmées par Code contre fichier:ligne AVANT toute circulation ;
    la supervision ne reconstruit pas le comportement du code depuis le journal.** Leçon P1 : la
    preuve du théorème rédigée par la supervision supposait un test strict inexistant — le code
@@ -934,6 +947,14 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
 - Tâches : élargir l'adversarial (fuzzing de scènes à prémisse fausse,
   micro-canaux générés aléatoirement, limites frôlant ±π → refus propre) ;
   messages d'erreur ; README honnête (verdicts, hypothèses, limites).
+- **[D69, revue P1 — D-P2 (b)]** `verify.py:490` : `except (KeyError, ValueError,
+  ZeroDivisionError, TypeError)` → `except Exception`, **plus un VRAI fuzz de garbage**
+  (élargir `tests/test_verify.py::test_verifier_never_raises_on_garbage`, aujourd'hui 4 entrées
+  superficielles ; contre-exemple P1 : `obstacles` fourni en liste ⟹ `AttributeError` non attrapée,
+  `verify.py:331`). **GROUPÉ avec tout autre chantier `verify.py` de S13, JAMAIS isolé** — le zéro
+  diff de `verify.py` vaut plus qu'une ligne ; règles 1 et 4 (suite adversariale complète,
+  < 500 lignes). Pas un défaut de soundness (le vérificateur lève au lieu d'accepter). Le papier
+  porte déjà la phrase honnête (D-P2 (a)).
 - Sortie : CI complète verte, zéro skip requis ; zéro faux certificat sur ≥ 200
   scènes adversariales générées.
 
