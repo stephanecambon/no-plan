@@ -1,0 +1,362 @@
+% paper.tex — Exactly Verifiable Infeasibility Certificates for Robot Motion Planning
+% Draft v0.3 (2026-09-10), P1+P2 fact-checks applied. Generic two-column layout;
+% switch \documentclass to the RSS/IEEEtran template at submission (headers only).
+%
+% Figures expected under ./figures/ (copy from the repo):
+%   fig1.png                 <- benchmarks/figures/paper/fig1.png            (S11 composite)
+%   cost_vs_active_dims.png  <- benchmarks/figures/S9f_wall/cost_vs_active_dims.png
+%   scene_S3_shoulder_elbow_sweep.png / _cspace.png  <- benchmarks/figures/ (S7)
+%   partition_E3.png         <- benchmarks/figures/partition_E3.png (S3; REPLACE by the
+%                               S11 hatched version from viz.save_partition_figure)
+% Missing figures fall back to a labelled placeholder so the document always compiles.
+
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[margin=0.75in,columnsep=0.25in]{geometry}
+\usepackage{mathptmx}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\captionsetup{font=small,labelfont=bf}
+\setlist{nosep,leftmargin=1.2em}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newcommand{\Bern}{\mathrm{Bern}}
+\newcommand{\Cobs}{\mathcal{C}_{\mathrm{obs}}}
+\newcommand{\Cfree}{\mathcal{C}_{\mathrm{free}}}
+\newcommand{\Rr}{\mathbb{R}}
+\newcommand{\vphi}{\varphi}
+\newcommand{\figfallback}[2]{\IfFileExists{#1}{\includegraphics[width=#2]{#1}}{%
+  \fbox{\parbox[c][0.28\textheight][c]{\dimexpr#2-2\fboxsep-2\fboxrule\relax}{\centering\small\path{#1}\\[2pt](copy from the repository)}}}}
+
+\title{\LARGE Exactly Verifiable Infeasibility Certificates\\for Robot Motion Planning}
+\author{St\'ephane Cambon\\
+\small Cambon AI, Paris, France\\
+\small \texttt{[email]}
+\\[4pt] \small Draft v0.3 --- September 2026 --- not for circulation}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+When a motion planner fails to find a path, it produces no evidence: a sampling-based planner runs out of time, and an optimizer reports ``infeasible'' from a local solve. Yet downstream consumers---task-and-motion planners pruning a search tree, safety engineers arguing that a robot cannot reach an operator zone, workcell designers checking reachability---need a \emph{proof} that no path exists. The infeasibility proofs available today rest on floating-point pipelines: a learned or triangulated separating manifold, validated by a numerical collision checker, that the consumer must trust as a whole. We present, to our knowledge, the first infeasibility certificates for motion planning of articulated arms that are \emph{exactly re-verifiable a posteriori}. A certificate is a finite algebraic object; an independent verifier of 499 lines of standard-library Python, computing in exact rational arithmetic, re-derives the robot's kinematics from the certificate's own declaration and checks the proof without trusting the planner, the LP solver, or any collision checker. The method combines a rational parametrization of forward kinematics, a low-degree scalar barrier whose level set separates start from goal inside the obstacle region, and per-cell witness certificates obtained by linear programming over Bernstein coefficients---no semidefinite programming anywhere in the trust chain. We certify disconnection for arms up to 7~DOF on a laptop CPU: in well under a second for the 2- to 5-DOF scenes, and in 47~s end to end for a KUKA iiwa7---39~s of which is symbolic forward-kinematics construction and 1.3~s the branch-and-bound proof itself---whose kinematics are faithful to the published URDF to $2\cdot10^{-6}$~m at the flange and whose trapped link carries its faithful convex silhouette, proven unable to reach a target behind an overhead shelf, the trapping band reaching 91.5~mm inside the shelf and start and goal clearing the obstacle by 83.3~mm; the verifier re-checks that certificate in 2.4~s. The certified class matches the GPU-scale frontier of recent infeasibility provers in degrees of freedom, with a certificate of a different nature. Cost is governed by the number of \emph{active} dimensions of the trapped body, not by total DOF: redundant joints are covered by the theorem at negligible cost (a measured $443\times$ reduction of the per-leaf LP on the 7-DOF flagship). We report two episodes in which the certifier refused disconnection claims that dense sampling had validated---one authored by us.
+\end{abstract}
+
+\section{Introduction}
+
+Completeness is the property motion planning most often gives up. A complete planner returns a path when one exists and reports non-existence otherwise; in high-dimensional configuration spaces, practical planners return paths when they can and time out when they cannot. The asymmetry matters because non-existence is not a corner case. Task-and-motion planning (TAMP) explores alternatives whose motion sub-problems are frequently infeasible, and treats a timeout as a weak, expensive signal~\cite{cambon2009,dantam2018,garrett2018}. Safety cases for collaborative cells must argue that an arm cannot reach a protected zone under any joint configuration. Workcell and fixture design must establish that a target is unreachable \emph{before} the cell is built. In all three, the desired output is a proof, and the proof must be one the consumer can check.
+
+Recent work has made infeasibility proofs practical for manipulators. Li and Dantam construct a separating manifold in the obstacle region of the configuration space---first by learning, later by Coxeter triangulation on a GPU---and prove that it separates start from goal~\cite{li2021rss,li2023ijrr,li2023ral,li2024gpu}. Henrion, Miller and Safey El Din prove path-disconnectedness of abstract semialgebraic sets with a moment--sum-of-squares hierarchy~\cite{henrion2024}. Dai, Amice and co-authors certify collision-\emph{free} polytopes in a rational parametrization of the configuration space~\cite{dai2024ciris}. These results share a property that is easy to overlook: the certificate's validity rests on a floating-point computation. A triangulated manifold is declared inside the obstacle region by a numerical collision checker; the disconnectedness and free-space certificates are semidefinite programs' outputs, accepted at solver tolerance. (Rationalizing a sum-of-squares certificate to exact arithmetic is possible and is an active line of work~\cite{peyrl2008,magron2018realcertify,henrion2025notsos}, but it has not been applied to these certificates, and it hinges on projecting the solver's Gram matrix onto an exactly positive-semidefinite one---a step that works on small, structured instances and is not routine at scale.) The consumer trusts the pipeline. For pruning a TAMP search that is a reasonable bargain. For a safety argument, or for a reviewer who wants to recount the proof, it is not what one would want.
+
+\textbf{Our contribution is not a higher degree-of-freedom count; it is a change in the nature of the certificate.} We produce infeasibility certificates for articulated arms that an independent program re-verifies in exact rational arithmetic, from the certificate alone. The verifier is 499 lines of Python that import nothing beyond the standard library and nothing from the generator. It re-derives the forward kinematics from the joint chain declared in the certificate, re-forms the algebraic positivity conditions itself, and re-proves that the certified cells tile the joint box. An auditor can read it in an afternoon and recount the proof by hand on a small instance.
+
+The method (\S\ref{sec:method}) rests on three ingredients, none of them new in isolation. First, the half-angle substitution $s=\tan((q-q^*)/2)$ makes the forward kinematics of a revolute chain a rational function with a common denominator per link; this is the parametrization used by C-IRIS~\cite{dai2024ciris} and available in Drake~\cite{drake}. Second, a low-degree scalar barrier $\vphi$ defines a slab $\{|\vphi|\le\delta\}$ in joint space; if the slab lies inside the obstacle region and start and goal lie strictly on opposite sides, no path connects them. Third, on each cell of a branch-and-bound partition, a \emph{witness point} moving with the robot---an affine combination of the vertices of a convex body, with coefficients that are themselves polynomials in $s$---is shown to lie inside an obstacle polytope on the whole cell $\cap$ slab, by a Putinar-style product $g-\mu T$ whose non-negativity is established through Bernstein coefficients. Every constraint is linear in the unknowns, so each cell is an LP; no semidefinite program appears in the trust chain, and making the solution exact is a matter of rounding rational coefficients and re-checking inequalities---no positive-semidefinite matrix has to be recovered. The only floating-point computation, the LP solve, is downstream of nothing the verifier trusts.
+
+The contributions are:
+\begin{itemize}
+\item[\textbf{(C1)}] A certificate schema for configuration-space disconnection of articulated arms---slab-aware Bernstein-LP witnesses over a rational FK parametrization---with a three-valued verdict: PROOF (exactly verified), ENGINE-PROOF (accepted by the generator, exact verification unavailable for the scene class, always flagged), and UNDECIDED, which is never read as ``infeasible''.
+\item[\textbf{(C2)}] An independent exact verifier ($<500$ lines, standard library only, zero imports from the generator) that re-derives kinematics, re-forms the positivity products, re-proves the tiling, and is hardened against 32 adversarial certificate mutations---26 on a planar certificate, 6 on a locked-joint certificate---together with a spatial mutation suite: moved locked joints, corrupted rational rotations, removed leaves (holes), duplicated leaves (overlaps), among others.
+\item[\textbf{(C3)}] A measured cost model: the per-leaf LP grows as $(d+1)^k$ in the number $k$ of \emph{active} dimensions of the certified body, while passive (redundant) dimensions are covered by the theorem at almost no cost. On the 7-DOF flagship the active-dimension reduction is $443\times$; on a family of sealed synthetic disconnections the affine witness certifies every $k$ from 3 to 7, with the practical frontier set by the size of a single LP rather than by certifiability.
+\item[\textbf{(C4)}] Certified scenes from 2-DOF regression cases to a KUKA iiwa7 with kinematics faithful to the published URDF ($2\cdot10^{-6}$~m at the flange) and a faithful convex link silhouette (40 support vertices, $1.7\cdot10^{-6}$~m), certified in under a minute on a laptop CPU and verified in 2.4~s; three use-case scenes (bin picking, pharmacy shelf, safety guard) on the same robot; and two documented episodes in which the certifier caught disconnection claims that dense sampling had validated.
+\end{itemize}
+
+\paragraph{Scope, stated up front.} The theorem quantifies over a box of joint values with $|q_i-q^*_i|<\pi$ (no wrap-around), for serial revolute chains with $q^*=0$ or locked joints at exactly rational $(\cos,\sin)$; obstacles are static polytopes in H-representation with rational coefficients; certified bodies are convex hulls of rational vertices; the barrier $\vphi$ is supplied with the scene (an automatic fitting pipeline exists and is validated on planar scenes, but the certificates we ship use scene-provided barriers). The kinematic model is exact as an internal object; its fidelity to the physical robot is bounded by the published URDF, whose joint axes are quaternion-rounded to about $3.7\cdot10^{-6}$~rad---we certify a rational kinematics faithful to the published description to $2\cdot10^{-6}$~m at the flange, not ``the exact iiwa'' in an absolute sense, since no such description exists. Finally, the disconnections our scheme certifies at low cost are \emph{proximal}: a body early in the chain is trapped and no setting of downstream joints frees it. This is a selection effect of the method---a low-degree scalar barrier and a slab---and not a property of disconnections in general; it happens to match the disconnections that matter in practice (bins, shelves, guards), and we state it as a scope rather than hide it (\S\ref{sec:scope}).
+
+A note on provenance: the TAMP motivation above closes a loop with the first author's own early work on hybrid task and motion planning~\cite{cambon2009}, cited as such by Li and Dantam~\cite{li2024gpu}. The present work was carried out with AI coding assistants under human direction; every gate, scene validation and design decision carries a human signature, and the verifier is the trust anchor precisely because the generation pipeline is not to be trusted. We return to this in the reviewer note (\S\ref{sec:reviewers}).
+
+\begin{figure*}[t]
+\centering
+\figfallback{figures/fig1.png}{\textwidth}
+\caption{\textbf{The flagship certificate.} A KUKA iiwa7 with kinematics faithful to the published URDF (parity $1.99\cdot10^{-6}$~m at the flange over 1\,500 configurations) and the faithful 40-vertex convex silhouette of link~3 (highlighted; the only body in the certified collision pair). Left: start and goal poses (arm inclined $\mp61.9^\circ$, link top at 0.597~m) pass beneath an overhead shelf whose underside is at 0.68~m; the upright transit (link top 0.808~m) strikes it. Centre: configuration-space cut along shoulder pitch $q_2$ with the collision wall spanning the full height and the slab $|\vphi|\le 1/5$ inside it. Right: certificate statistics read from the dated benchmark file---PROOF, 2 leaves, active dimensions $(q_1,q_2,q_3)$, reduced LP 1\,070 rows vs 473\,870 full ($443\times$), verify 2.42~s; separation margins 91.5~mm / 83.3~mm. \emph{[Draft: the composite shown was generated from the pre-export-contract benchmark (verify 3.79~s) and carries French labels and internal annotation codes; to be regenerated in English from the 2026-09-09 benchmark before submission.]}}
+\label{fig:flagship}
+\end{figure*}
+
+\section{Related Work}
+
+\paragraph{Infeasibility proofs for manipulators.} Li and Dantam's line of work is the closest in aim. Starting from a general framing~\cite{li2020iros}, they learn a closed separating manifold in the obstacle region with an SVM alongside a bidirectional RRT, triangulate it, and check containment in the obstacle region numerically; proofs for 3- and 4-DOF arms take a few minutes on a CPU (``less than 4 minutes on average'' for a 4-DOF SCARA)~\cite{li2021rss,li2023ijrr}. Convergence guarantees under sampling assumptions follow in~\cite{li2022wafr}. Coxeter triangulation of the manifold~\cite{li2023ral} and its batched GPU implementation~\cite{li2024gpu} bring the approach to 5- and 6-DoF scenes, ``both 6-DoF scenes taking less than a minute on average'' on an RTX~4070 with an i9-13900K. Their certificate is a triangulated manifold whose obstacle containment is asserted by a floating-point collision pipeline; ours is an algebraic object checked in exact arithmetic by an independent program. We make no speed comparison: the scenes, hardware and proof objects differ, and the scenes we certify exploit passivity that theirs may not. What we do claim is that we reach the same degree-of-freedom frontier on a laptop CPU, with a certificate of a different nature.
+
+\paragraph{Algebraic disconnection.} Henrion, Miller and Safey El Din prove path-disconnectedness of two subsets of a basic semialgebraic set with time-dependent barrier functions and the moment--SOS hierarchy~\cite{henrion2024}. Their scheme is necessary and sufficient, on abstract sets, with examples up to three variables, and its certificates are semidefinite-program outputs in floating point. We certify disconnections in up to seven active dimensions, in a different setting: our scheme is sufficient-only, specialized to articulated arms, and exactly re-verifiable. The two are complementary---theirs answers the abstract question completely in low dimension; ours answers a restricted question at scale, with an auditable object. Exact symbolic connectivity queries also exist for robot kinematics, for cuspidal robots and singularity-free paths~\cite{capco2020,capco2023}; that is a different question---the connectivity of the kinematic map's domain, with no workspace obstacles.
+
+\paragraph{Exact certificates of positivity.} That a sum-of-squares certificate can be made exact is not new: Peyrl and Parrilo round the numerical Gram matrix and project it back onto the affine constraints~\cite{peyrl2008}; Kaltofen et al.\ refine by high-precision Newton iteration~\cite{kaltofen2008}; Magron and Safey El Din's RealCertify library implements rounding--projection and perturbation--compensation schemes for Putinar-type representations~\cite{magron2018realcertify,magron2018putinar,magron2021jsc}; Henrion's recent notes construct rational moment and SOS certificates for classical examples in exact arithmetic~\cite{henrion2025notsos,henrion2025stengle}, and a 2026 preprint ships an exact rational SOS certificate with archived verification scripts~\cite{hypercube2026}. Two things distinguish our setting. First, the fragile step of that line---recovering an exactly positive-semidefinite Gram matrix from an interior-point solution, which requires strict feasibility and degrades with size---does not exist here: our certificates are linear programs whose constraints are non-negative Bernstein coefficients, so exactness is rounding rationals and re-checking inequalities, and it has succeeded at the first denominator bound on every scene we ship. Second, the exact-SOS line certifies individual polynomials; we certify the disconnection of a 7-DOF arm's configuration space, in which exactness must hold across a partition, a kinematic chain and a barrier at once. The authors of~\cite{henrion2024} state our motivation in their own words---existing algorithms ``do not provide a certificate that can be checked a posteriori in the disconnected case''---and we regard the two approaches as aiming at the same target from different sides.
+
+\paragraph{Certified free space.} C-IRIS~\cite{amice2022wafr,dai2024ciris} answers the complementary question: it grows convex polytopes in a rational parametrization of the configuration space and certifies them collision-free with sums of squares. We work in the same rational parametrization---indeed we call Drake's \texttt{RationalForwardKinematics}, which originates in that work---and we owe the observation that revolute kinematics become rational under the half-angle substitution to that line. We differ in the question (disconnection rather than free regions), in the certificate (linear rather than semidefinite programming, so that verification reduces to exact rational arithmetic), and in providing an independent verifier. C-IRIS has been demonstrated on a 7-DOF iiwa; so has our method.
+
+\paragraph{Path non-existence, numerical.} Proving that no path exists by labelling configuration-space cells~\cite{zhang2008}, by alpha shapes over samples~\cite{mccarthy2012}, by caging analysis of rigid bodies~\cite{varava2021}, or by incremental bitmap segmentation up to 5~DOF~\cite{thomas2025} gives a detection, in floating point and on a discretization, rather than a certificate an independent party can re-check. Interval analysis offers guarantees: Jaulin computes the number of path-connected components of a set defined by nonlinear inequalities with outward-rounded intervals~\cite{jaulin2001}, which does prove disconnection; the proof, however, is the paving itself, and the demonstrations are two-dimensional. Canny's roadmap algorithm is exact and complete but not practical~\cite{canny1988}. We sit between these: practical scenes, exact \emph{verification}, with a compact proof object.
+
+\paragraph{Why the field is moving.} A June 2026 preprint on learning motion feasibility from point clouds observes that existing infeasibility certification ``is limited to low-dimensional configuration spaces'' and ``often assume[s] simplified geometric environments''~\cite{feasibility2026}. The 7-DOF certificate of \S\ref{sec:experiments}, on a kinematically faithful iiwa7 with its faithful link silhouette, is a direct answer to the first half of that sentence; the second half---polytopal obstacles, one convex hull per certified body---is a limitation we share and state (\S\ref{sec:limitations}).
+
+To our knowledge, no prior work produces an infeasibility certificate for articulated-arm motion planning that an independent program can re-verify in exact arithmetic.
+
+\section{Method}\label{sec:method}
+
+\subsection{Setting and notation}
+A serial revolute chain has joints $q=(q_1,\dots,q_n)$ constrained to a box $P=\prod[q_i^-,q_i^+]$ with $q_i^\pm\in(q^*_i-\pi,\,q^*_i+\pi)$. Certain joints may be \emph{locked} at a fixed angle whose cosine and sine are exact rationals with $\cos^2+\sin^2=1$ (0, $\pm\pi/2$, $\pi$, or Pythagorean angles); locked joints carry no variable. Obstacles are static polytopes $O=\{x\in\Rr^3: Ax\le b\}$ with rational $A,b$. A \emph{certified body} $B$ is the convex hull of finitely many rational vertices $p_1,\dots,p_K$ fixed in the frame of one link. A \emph{pair} is a couple $(B,O)$. Two configurations $s_{\mathrm{start}},s_{\mathrm{goal}}$ are given; the claim to certify is that no continuous path inside $P$ joins them without some certified body intersecting some obstacle.
+
+\subsection{Rational forward kinematics}
+With $s_i=\tan((q_i-q^*_i)/2)$ one has $\cos(q_i-q^*_i)=(1-s_i^2)/(1+s_i^2)$ and $\sin(q_i-q^*_i)=2s_i/(1+s_i^2)$. Composing homogeneous transforms along the chain of a link $\ell$, every entry of the link's world pose is a polynomial in $s$ divided by the common denominator
+\[
+D_\ell(s)=\prod_{i\in\mathrm{chain}(\ell)}(1+s_i^2)>0,
+\]
+with numerators of degree at most 2 in each variable. The world position of a body-frame point $p$ is $X(s)/D_\ell(s)$ with $X(s)=N(s)\,p$, so the world vertices of $B$ are $v_k(s)=N_k(s)/D_\ell(s)$, all over the same positive denominator. A locked joint contributes a constant rotation matrix with rational entries and no factor to $D_\ell$. Fixed inter-link rotations of a real robot description that are $\pm90^\circ$ or $180^\circ$ are signed permutation matrices and fit the same form; this is how the KUKA iiwa7 of \S\ref{sec:flagship} is represented exactly.
+
+Constant factors are what make the kinematics \emph{exactly} rational; the verifier (\S\ref{sec:verifier}) re-derives $N$ and $D$ from the declared chain rather than reading them from the certificate.
+
+\subsection{Barrier, slab, and the disconnection lemma}
+A \emph{barrier} is a rational polynomial $\vphi(s)$ of degree at most 2 per variable together with a rational $\delta>0$. The \emph{slab} is $\Sigma=\{s\in P:|\vphi(s)|\le\delta\}$.
+
+\begin{lemma}[slab separation]\label{lem:slab}
+If $\{s\in P:|\vphi(s)|<\delta\}\subseteq\Cobs$, $\vphi(s_{\mathrm{start}})<-\delta$ and $\vphi(s_{\mathrm{goal}})>\delta$, then no continuous path in $P\cap\Cfree$ joins $s_{\mathrm{start}}$ to $s_{\mathrm{goal}}$.
+\end{lemma}
+\begin{proof}
+Along any continuous path $\gamma$ from $s_{\mathrm{start}}$ to $s_{\mathrm{goal}}$, $\vphi\circ\gamma$ is continuous and passes from below $-\delta$ to above $\delta$, hence takes the value 0 at some $\gamma(\tau)$, which therefore lies in the open slab $\subseteq\Cobs$.
+\end{proof}
+
+The whole method is a way of proving the premise $\{|\vphi|<\delta\}\subseteq\Cobs$ by a finite, exactly checkable argument. In the certificates we ship, $\vphi$ is supplied with the scene (typically a single joint coordinate, $\vphi=s_i$, whose slab is a band of that joint); an automatic fitting pipeline (SVM on free samples labelled by side, then least squares to degree $\le2$ per variable, rationalized) exists and reproduces the planar results, but it is not part of the trust chain and not needed for the results below.
+
+\subsection{Cell certificates by Bernstein linear programming}\label{sec:cellcert}
+Fix a pair $(B,O)$ and a box cell $C\subseteq P$. A \emph{witness} is a point $x(s)=\sum_k\lambda_k(s)\,v_k(s)$ with polynomial coefficients $\lambda_k(s)$---constant, affine, or quadratic in $s$---satisfying $\sum_k\lambda_k\equiv1$ as a polynomial identity and $\lambda_k(s)\ge0$ on $C$. Then $x(s)\in B(s)$ for every $s\in C$. For each face $j$ of $O$ define
+\[
+g_j(s)=b_j\,D_\ell(s)-a_j^{\!\top}\!\sum_k\lambda_k(s)\,N_k(s),\qquad T(s)=\delta^2-\vphi(s)^2 .
+\]
+Since $D_\ell>0$, $g_j(s)\ge0$ is equivalent to $a_j^{\top}x(s)\le b_j$, and $T(s)\ge0$ exactly on the slab. If, for each face, there is a constant $\mu_j\ge0$ with
+\begin{equation}\label{eq:putinar}
+g_j(s)-\mu_j\,T(s)\ \ge\ 0\quad\text{for all }s\in C,
+\end{equation}
+then on $C\cap\Sigma$ every $g_j(s)\ge\mu_j T(s)\ge0$, so $x(s)\in B(s)\cap O$ and $C\cap\Sigma\subseteq\Cobs$. This is a one-multiplier Putinar-type product~\cite{putinar1993} in which the sign is essential: $g_j+\mu_jT$ would certify nothing, and the test suite contains an instance where that sign ``certifies'' a cell that contains free configurations.
+
+Non-negativity of a polynomial on a box is established through its Bernstein coefficients~\cite{garloff1985}: if all coefficients of the tensor-product Bernstein expansion of a polynomial on $C$ are non-negative, the polynomial is non-negative on $C$. All polynomials in~\eqref{eq:putinar} and in $\lambda_k\ge0$ are expanded at a common per-variable degree $d=\max(\deg\lambda+\deg N,\ 2\deg\vphi)$, where $\deg N=2$ is fixed by the half-angle substitution and $\deg\vphi$ is the degree \emph{declared} with the barrier (not its effective degree---a linear $\vphi$ declared at degree 2 still yields $d=4$). Every certificate reported here has $d=4$ (affine $\lambda$, barrier declared quadratic), and the verifier recomputes the same $d$ from the certificate's own fields. Every Bernstein coefficient is \emph{linear} in the unknowns (the coefficients of the $\lambda_k$, the $\mu_j$). The cell problem is therefore the linear program
+\begin{equation}\label{eq:lp}
+\begin{aligned}
+\max\ t\quad\text{s.t.}\quad &\Bern_C(g_j-\mu_jT)\ge t\ \ \forall j,\qquad \Bern_C(\lambda_k)\ge0\ \ \forall k,\\
+&\textstyle\sum_k\lambda_k\equiv1,\qquad \mu_j\ge0,
+\end{aligned}
+\end{equation}
+solved with HiGHS~\cite{huangfu2018}. A cell is a \emph{collision leaf} when~\eqref{eq:lp} returns a strictly positive margin (the shipped tolerance is $t^*>10^{-6}$). That decision is taken on the floating-point LP; the multipliers are only then made exact (\S\ref{sec:export}) and submitted to the exact verifier, which is the sole arbiter of the final verdict. No semidefinite program appears anywhere.
+
+\subsection{Outside leaves and the partition}\label{sec:partition}
+A cell entirely outside the slab needs no witness: it is an \emph{outside leaf} if $\Bern_C(\vphi-\delta)\ge0$ or $\Bern_C(-\vphi-\delta)\ge0$. Starting from $P$, the generator tests each cell---outside first, then~\eqref{eq:lp} for each pair---and otherwise bisects it at the midpoint of one axis: an axis whose split pushes a whole child out of the slab if one exists, else---in the \texttt{margin} mode used by every scene reported here---the axis with the best one-step look-ahead margin (the library's own default fallback is simply the widest active axis). The axis rule affects cost only, never soundness: any midpoint partition is re-proved by the verifier from the leaf list alone. Cells are only ever bisected at midpoints; this is a contract with the verifier, which re-proves the tiling from that rule alone (\S\ref{sec:verifier}). The search stops when every cell is a leaf (PROOF), or when a budget of leaves, time or depth is exhausted, in which case the verdict is UNDECIDED and the open cells are reported. UNDECIDED is never read as ``feasible'': the method is sound, not complete.
+
+Leaves may be certified against different pairs; a disconnection in which a body is trapped by one obstacle in part of the slab and by another elsewhere is certified by a relay of pairs across leaves (Fig.~\ref{fig:partition}).
+
+\subsection{Active dimensions}\label{sec:active}
+For a pair whose body sits on link $\ell$, the joints downstream of $\ell$ do not enter $N_k$ or $D_\ell$. After exactly dividing $N_k$ and $D_\ell$ by every factor $(1+s_i^2)$ they share (which removes joints that are in the chain but leave the body's geometry unchanged, such as a roll about the body's own axis), the variables absent from $\vphi$, from every $N_k$ and from $D_\ell$ are the pair's \emph{passive} dimensions; the others are \emph{active}. Along a passive axis every polynomial in~\eqref{eq:lp} is constant, so the LP is built in the $k$ active variables only, with $(d+1)^k$ Bernstein coefficients per constraint instead of $(d+1)^n$. The partition never bisects a passive axis, since no test depends on it. This is a cost lever, not a restriction of the theorem: a leaf certified in $k$ active variables certifies the full $n$-dimensional cell, because the polynomials are literally constant along the other axes. Different pairs have different passive sets; each leaf's LP is reduced to \emph{its} pair's active dimensions, while the branching axis is chosen among the union.
+
+\subsection{Exact rounding and export}\label{sec:export}
+The LP returns floating-point $\lambda,\mu$. They are made exact as follows. The coefficients of each $\lambda_k$ are blended toward the uniform barycentre, $\lambda\leftarrow(1-\alpha)\lambda+\alpha/K$ with $\alpha$ a small fraction of the measured face margin, so that structural zeros of $\Bern(\lambda_k)$---the witness typically sits on a body vertex---become strictly positive; all but one vertex's coefficients are rounded to rationals with a bounded denominator, and the last is set by subtraction so that $\sum_k\lambda_k\equiv1$ holds exactly. The exact verifier is run on the result; if it rejects, the denominator bound is raised and the leaf is re-rounded. In every certificate reported here this loop accepted at the first denominator bound ($10^6$); the escalation path has never been taken on a shipped scene.
+
+Exported leaves carry (cell, pair, $\lambda$, $\mu$) in full dimension. When the pair's passive dimensions are absent from the \emph{original} tensors and no common factor was divided out, the reduced witness is embedded as-is with zero exponents on the passive axes---the same polynomial, in $n$ variables; the verifier accepts it directly. Otherwise the leaf's LP is re-solved in full dimension. Each embedded leaf is audited before export with the verifier's own leaf check, so that an incorrect embedding cannot leave the generator: it would fall back to the full re-solve and be counted. The count of \emph{rejected} embeddings is zero on every certificate we ship; the fallback itself is not dead code---it carries all four leaves of the 4-DOF anchor scene (\S\ref{sec:anchor}), whose coaxial roll makes the embedding condition genuinely false. Whichever path produced a leaf, the certificate has the same format and the verifier cannot tell.
+
+The branch-and-bound runs on a work queue of cells over several processes; the tree it explores is the deterministic tree of the serial algorithm, so parallel and serial runs produce byte-identical certificates.
+
+\begin{figure}[t]
+\centering
+\figfallback{figures/partition_E3.png}{\columnwidth}
+\caption{\textbf{A planar relay certificate} (2-DOF regression scene, 46 leaves). Left: sampled configuration space---the three obstacles (teeth) in red, blue and green, the slab in gold, start ($\star$) and goal ($+$) in separate free components. Right: the certified partition; each collision leaf is coloured by the tooth whose witness certifies it (12 / 12 / 14 leaves), the middle link being trapped by three teeth in turn; grey leaves are outside the slab. Only the part of a collision leaf inside the slab is asserted by the theorem. \emph{[Draft: French labels; the release version hatches the out-of-slab part of each leaf.]}}
+\label{fig:partition}
+\end{figure}
+
+\section{Theorem and scope}\label{sec:theorem}
+
+\begin{theorem}[certified disconnection]\label{thm:main}
+Let a certificate declare a joint box $P$, a serial revolute chain with rational unit axes, rational offsets and locked joints with rational $(\cos,\sin)$, $\cos^2+\sin^2=1$; rational polytopal obstacles; certified bodies as rational vertex sets on named links; a barrier $(\vphi,\delta)$ with $\delta>0$; two rational configurations $s_{\mathrm{start}},s_{\mathrm{goal}}$; and a finite set of leaves, each a sub-box of $P$ labelled \emph{outside} or \emph{collision} with a pair and exact rational $(\lambda,\mu)$. Suppose
+\begin{enumerate}[label=(\roman*)]
+\item $\vphi(s_{\mathrm{start}})<-\delta$ and $\vphi(s_{\mathrm{goal}})>\delta$;
+\item the leaves are exactly the cells of a tiling of $P$ obtained by repeated midpoint bisections, with no gap and no overlap;
+\item every outside leaf $C$ satisfies $\Bern_C(\vphi-\delta)\ge0$ or $\Bern_C(-\vphi-\delta)\ge0$;
+\item every collision leaf $C$ with pair $(B,O)$ satisfies $\sum_k\lambda_k\equiv1$, $\Bern_C(\lambda_k)\ge0$ for all $k$, $\mu_j\ge0$ and $\Bern_C(g_j-\mu_jT)\ge0$ for every face $j$ of $O$, where $g_j,T$ are formed from the declared chain, body, obstacle and barrier as in \S\ref{sec:cellcert}.
+\end{enumerate}
+Then no continuous path in $P$ from $s_{\mathrm{start}}$ to $s_{\mathrm{goal}}$ keeps every certified body out of every obstacle.
+\end{theorem}
+\begin{proof}
+Let $\gamma$ be such a path. By (i), $\vphi(\gamma(0))<-\delta<0<\delta<\vphi(\gamma(1))$, so by the intermediate value theorem applied to the continuous map $\vphi\circ\gamma$ there is $\tau$ with $\vphi(s^*)=0$, where $s^*=\gamma(\tau)$. By (ii) $s^*$ lies in exactly one leaf $C$. $C$ cannot be an outside leaf: (iii) would give $\vphi(s^*)\ge\delta$ or $\vphi(s^*)\le-\delta$, both impossible since $\delta>0$. Hence $C$ is a collision leaf with pair $(B,O)$. Since $T(s^*)=\delta^2-\vphi(s^*)^2=\delta^2>0$, (iv) gives, for every face $j$, $g_j(s^*)\ge\mu_jT(s^*)\ge0$, which after division by $D_\ell(s^*)>0$ reads $a_j^{\top}x(s^*)\le b_j$; and $\sum_k\lambda_k(s^*)=1$ with $\lambda_k(s^*)\ge0$ puts $x(s^*)$ in $B(s^*)$. So $x(s^*)\in B(s^*)\cap O$ and $\gamma(\tau)$ is a collision configuration, contradicting the hypothesis.
+\end{proof}
+
+\paragraph{What the certificate establishes.} Every $s\in P$ with $|\vphi(s)|<\delta$ lies in a leaf; it cannot be an outside leaf, hence it is a collision leaf, hence it is in $\Cobs$. The certificate therefore establishes $\{s\in P:|\vphi(s)|<\delta\}\subseteq\Cobs$---the \emph{open} slab---and Lemma~\ref{lem:slab} needs no more. Nothing is claimed about the boundary $\{|\vphi|=\delta\}$, and nothing needs to be. The outside test in (iii) is non-strict, and deliberately so: the proof selects a point at which $\vphi$ vanishes, so the slab boundary never has to be adjudicated; a strict test would reject certificates the non-strict one accepts and prove nothing more. Condition (iii) is exactly the shipped test.
+
+Three remarks. First, the theorem quantifies over the \emph{whole} box $P$, passive dimensions included: passivity means the tiling never needed to split those axes, not that they were excluded from the claim. Second, soundness rests only on (i)--(iv), each of which is decidable in exact rational arithmetic from the certificate's own data; nothing about how the certificate was found enters the proof. Third, nothing is claimed when the generator returns UNDECIDED.
+
+\paragraph{Restrictions.} Serial revolute chains (prismatic joints are outside the present scope); $q^*=0$ for free joints, or locked joints with exactly rational $(\cos,\sin)$; the box $P$ lies within $(q^*_i-\pi,q^*_i+\pi)$ per joint, so there is no wrap-around and the theorem is about the declared box, which may be smaller than the factory limits (every figure and interactive artefact states the box in degrees); static obstacles in H-representation with rational data; convex certified bodies with rational vertices; rational $s_{\mathrm{start}}$ and $s_{\mathrm{goal}}$ (a demonstration angle with irrational $\tan(\theta/2)$ is replaced by a nearby rational configuration, and the strict inequality (i) is checked there). The barrier is part of the certificate's statement, not of its proof: the theorem is ``given this $\vphi$, the slab lies in $\Cobs$ and separates'', and the consumer may inspect $\vphi$.
+
+\paragraph{Kinematic fidelity.} Our robot models are exact as internal objects. Their fidelity to a physical robot is bounded by the published description: the joint axes of the iiwa7 SDF distributed with Drake are quaternion-rounded and aligned with the coordinate axes only to about $3.7\cdot10^{-6}$~rad. We certify a rational kinematics whose forward kinematics agrees with Drake's on 1\,500 random configurations to $1.99\cdot10^{-6}$~m at the flange (\S\ref{sec:flagship})---faithful to the published URDF at that level, not ``the exact iiwa'' in an absolute sense, because no such description exists. The same holds for link geometry: the certified body of \S\ref{sec:flagship} is a 40-vertex convex hull of the visual mesh, rationalized, agreeing with Drake's link to $1.67\cdot10^{-6}$~m over 200 random configurations and all 40 support vertices ($1.68\cdot10^{-6}$~m over 400).
+
+\paragraph{What is proven about what.} The verifier establishes Theorem~\ref{thm:main} about the robot and obstacles \emph{declared in the certificate}. A separate cross-check program compares that declaration, field by field, with the scene file the user authored; a certificate whose declared geometry has been perturbed is internally valid and is rejected by the cross-check, which is the intended division of labour. Tying the scene file to a physical cell remains a human responsibility, as with any model-based safety argument.
+
+\section{The independent verifier}\label{sec:verifier}
+
+The verifier is the reason to prefer this certificate over a floating-point one, so we describe it in some detail.
+
+\paragraph{Size and dependencies.} \texttt{verify.py} is 499 lines of Python. It imports \texttt{json}, \texttt{fractions} and \texttt{math.comb}---three standard-library names, and nothing else; in particular it imports nothing from the generator, a property checked in the test suite by walking the module's abstract syntax tree. Every number it manipulates is a \texttt{Fraction}. It has no solver, no floating point, and no notion of Bernstein bounds beyond a self-contained 53-line block (38 lines of code) implementing the exact tensor-product Bernstein transform.
+
+\paragraph{What it recomputes rather than reads.} From the declared chain it re-implements the half-angle substitution and composes exact homogeneous transforms, so $N_k$ and $D_\ell$ are its own; a certificate cannot supply convenient numerators. From $\lambda$ and $\mu$ it \emph{forms} $g_j-\mu_jT$ itself; the certificate carries only $\lambda$ and $\mu$, so the unsound sign of \S\ref{sec:cellcert} cannot be smuggled in. From the leaf list alone it re-proves condition (ii): since the generator only ever bisects at midpoints, the tiling is reconstructed by recursion---a cell is either a leaf or splits at its midpoint along some axis into two cells that must each be covered---and both a missing leaf (a hole) and a duplicated leaf (an overlap) are detected. The Bernstein expansions are computed at the same degree the generator used, which is part of the generator--verifier contract; a lower degree would yield looser bounds and false rejections (never false acceptances).
+
+\paragraph{The five checks}, in order: (0) hypotheses---rational unit axes, $\cos^2+\sin^2=1$ for locked joints, $\delta>0$, box within the no-wrap-around range; (i) the strict side conditions on $s_{\mathrm{start}}$ and $s_{\mathrm{goal}}$; (ii) the exact tiling; (iii) every outside leaf; (iv) every collision leaf. On any failure it returns \texttt{(False, reason)} rather than raising: malformed inputs are caught as \texttt{KeyError}, \texttt{ValueError}, \texttt{ZeroDivisionError} or \texttt{TypeError} and reported as a rejection. This is a convenience for callers, not a hardening claim---the verifier is not a fuzz target, and a sufficiently ill-formed input can still abort it. Soundness does not depend on it: an aborted verification is not an accepted certificate.
+
+\paragraph{Adversarial hardening.} The test suite mutates valid certificates and requires rejection: negative or oversized $\mu$; $\sum\lambda\ne1$; scaled or negative $\lambda$; a shifted cut; a removed leaf (hole); a duplicated leaf (overlap); $q^*\ne0$; $\delta$ scaled by 20; $\delta<0$; $s_{\mathrm{start}}$ or $s_{\mathrm{goal}}$ on the wrong side; the sign of $\vphi$; obstacle $A$ or $b$; a hull vertex; a link length; the body's link index; a collision leaf relabelled outside and vice versa; permuted obstacles; corrupted theorem and substitution fields; a shrunk box; a cell outside the box---26 mutations on a planar certificate, plus a spatial suite (non-unit axis; wrong axis; offset that moves the body out of the trapping band) and 6 mutations on a locked-joint certificate. The locked-joint suite is the most instructive: a certificate whose locked pitch is moved to another exactly rational angle must be rejected, but only if the proof \emph{depends} on that angle. On a scene where the witness sits on a proximal point unaffected by the lock, moving it is not detected---and that is correct, the proof does not use it. We therefore constructed a scene in which the lock displaces the trapped wrist out of a narrow wall, and there the mutation is rejected. Testing a verifier means testing the mechanism, not ticking a box.
+
+\paragraph{Two layers.} As noted in \S\ref{sec:theorem}, \texttt{verify.verify} checks internal validity; \texttt{scene\_matches\_cert} ties the declaration to the authored scene. Both are run by the command-line \texttt{verify}. Keeping them separate keeps the sacred module small and its contract clean.
+
+\paragraph{Reuse as a guard.} Since the export contract of \S\ref{sec:export} the generator calls the verifier's own collision-leaf check on every embedded leaf before writing the certificate. We chose this over a re-implementation on purpose: a guard that \emph{is} the arbiter cannot drift from it. The price is that the verifier runs twice per certificate---once per leaf as a guard, once on the whole file---about 4.9~s on the flagship. We consider that cheap.
+
+\paragraph{Cost.} Verification of the 7-DOF flagship certificate (two collision leaves, 40-vertex body, 7 free joints) takes 2.4~s; the 4-DOF anchor scene of \S\ref{sec:anchor} takes 0.04~s. Verification time grows with the number of leaves and with $(d+1)^n$, since the verifier expands in full dimension; it has never been the bottleneck.
+
+\section{Cost model and the scope of low-cost certifiability}\label{sec:scope}
+
+\subsection{A selection effect, stated as scope}
+Every disconnection we certify at low cost has the same shape: a body early in the kinematic chain is trapped, and no setting of the joints downstream of it frees it. We call such disconnections \emph{proximal}. This is not a property of disconnections in general---a whole arm threading a narrow window is a disconnection in which the collision depends on every joint---but a selection effect of the method: a low-degree scalar barrier and a slab certify cheaply exactly those separations that a few joints already realize. It happens to be the class that matters in practice (bins, shelves, guards), and we state it as the scope of the low-cost regime rather than leave it to be discovered.
+
+The effect was measured, not assumed, on the real robot. On the iiwa7 link~3 we swept the three active joints $\times$ six directions $\times$ two obstacle motifs (a half-space ``ceiling'' and a plate ``wall to cross'') for a robust separation margin. Exactly one proximal trap is robust: shoulder pitch against an overhead obstacle (+175~mm at the design stage). Base yaw and arm roll are negative in every direction ($-73$ to $-299$~mm); crossing a vertical wall is negative everywhere. The compact link is anchored at the shoulder: it rotates in place without displacing, and it can never lie entirely on one side of a vertical plane. Our three use-case scenes (\S\ref{sec:usecases}) therefore share one mechanism and differ in obstacle geometry, joint limits, slab, poses and claim; we say so in each use-case scene file. A design lesson came with it: the faithful compact silhouette of the real link removed the lever arm that had made segment-shaped bodies easy to trap by base yaw (a 6~mm base-yaw separation was measured and refused as fragile). On a realistic arm, the robust separator is a joint with real lever on the body---here the shoulder pitch---or an enclosing obstacle, not the base yaw.
+
+\subsection{Passive dimensions are free; active dimensions cost $(d+1)^k$}\label{sec:costmodel}
+Two quantities govern cost: the number of leaves in the partition and the size of each leaf's LP. Measured on the 5-DOF iiwa-like bin (\S\ref{sec:bin}) with the number of \emph{passive} joints varied from 0 to 3 while the three active joints are held fixed, the leaf count is constant at 8 and the reduced LP is constant at 766 rows; the full-dimension LP that an unreduced solver would build grows $766\to3\,782\to18\,814\to93\,878$ rows, a factor 4.9 per passive joint, i.e.\ $(d+1)$ with $d=4$. The active-dimension reduction is thus $122.6\times$ at six joints on that family, and $443\times$ on the 7-DOF flagship (1\,070 rows reduced against 473\,870 full). On a two-body variant the reduction is \emph{per pair}: the proximal pair pays its own three active dimensions (766 rows) where a global reduction over the union of active sets would charge it 18\,814---a factor 24.6. Passivity is not a restriction of the theorem (\S\ref{sec:theorem}); it is a lever.
+
+Active dimensions are the cost. On a family of synthetic disconnections sealed by Bernstein bounds---the obstacle is proven to cover the body's reach on the band, so each scene is a genuine disconnection---with $k$ active joints and a linear barrier, the affine witness certifies every $k$ from 3 to 7 with 2--4 leaves; the per-leaf full-dimension LP runs 766, 3\,782, 18\,814, 93\,878, 469\,006 rows ($\times4.99$ per added active dimension), and at $k=8$ (about 2.3 million rows) a single LP outlasts the 300~s deadline---it returns after 455~s---and the verdict is UNDECIDED on budget (Fig.~\ref{fig:wall}). The practical frontier of this family is therefore the size of one LP, not certifiability---and it is a frontier that column generation or a lazily-materialized Bernstein basis could push, whereas a wall in leaf count could not. We are careful about what this family shows: barriers are simple and leaves are few. Disconnections that need many leaves \emph{and} many active dimensions (cages, windows) sit in the product leaves $\times(d+1)^k$ and were not measured; that is the open regime.
+
+An earlier run of the same family had suggested a wall at $k=5$. It was an artefact: a silent depth cap in the branch-and-bound, and a scene that was not actually disconnected (the second episode of \S\ref{sec:episodes}). We report it because the diagnosis changed how the engine reports termination---the serial engine, the default, now records why it stopped (certified, depth exhausted, leaf budget or time budget)---and because it is the kind of measurement error a certificate should protect one from.
+
+\begin{figure}[t]
+\centering
+\figfallback{figures/cost_vs_active_dims.png}{\columnwidth}
+\caption{\textbf{Cost in active dimensions} on the sealed synthetic family: per-leaf LP rows (log scale) against the number $k$ of active joints, PROOF with exact verification at every point shown. Solid: the shipped scheme (barrier declared at degree 2, $d=4$, slope $(d+1)=5$ per dimension: 766 to 469\,006 rows). Dashed: the same family with the barrier declared at its true degree 1 ($d=3$, slope 4), an option not used in the shipped certificates. The $k=8$ point (about 2.3 million rows, single LP beyond the 300~s deadline, UNDECIDED on budget) is not plotted. \emph{[Draft: French labels; to be regenerated in English.]}}
+\label{fig:wall}
+\end{figure}
+
+\subsection{Where the time goes}
+After the export contract of \S\ref{sec:export}, certifying the 7-DOF flagship takes 46.7~s on a laptop CPU: 39.1~s building the symbolic forward kinematics, 1.3~s for the branch-and-bound proof, 6.3~s for export---of which 4.9~s is the exact verifier running twice, once per leaf as a guard and once on the whole certificate. The proof itself is a second; the trust chain is five; the rest is symbolic setup that a cache or a faster kinematics backend would remove. Before the export contract, certification took 726~s, of which about 580~s was re-solving the two leaves' LPs in full dimension (291~s per leaf), and the cost was not in rows: at nearly equal row count (473\,870 vs 469\,006), the 40-vertex faithful hull multiplies LP columns by 14.2 (327 vs 23) and export time per leaf by 39.9 (about columns$^{1.39}$). Each hull vertex carries its own multiplier, so a faithful silhouette multiplies columns in the reduced LP too---but the reduced LP stays small (1\,070 rows $\times$ 167 columns on the flagship), which is why the reduced witness, embedded, is the right thing to export.
+
+\subsection{The nature of the certificate}
+
+\begin{table*}[t]
+\centering\small
+\caption{Kind of certificate, not speed. Scenes, hardware and proof objects differ across rows.}
+\label{tab:nature}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+ & Li--Dantam~\cite{li2024gpu} & Henrion et al.~\cite{henrion2024} & C-IRIS~\cite{dai2024ciris} & This work \\
+\midrule
+Question & disconnection & disconnection & free regions & disconnection \\
+Setting & arms, 5--6 DoF & abstract, $n\le3$ & arms, 7 DoF & arms, $\le7$ DoF \\
+Certificate & triangulated manifold & moment-SOS & SOS & Bernstein-LP witnesses \\
+Checked by & float collision checker & SDP tolerance & SDP tolerance & exact rational, independent \\
+Hardware & RTX 4070 + i9 & --- & --- & laptop CPU \\
+Complete? & asymptotically & nec.\ \& suff. & --- & sufficient only \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:nature} is about kind, not speed. The scenes, hardware and proof objects differ, and the disconnections we certify exploit passivity theirs may not.
+
+\section{Experiments}\label{sec:experiments}
+
+All runs: MacBook (Apple Silicon), CPU only, Python 3.12, HiGHS via \texttt{highspy}. Every benchmark directory records its commit hash (and, since June 2026, whether the working tree was clean; the three iiwa7 benchmarks quoted below were run from a tree whose certificates were not yet committed, and say so), and every sampling step is seeded. Ground truth is always established \emph{before} certification (start and goal free; no free sample in the slab; free space on both sides) with a collision oracle independent of the certificate: point sampling along the link for segment-shaped bodies, and a convex-body-versus-polytope LP feasibility test for the faithful iiwa7 link. Since the leaky-scene episode of \S\ref{sec:episodes}, ground truth also includes a corner-biased pass. Verification times are for the exact verifier of \S\ref{sec:verifier}.
+
+\subsection{Planar regression}
+Two planar 2-DOF scenes fix the ground: a three-obstacle relay in which the middle link is trapped by three ``teeth'' in turn (46 leaves: 38 collision across three pairs, 8 outside; Fig.~\ref{fig:partition}) and a scene with a learned barrier (78 leaves). The relay reproduces, cell by cell, the certified margin of an earlier two-dimensional Bernstein-LP implementation to $10^{-7}$; the learned-barrier scene reproduces its partition. A 3-DOF ``comb'' lifts the relay by one passive joint and was the first scene on which the widest-axis rule wasted its depth on the passive joint (736 leaves, 256 of them failed, UNDECIDED) while a one-step look-ahead rule certified in 54 leaves; restricting axis choice to active dimensions (\S\ref{sec:active}) later let the widest-axis rule certify it too, in 46 leaves.
+
+\subsection{A 4-DOF anchor}\label{sec:anchor}
+We reproduce the shoulder-elbow 4-DOF scenario of Li and Dantam~\cite{li2021rss}---spherical shoulder plus elbow, target blocked by a panel---as an approximate reproduction, since they publish topology and task but no geometry; all dimensions are ours and are tabulated against theirs in the repository. The upper arm is trapped by a thin vertical panel over a band of base yaw for all admissible pitch; roll and elbow are passive (Fig.~\ref{fig:anchor}). PROOF in 8 leaves, engine 0.043~s, verification 0.041~s. Ground truth: 0 free in the slab over 150\,000 samples; the panel shrunk in width gives UNDECIDED. Their reported time for the same class is minutes; we do not compare speeds (\S\ref{sec:scope}).
+
+\begin{figure}[t]
+\centering
+\figfallback{figures/scene_S3_shoulder_elbow_sweep.png}{0.49\columnwidth}\hfill
+\figfallback{figures/scene_S3_shoulder_elbow_cspace.png}{0.49\columnwidth}
+\caption{\textbf{The 4-DOF anchor.} Left: top view, sweep of the base yaw between start and goal (both free); poses in the band plant the upper arm in the panel. Right: configuration space (yaw $\times$ pitch), roll and elbow passive: the collision wall spans all admissible pitch and contains the slab; start and goal lie on either side---the goal is free but unreachable.}
+\label{fig:anchor}
+\end{figure}
+
+\subsection{A 5-DOF iiwa-like bin}\label{sec:bin}
+A 7-joint S-R-S chain with iiwa-like link lengths and the two wrist joints locked at 0 (5~DOF), reaching into a deep bin with a sealed front wall. The trapped body is the shoulder--elbow segment: the three proximal joints are active for the pair, the two unlocked distal joints are passive. Ground truth 0 free over 40\,000 samples. PROOF, 8 leaves; engine 0.15~s, verification 0.16~s, about 0.9~s end to end with the full-dimension export that preceded the export contract of \S\ref{sec:export}. Releasing the locks one at a time gives the passive-dimension calibration of \S\ref{sec:costmodel} (8 leaves throughout; 3.3~s engine and export at 6~DOF, also before the export contract). The scene met our 5--6-DOF gate with more than three orders of magnitude of margin on time and leaf count, and it is where the proximal insight of \S\ref{sec:scope} was first written down.
+
+\subsection{The KUKA iiwa7 flagship}\label{sec:flagship}
+\emph{Kinematics.} From the iiwa7 SDF distributed with Drake we fold the constant inter-link transforms into 19 chain entries: 7 variable joints about the coordinate $z$-axis and 12 locked joints realizing the signed-permutation inter-link rotations ($\pm90^\circ$, $180^\circ$) with $\cos,\sin\in\{0,\pm1\}$; offsets are rationalized to denominator $10^6$. The composition convention $T_i(\theta)=X_{PF,i}\,\mathrm{Rot}(z,\theta)\,X_{ML,i}$ with the constants folded into $G_i=X_{ML,i}X_{PF,i+1}$ is what makes this exact; a naive conjugation of the rotation through the joint frame is wrong because it displaces the translation. Forward kinematics agrees with Drake's on 1\,500 configurations drawn uniformly in $\pm2.9$~rad on every joint---beyond the $\pm120^\circ$ factory limits of joints 2, 4 and 6---to $1.99\cdot10^{-6}$~m (maximum position error at the flange); the SDF's own joint axes are aligned with the coordinate axes only to $3.67\cdot10^{-6}$~rad, so this is the fidelity of the published description itself.
+
+\emph{Body.} The certified body is link~3: the convex hull of Drake's visual mesh (1\,301 hull vertices) is reduced by support sampling in 40 directions on a Fibonacci sphere to 40 true extreme points, expressed in the chain frame after joint~3 and rationalized. Against Drake's link, the hull agrees to $1.67\cdot10^{-6}$~m over 200 random configurations and all vertices.
+
+\emph{Trap.} Designed by measurement (\S\ref{sec:scope}): $\vphi=s_2$ (shoulder pitch), $\delta=1/5$, an overhead shelf in H-representation with underside at $z=17/25=0.68$~m. With the arm upright the link's top reaches 0.808~m and strikes the shelf; at the start and goal poses (shoulder pitch $\mp61.9^\circ$) it tops out at 0.597~m and passes beneath (0.544~m at the $\pm70^\circ$ edge of the joint box). Margins: the trapping band penetrates the shelf by 91.5~mm; start and goal clear it by 83.3~mm. Ground truth with the convex-body oracle: start and goal free; 0 free in the slab over 40\,000 uniform samples and at 448 slab corners ($2^6$ extremes of the non-barrier joints $\times$ 7 barrier levels); all 16 combinations of extreme distal-joint values in collision (the redundancy invariance the proof will make exact); free on both sides.
+
+\emph{Result.} PROOF; exact verification OK; 2 leaves (both collision, none outside); active dimensions $(q_1,q_2,q_3)$ measured, $(q_4,\dots,q_7)$ passive; reduced LP 1\,070 rows against 473\,870 full ($443\times$); certify 46.7~s (39.1~s symbolic FK build, 1.3~s branch-and-bound, 6.3~s export), verify 2.42~s; embedded leaves 2, re-solved 0, rejected 0; dissonance counter 0 (Fig.~\ref{fig:flagship}).
+
+\subsection{Three use cases, one robot}\label{sec:usecases}
+On the same iiwa7 chain and body, two further scenes with the same measured mechanism and different geometry, limits, slab and claim:
+\begin{itemize}
+\item \textbf{Bin picking / TAMP pruning.} A stacked euro crate ($600\times400\times220$~mm) whose underside at 0.720~m the upright arm strikes: the object below is unreachable until the crate above is removed. Joint box $\pm62^\circ$, $\delta=3/20$, measured window 138.7~mm placed to give $+66.9$ / $+71.7$~mm. PROOF, 2 leaves, verify 2.43~s. The certificate lets a task planner prune the ``reach directly'' branch with a proof rather than a timeout.
+\item \textbf{Safety guard.} A thin horizontal guard (50~mm, $\pm0.60$~m wide, underside 0.695~m) between the arm and an operator zone. Joint box $\pm66^\circ$, $\delta=9/50$, window 168.4~mm giving $+83.1$ / $+85.3$~mm. PROOF, 4 leaves (2 collision, 2 outside), verify 2.50~s. The claim a safety file may carry is precisely the theorem: within the declared joint box, with static obstacles as declared, no continuous motion brings the certified body past the guard---nothing about dynamics, sensing or configurations outside the box.
+\end{itemize}
+The original bin-picking storyboard (``cross the crate wall'') was abandoned after the lever measurement showed it infeasible on the faithful body; the stacked-crate version is what the geometry supports.
+
+\subsection{Summary}
+
+\begin{table*}[t]
+\centering\small
+\caption{All certified scenes. ``Engine'' is the branch-and-bound decision alone; ``certify'' adds certificate export (and, for the iiwa7 scenes, the 39~s symbolic kinematics build); ``---'' marks a phase the older harness did not time; $\dagger$: before the export contract (\S\ref{sec:export}). All PROOF, all exactly verified, dissonance counters zero.}
+\label{tab:summary}
+\begin{tabular}{@{}lccccccl@{}}
+\toprule
+Scene & DOF & active & leaves & engine & certify (end to end) & verify & ground truth \\
+\midrule
+Planar relay (E3)        & 2 & 2 & 46  & 0.48~s & ---     & 0.09~s & --- \\
+Comb                     & 3 & 2 & 54  & 1.36~s & ---     & 0.17~s & 0 / 300k \\
+Shoulder--elbow (anchor) & 4 & 2 & 8   & 0.04~s & ---     & 0.04~s & 0 / 150k \\
+iiwa-like bin            & 5 & 3 & 8   & 0.15~s & 0.77~s$^\dagger$ & 0.16~s & 0 / 40k \\
+iiwa7 shelf (flagship)   & 7 & 3 & 2   & 1.3~s  & 46.7~s  & 2.42~s & 0 / 40k + 448 corners \\
+iiwa7 stacked crate      & 7 & 3 & 2   & 1.3~s  & 46.1~s  & 2.43~s & 0 / 40k + 448 corners \\
+iiwa7 safety guard       & 7 & 3 & 4   & 1.6~s  & 47.1~s  & 2.50~s & 0 / 40k + 448 corners \\
+Sealed wall, $k=3\ldots7$ & $k$ & $k$ & 2--4 & 0.1--65~s & 0.15--80~s & 0.01--6.8~s & 0 / 8k + 8k corner-biased \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:summary} gathers every certified scene.
+
+\subsection{Two episodes the certifier refused}\label{sec:episodes}
+We record two occasions on which dense sampling declared a disconnection and the certifier did not, and the certifier was right.
+\begin{enumerate}
+\item \textbf{The micro-channel (planar).} A regression scene with teeth shrunk by 5\%: an $11^3$ grid finds no free sample in the slab; a denser sampling finds free configurations in it; the engine refuses (UNDECIDED) and never writes a certificate. The grid was fooled; the certifier was not. This is now a permanent test.
+\item \textbf{The leaky scene (7-DOF synthetic, authored by us).} A wall-bench scene at five active joints whose obstacle was the bounding box of 4\,000 random samples of the body's reach plus a margin. Ground truth: 0 free over 8\,000 uniform samples. The certifier refused, and at higher depth and full budget still refused. Free configurations survived in the corners of the joint box---the link's tip protruded 8 to 40~mm past the box---a region of measure too small for uniform sampling to hit. We had written a scene that was not disconnected and a ground truth that said it was; the tool believed neither. The fix---sealing the obstacle by Bernstein bounds so that it provably covers the reach---is what made \S\ref{sec:costmodel} possible, and corner-biased sampling became part of every ground-truth script.
+\end{enumerate}
+A third episode belongs to the same family though it involves no certificate: two visualization artefacts (a figure that drew only the certified hull, a 3-D page whose replay moved a single joint) passed every automated fidelity check and were caught by the human validation gate. Correctness of what is drawn and sufficiency of what is drawn are different properties; the verifier guarantees the first for certificates, and only a person checked the second for figures. We return to this in \S\ref{sec:reviewers}.
+
+\subsection{Reproducibility}
+The verifier, the scene files and the certificates of the three iiwa7 scenes are released with the paper. The verifier is a single standard-library module: \texttt{cnp.verify.verify\_file} re-proves a certificate in exact arithmetic with no third-party package installed (checked under an interpreter with site-packages disabled). The command-line form \texttt{cnp verify <cert> <scene>} adds the cross-check against the authored scene file, which parses YAML and needs the package's dependencies. The other rows of Table~\ref{tab:summary} are regenerated by \texttt{cnp certify} and the benchmark scripts, which require the generator's dependencies (NumPy, SymPy, PyYAML, HiGHS); Drake is needed only to re-derive the frozen iiwa7 kinematics and body from Drake's model. Figure~\ref{fig:flagship} reads its numbers from the dated benchmark file, not retyped.
+
+\section{Limitations and future work}\label{sec:limitations}
+
+\paragraph{Not measured.} Disconnections requiring many leaves at many active dimensions---the product leaves $\times(d+1)^k$---remain the open regime (\S\ref{sec:costmodel}). Our sealed-wall family has few leaves; our real scenes have three active dimensions. A cage or a window would test both at once.
+
+\paragraph{Geometry.} One convex hull per certified body; a full mesh would need a convex decomposition and one pair per piece---the multi-pair machinery exists and the per-pair reduction applies, but the leaf count is unmeasured. Obstacles are static polytopes; dynamics, sensing and moving obstacles are out of scope, as is wrap-around (the theorem is about a declared box within one turn).
+
+\paragraph{Kinematics.} Serial revolute chains; prismatic joints are not handled. Fidelity to a physical robot is bounded by the published URDF (\S\ref{sec:theorem}).
+
+\paragraph{Barrier.} The certificates we ship use scene-provided barriers, all linear in one joint. The automatic fitting pipeline is validated with exact verification on a planar scene; it also found the barrier of a 3-DOF spatial scene that was certified before the spatial verifier existed. On a passive joint it over-fits (a structured fit that zeroes passive coefficients is the obvious next step).
+
+\paragraph{Time.} The dominant cost is now symbolic kinematics construction: 39~s of 47 on the flagship, paid once per process (a second, cache-warm pass at export costs about 1~s); caching per scene, or Drake's rational kinematics directly, would remove most of it. The verifier runs twice as a guard. Single-LP size at $k\ge8$ is the frontier of the active-dimension regime; column generation, a Kronecker-structured lazy Bernstein basis, or a correlative-sparsity analogue of Waki et al.~\cite{waki2006} for Bernstein-LP are candidate levers, the last of which is open.
+
+\paragraph{Toward cages.} A separator made of several low-dimensional slab pieces glued by exactly certified overlaps---a slab complex---would address disconnections a single scalar barrier cannot; conceptually it is the triangulated separator of Li and Dantam, made exact. That is a second paper.
+
+\section{Note to reviewers}\label{sec:reviewers}
+
+\paragraph{Provenance.} This work was carried out by AI coding assistants under human direction: the implementation by an autonomous coding agent working in sessions from a written specification, the sessions supervised and reviewed by a second AI system, and every gate, every scene validation, every design decision and the go/no-go decision signed by the human author. We disclose this for two reasons. First, because it is true. Second, because it explains the design: the verifier is the trust anchor \emph{precisely because} the generation pipeline is not to be trusted---a 499-line exact program a person can read is the only component whose correctness we ask anyone to take on inspection, and its adversarial test suite is the evidence for that. The episodes of \S\ref{sec:episodes} are the other half of the argument: dense sampling vouched for a disconnection that did not exist---once in a scene we had authored ourselves---and the requirement of a certificate refused it: the engine could not find a witness on every cell, so no certificate was written and the verifier was never reached. The verifier guards the opposite failure, a generator that would write a wrong certificate. Two artefacts that did lie---figures---were caught only by the human gate; we take that as a statement about what tests can and cannot establish, and we state the two properties (fidelity and sufficiency) separately for that reason.
+
+\paragraph{Objections we expect.}
+\begin{description}[style=nextline,font=\itshape]
+\item[``This is 3-DOF in disguise.''] The theorem quantifies over the full 7-dimensional joint box; passive dimensions are covered by the proof, not excluded from it (\S\ref{sec:theorem}). What is 3-dimensional is the cost.
+\item[``The scenes are chosen to work.''] They are---that is \S\ref{sec:scope}, stated as scope. The selection was also measured: on the real link, one robust proximal trap exists, and we say so instead of dressing three scenes as three mechanisms.
+\item[``Why not rationalize an SOS certificate?''] One can, and the exact-SOS line does (\S2). The step that makes it fragile---recovering an exactly positive-semidefinite Gram matrix from a floating-point interior-point solution---is absent from a linear program over Bernstein coefficients: exactness reduces to rounding rationals and re-checking inequalities, which succeeded at the first denominator bound on all seven scenes here. That is what lets the verifier be 499 lines with no linear algebra, and exactness be routine rather than an achievement per instance.
+\item[``The iiwa is not exact.''] Correct, and neither is its URDF (\S\ref{sec:theorem}). We certify a rational kinematics that reproduces the published description to $2\cdot10^{-6}$~m at the flange.
+\item[``The speed comparison is unfair.''] We make none (\S\ref{sec:scope}).
+\item[``The proof of Theorem~\ref{thm:main} has a boundary case.''] It does not: the proof picks a point where $\vphi=0$, strictly inside the slab; the outside test is non-strict and correct. An earlier draft of this paper got that wrong, and the code was right; the fact-check against the implementation that found it is part of how the paper was written.
+\end{description}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}
