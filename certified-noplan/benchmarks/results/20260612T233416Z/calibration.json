@@ -1,0 +1,109 @@
+{
+  "family": [
+    {
+      "n": 3,
+      "n_active": 3,
+      "n_passive": 0,
+      "active_dims": [
+        0,
+        1,
+        2
+      ],
+      "leaves": 8,
+      "verdict": "PROOF",
+      "verify_ok": true,
+      "n_reresolve_failed": 0,
+      "cost_leaf_reduced_rows": 766,
+      "cost_leaf_full_rows": 766,
+      "reduction_x": 1.0,
+      "engine_s": 0.314
+    },
+    {
+      "n": 4,
+      "n_active": 3,
+      "n_passive": 1,
+      "active_dims": [
+        0,
+        1,
+        2
+      ],
+      "leaves": 8,
+      "verdict": "PROOF",
+      "verify_ok": true,
+      "n_reresolve_failed": 0,
+      "cost_leaf_reduced_rows": 766,
+      "cost_leaf_full_rows": 3782,
+      "reduction_x": 4.9,
+      "engine_s": 0.345
+    },
+    {
+      "n": 5,
+      "n_active": 3,
+      "n_passive": 2,
+      "active_dims": [
+        0,
+        1,
+        2
+      ],
+      "leaves": 8,
+      "verdict": "PROOF",
+      "verify_ok": true,
+      "n_reresolve_failed": 0,
+      "cost_leaf_reduced_rows": 766,
+      "cost_leaf_full_rows": 18814,
+      "reduction_x": 24.6,
+      "engine_s": 0.766
+    },
+    {
+      "n": 6,
+      "n_active": 3,
+      "n_passive": 3,
+      "active_dims": [
+        0,
+        1,
+        2
+      ],
+      "leaves": 8,
+      "verdict": "PROOF",
+      "verify_ok": true,
+      "n_reresolve_failed": 0,
+      "cost_leaf_reduced_rows": 766,
+      "cost_leaf_full_rows": 93878,
+      "reduction_x": 122.6,
+      "engine_s": 3.343
+    }
+  ],
+  "per_pair": {
+    "global_active": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "pairs": [
+      {
+        "pair": "PROX_link2",
+        "active": [
+          0,
+          1,
+          2
+        ],
+        "lp_rows_per_pair": 766,
+        "lp_rows_global": 18814
+      },
+      {
+        "pair": "DIST_link4",
+        "active": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "lp_rows_per_pair": 18814,
+        "lp_rows_global": 18814
+      }
+    ]
+  }
+}

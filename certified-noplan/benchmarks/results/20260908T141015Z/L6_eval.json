@@ -1,0 +1,64 @@
+{
+  "session": "S11-ouverture",
+  "commit": "e48ac27",
+  "git_dirty": true,
+  "scene": "scenes/S6_iiwa_real_shelf.yaml",
+  "t_build_fk_s": 38.66449141688645,
+  "applicability": {
+    "per_pair": [
+      {
+        "pair": "SHELF_PANEL",
+        "active": [
+          0,
+          1,
+          2
+        ],
+        "passive": [
+          3,
+          4,
+          5,
+          6
+        ],
+        "a29_removed": [],
+        "original_independent": [
+          3,
+          4,
+          5,
+          6
+        ],
+        "l6_applicable": true
+      }
+    ],
+    "applicable": true
+  },
+  "engine_s": 1.3838099581189454,
+  "export_embedded_s": 0.2882029169704765,
+  "verify_s": 2.446796875214204,
+  "export_default_fulldim_s": 581.510931290919,
+  "lp_shapes": {
+    "reduced": {
+      "rows_total": 1070,
+      "rows_lambda": 320,
+      "rows_faces": 750,
+      "cols_total": 167,
+      "cols_lambda": 160,
+      "cols_mu": 6,
+      "K": 40,
+      "basis": 4
+    },
+    "full": {
+      "rows_total": 473870,
+      "rows_lambda": 5120,
+      "rows_faces": 468750,
+      "cols_total": 327,
+      "cols_lambda": 320,
+      "cols_mu": 6,
+      "K": 40,
+      "basis": 8
+    }
+  },
+  "verify_accepted": true,
+  "verify_msg": "PROOF verified exactly: 2 leaves (2 collision, 0 outside); start/goal separated by the slab |phi| <= 1/5.",
+  "scene_crosscheck": true,
+  "n_leaves": 2
+}

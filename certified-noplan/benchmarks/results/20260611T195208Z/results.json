@@ -1,0 +1,126 @@
+{
+  "stamp": "20260611T195208Z",
+  "commit": "bb632562a0a88fa07a23bc029db79fac4981608a",
+  "seed": 0,
+  "scenes": [
+    {
+      "scene": "S1_relais",
+      "robot_kind": "planar_revolute",
+      "n_unlocked": 2,
+      "axis": "oracle",
+      "lam_degree": "affine",
+      "verdict_engine": "PROOF",
+      "n_leaves": 46,
+      "by_status": {
+        "outside": 8,
+        "collision": 38
+      },
+      "max_depth": 15,
+      "n_lp_solves": 249,
+      "engine_s": 0.7509,
+      "verify_exact_s": 0.089,
+      "verdict": "PROOF",
+      "verify_msg": "PROOF verified exactly: 46 leaves (38 collision, 8 outside); start/goal separated by the slab |phi| <= 1/20."
+    },
+    {
+      "scene": "S2_peigne",
+      "robot_kind": "planar_revolute",
+      "n_unlocked": 3,
+      "axis": "margin",
+      "lam_degree": "affine",
+      "verdict_engine": "PROOF",
+      "n_leaves": 54,
+      "by_status": {
+        "outside": 8,
+        "collision": 46
+      },
+      "max_depth": 15,
+      "n_lp_solves": 297,
+      "engine_s": 4.5999,
+      "verify_exact_s": 0.182,
+      "verdict": "PROOF",
+      "verify_msg": "PROOF verified exactly: 54 leaves (46 collision, 8 outside); start/goal separated by the slab |phi| <= 1/20."
+    },
+    {
+      "scene": "S3_shoulder_elbow",
+      "robot_kind": "spatial_revolute",
+      "n_unlocked": 4,
+      "axis": "margin",
+      "lam_degree": "affine",
+      "verdict_engine": "PROOF",
+      "n_leaves": 8,
+      "by_status": {
+        "outside": 4,
+        "collision": 4
+      },
+      "max_depth": 4,
+      "n_lp_solves": 11,
+      "engine_s": 0.5127,
+      "verdict": "ENGINE-PROOF",
+      "dense_free_in_slab": 0,
+      "dense_n": 300000
+    }
+  ],
+  "passive_dim_sweep": [
+    {
+      "n_joints": 2,
+      "n_active": 2,
+      "n_passive": 0,
+      "margin": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.05
+      },
+      "oracle": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.024
+      }
+    },
+    {
+      "n_joints": 3,
+      "n_active": 2,
+      "n_passive": 1,
+      "margin": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.131
+      },
+      "oracle": {
+        "verdict": "PROOF",
+        "n_leaves": 12,
+        "s": 0.09
+      }
+    },
+    {
+      "n_joints": 4,
+      "n_active": 2,
+      "n_passive": 2,
+      "margin": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.502
+      },
+      "oracle": {
+        "verdict": "PROOF",
+        "n_leaves": 20,
+        "s": 0.532
+      }
+    },
+    {
+      "n_joints": 5,
+      "n_active": 2,
+      "n_passive": 3,
+      "margin": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 3.046
+      },
+      "oracle": {
+        "verdict": "PROOF",
+        "n_leaves": 36,
+        "s": 5.356
+      }
+    }
+  ]
+}

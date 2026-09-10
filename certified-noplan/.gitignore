@@ -3,6 +3,5 @@ __pycache__/
 *.pyc
 *.egg-info/
 .pytest_cache/
-benchmarks/results/
 .DS_Store
 checkpoints/

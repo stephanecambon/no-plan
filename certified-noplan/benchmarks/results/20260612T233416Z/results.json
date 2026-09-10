@@ -1,0 +1,150 @@
+{
+  "stamp": "20260612T233416Z",
+  "commit": "eb134e7b5f26a68dee7f5fce4678ae03b974d250",
+  "git_dirty": false,
+  "seed": 0,
+  "scenes": [
+    {
+      "scene": "S1_relais",
+      "robot_kind": "planar_revolute",
+      "n_unlocked": 2,
+      "axis": "oracle",
+      "lam_degree": "affine",
+      "verdict_engine": "PROOF",
+      "n_leaves": 46,
+      "by_status": {
+        "outside": 8,
+        "collision": 38
+      },
+      "max_depth": 15,
+      "n_lp_solves": 249,
+      "engine_s": 0.4766,
+      "n_reresolve_failed": 0,
+      "verify_exact_s": 0.0862,
+      "verdict": "PROOF",
+      "verify_msg": "PROOF verified exactly: 46 leaves (38 collision, 8 outside); start/goal separated by the slab |phi| <= 1/20."
+    },
+    {
+      "scene": "S2_peigne",
+      "robot_kind": "planar_revolute",
+      "n_unlocked": 3,
+      "axis": "margin",
+      "lam_degree": "affine",
+      "verdict_engine": "PROOF",
+      "n_leaves": 54,
+      "by_status": {
+        "outside": 8,
+        "collision": 46
+      },
+      "max_depth": 15,
+      "n_lp_solves": 297,
+      "engine_s": 1.361,
+      "n_reresolve_failed": 0,
+      "verify_exact_s": 0.1727,
+      "verdict": "PROOF",
+      "verify_msg": "PROOF verified exactly: 54 leaves (46 collision, 8 outside); start/goal separated by the slab |phi| <= 1/20."
+    },
+    {
+      "scene": "S3_shoulder_elbow",
+      "robot_kind": "spatial_revolute",
+      "n_unlocked": 4,
+      "axis": "margin",
+      "lam_degree": "affine",
+      "verdict_engine": "PROOF",
+      "n_leaves": 8,
+      "by_status": {
+        "outside": 4,
+        "collision": 4
+      },
+      "max_depth": 4,
+      "n_lp_solves": 11,
+      "engine_s": 0.0426,
+      "n_reresolve_failed": 0,
+      "verify_exact_s": 0.0415,
+      "verdict": "PROOF",
+      "verify_msg": "PROOF verified exactly: 8 leaves (4 collision, 4 outside); start/goal separated by the slab |phi| <= 1/10."
+    },
+    {
+      "scene": "S4_iiwa_bin",
+      "robot_kind": "spatial_revolute",
+      "n_unlocked": 5,
+      "axis": "margin",
+      "lam_degree": "affine",
+      "verdict_engine": "PROOF",
+      "n_leaves": 8,
+      "by_status": {
+        "outside": 4,
+        "collision": 4
+      },
+      "max_depth": 4,
+      "n_lp_solves": 11,
+      "engine_s": 0.15,
+      "n_reresolve_failed": 0,
+      "verify_exact_s": 0.1574,
+      "verdict": "PROOF",
+      "verify_msg": "PROOF verified exactly: 8 leaves (4 collision, 4 outside); start/goal separated by the slab |phi| <= 1/10."
+    }
+  ],
+  "passive_dim_sweep": [
+    {
+      "n_joints": 2,
+      "n_active": 2,
+      "n_passive": 0,
+      "margin": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.041
+      },
+      "oracle": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.019
+      }
+    },
+    {
+      "n_joints": 3,
+      "n_active": 2,
+      "n_passive": 1,
+      "margin": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.042
+      },
+      "oracle": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.021
+      }
+    },
+    {
+      "n_joints": 4,
+      "n_active": 2,
+      "n_passive": 2,
+      "margin": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.043
+      },
+      "oracle": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.021
+      }
+    },
+    {
+      "n_joints": 5,
+      "n_active": 2,
+      "n_passive": 3,
+      "margin": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.044
+      },
+      "oracle": {
+        "verdict": "PROOF",
+        "n_leaves": 8,
+        "s": 0.021
+      }
+    }
+  ]
+}

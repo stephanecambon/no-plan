@@ -1,0 +1,60 @@
+{
+  "session": "S11",
+  "gate": "pack d\u00e9mo (cas non-flagship)",
+  "commit": "f24bb51",
+  "git_dirty": true,
+  "note": "CAS CAPOT DE S\u00dbRET\u00c9 : pi\u00e8ce g\u00e9om\u00e9trique EXACTEMENT RECOMPTABLE pour un dossier de s\u00fbret\u00e9 (l'organisme notifi\u00e9 relance cnp verify) \u2014 PAS une certification ISO",
+  "row": {
+    "scene": "scenes/usecase_capot_surete_iiwa7.yaml",
+    "obstacle": "GUARD_PANEL",
+    "robot": "7-DOF iiwa7 r\u00e9el (cha\u00eene+corps gel\u00e9s), pi\u00e8ge pitch-capot, q*=0",
+    "kinematics_parity_urdf": "~2e-6 (S10-bis, A41)",
+    "body_parity": "~1.7e-6 (S10-ter)",
+    "verdict": "PROOF",
+    "verify_ok": true,
+    "verify_msg": "PROOF verified exactly: 4 leaves (2 collision, 2 outside); start/goal separated by the slab |phi| <= 9/50.",
+    "n_active": 3,
+    "active_dims": [
+      0,
+      1,
+      2
+    ],
+    "passive_dims": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "leaves": 4,
+    "by_status": {
+      "outside": 2,
+      "collision": 2
+    },
+    "n_reresolve_failed": 0,
+    "cost_leaf_reduced_rows": 1070,
+    "cost_leaf_full_rows": 473870,
+    "reduction_x": 442.9,
+    "certify_s": 497.54,
+    "verify_s": 2.54,
+    "groundtruth": {
+      "start_free": true,
+      "goal_free": true,
+      "slab_corner_free": 0,
+      "redundancy_all_collide": true,
+      "slab_penetration_mm": 83.1,
+      "startgoal_clearance_mm": 85.3
+    },
+    "predicted": {
+      "leaves": 2,
+      "cost_leaf_reduced_rows": 1070,
+      "cost_leaf_full_rows": 473870,
+      "cols_full": 327,
+      "certify_s": 620,
+      "active_dims": [
+        0,
+        1,
+        2
+      ]
+    }
+  }
+}

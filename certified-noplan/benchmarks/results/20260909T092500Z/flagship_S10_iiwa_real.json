@@ -1,0 +1,86 @@
+{
+  "session": "S10-quinquies",
+  "gate": "G4' (r\u00e9affirm\u00e9e vrai robot)",
+  "commit": "dbaaab8",
+  "git_dirty": true,
+  "note": "FLAGSHIP d'EN-T\u00caTE : vrai KUKA iiwa7, cinematique+silhouette fideles, deconnexion FRANC pitch/etagere certifiee PROOF + verify exact",
+  "row": {
+    "scene": "scenes/S6_iiwa_real_shelf.yaml",
+    "obstacle": "SHELF_PANEL",
+    "robot": "7-DOF iiwa7 r\u00e9el (cha\u00eene+corps gel\u00e9s), pi\u00e8ge pitch-\u00e9tag\u00e8re, q*=0",
+    "kinematics_parity_urdf": "~2e-6 (S10-bis, A41)",
+    "body_parity": "~1.7e-6 (S10-ter)",
+    "verdict": "PROOF",
+    "verify_ok": true,
+    "verify_msg": "PROOF verified exactly: 2 leaves (2 collision, 0 outside); start/goal separated by the slab |phi| <= 1/5.",
+    "n_active": 3,
+    "active_dims": [
+      0,
+      1,
+      2
+    ],
+    "passive_dims": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "leaves": 2,
+    "by_status": {
+      "collision": 2
+    },
+    "n_reresolve_failed": 0,
+    "l6_applicability": {
+      "SHELF_PANEL": {
+        "applicable": true,
+        "active": [
+          0,
+          1,
+          2
+        ],
+        "passive": [
+          3,
+          4,
+          5,
+          6
+        ],
+        "a29_removed": [],
+        "blocking": [],
+        "reason": "passive axes (3, 4, 5, 6) absent from the ORIGINAL D, numerators and phi, and A29 divided nothing \u21d2 direct embedding is exact"
+      }
+    },
+    "n_leaves_embedded": 2,
+    "n_leaves_resolved": 0,
+    "n_embed_rejected": 0,
+    "cost_leaf_reduced_rows": 1070,
+    "cost_leaf_full_rows": 473870,
+    "reduction_x": 442.9,
+    "phases_s": {
+      "build_fk_sympy": 38.49,
+      "branch_and_bound": 1.3,
+      "export_certificate": 6.38
+    },
+    "certify_s": 46.17,
+    "verify_s": 2.55,
+    "groundtruth": {
+      "start_free": true,
+      "goal_free": true,
+      "slab_corner_free": 0,
+      "redundancy_all_collide": true,
+      "slab_penetration_mm": 91.5,
+      "startgoal_clearance_mm": 83.3
+    },
+    "predicted": {
+      "leaves": 8,
+      "cost_leaf_reduced_rows": 1070,
+      "bern_ctrl_pts_per_constraint": 125,
+      "active_dims": [
+        0,
+        1,
+        2
+      ],
+      "certify_s": 40,
+      "certify_s_before_L6": 726
+    }
+  }
+}

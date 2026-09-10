@@ -1,0 +1,21 @@
+{
+  "witness_S9f_k7": {
+    "rows": 469006,
+    "cols": 23,
+    "K": 2,
+    "export_s_per_leaf": 7.285,
+    "source": "benchmarks/results/20260613T014131Z/wall_resonde_S9f.json"
+  },
+  "flagship_S6": {
+    "rows": 473870,
+    "cols": 327,
+    "K": 40,
+    "export_s_per_leaf": 290.7554656454595,
+    "source": "benchmarks/results/20260908T141015Z/L6_eval.json"
+  },
+  "ratio_rows": 1.0103708694558278,
+  "ratio_cols": 14.217391304347826,
+  "ratio_export_time": 39.9115258264186,
+  "implied_exponent_in_cols": 1.3888538080933415,
+  "verdict": "hypoth\u00e8se COLONNES CONFIRM\u00c9E : \u00e0 lignes quasi identiques (\u00d71.010), \u00d714.2 colonnes \u27f9 \u00d740 de temps d'export par feuille (\u2248 colonnes^1.39)"
+}

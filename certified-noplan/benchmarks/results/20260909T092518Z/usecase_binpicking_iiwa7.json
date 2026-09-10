@@ -1,0 +1,87 @@
+{
+  "session": "S11",
+  "gate": "pack d\u00e9mo (cas non-flagship)",
+  "commit": "dbaaab8",
+  "git_dirty": true,
+  "note": "CAS BIN-PICKING : \u00e9lagage PROUV\u00c9 d'une branche TAMP \u2014 le colis au fond du bac bas est inatteignable sans retirer d'abord la caisse du dessus",
+  "row": {
+    "scene": "scenes/usecase_binpicking_iiwa7.yaml",
+    "obstacle": "CRATE_ABOVE",
+    "robot": "7-DOF iiwa7 r\u00e9el (cha\u00eene+corps gel\u00e9s), pi\u00e8ge pitch-bac-empil\u00e9, q*=0",
+    "kinematics_parity_urdf": "~2e-6 (S10-bis, A41)",
+    "body_parity": "~1.7e-6 (S10-ter)",
+    "verdict": "PROOF",
+    "verify_ok": true,
+    "verify_msg": "PROOF verified exactly: 2 leaves (2 collision, 0 outside); start/goal separated by the slab |phi| <= 3/20.",
+    "n_active": 3,
+    "active_dims": [
+      0,
+      1,
+      2
+    ],
+    "passive_dims": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "leaves": 2,
+    "by_status": {
+      "collision": 2
+    },
+    "n_reresolve_failed": 0,
+    "l6_applicability": {
+      "CRATE_ABOVE": {
+        "applicable": true,
+        "active": [
+          0,
+          1,
+          2
+        ],
+        "passive": [
+          3,
+          4,
+          5,
+          6
+        ],
+        "a29_removed": [],
+        "blocking": [],
+        "reason": "passive axes (3, 4, 5, 6) absent from the ORIGINAL D, numerators and phi, and A29 divided nothing \u21d2 direct embedding is exact"
+      }
+    },
+    "n_leaves_embedded": 2,
+    "n_leaves_resolved": 0,
+    "n_embed_rejected": 0,
+    "cost_leaf_reduced_rows": 1070,
+    "cost_leaf_full_rows": 473870,
+    "reduction_x": 442.9,
+    "phases_s": {
+      "build_fk_sympy": 1.38,
+      "branch_and_bound": 1.32,
+      "export_certificate": 6.48
+    },
+    "certify_s": 9.18,
+    "verify_s": 2.45,
+    "groundtruth": {
+      "start_free": true,
+      "goal_free": true,
+      "slab_corner_free": 0,
+      "redundancy_all_collide": true,
+      "slab_penetration_mm": 66.9,
+      "startgoal_clearance_mm": 71.7
+    },
+    "predicted": {
+      "leaves": 2,
+      "cost_leaf_reduced_rows": 1070,
+      "cost_leaf_full_rows": 473870,
+      "cols_full": 327,
+      "certify_s": 40,
+      "certify_s_before_L6": 620,
+      "active_dims": [
+        0,
+        1,
+        2
+      ]
+    }
+  }
+}

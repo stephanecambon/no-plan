@@ -1,0 +1,177 @@
+{
+  "session": "S9f",
+  "commit": "93ef10d",
+  "git_dirty": true,
+  "scene": "sealed wall (Bernstein-watertight), affine witness, axis=margin",
+  "budget": {
+    "max_leaves": 10000,
+    "max_time_s": 1800,
+    "max_depth": 60
+  },
+  "rows": [
+    {
+      "k": 3,
+      "lam_degree": "affine",
+      "n_active_detected": 3,
+      "max_depth_limit": 60,
+      "verdict": "PROOF",
+      "termination": "certified",
+      "max_depth_reached": 1,
+      "leaves": 2,
+      "by_status": {
+        "collision": 2
+      },
+      "engine_s": 0.1,
+      "ground_truth": {
+        "start_free": true,
+        "goal_free": true,
+        "free_in_slab": 0,
+        "free_in_slab_corner": 0,
+        "free_left": 1285,
+        "free_right": 1263
+      },
+      "cost_leaf_reduced_rows": 766,
+      "cost_leaf_full_rows": 766,
+      "cert_s": 0.05,
+      "verify_s": 0.01,
+      "verify_ok": true,
+      "n_reresolve_failed": 0
+    },
+    {
+      "k": 4,
+      "lam_degree": "affine",
+      "n_active_detected": 4,
+      "max_depth_limit": 60,
+      "verdict": "PROOF",
+      "termination": "certified",
+      "max_depth_reached": 1,
+      "leaves": 2,
+      "by_status": {
+        "collision": 2
+      },
+      "engine_s": 0.2,
+      "ground_truth": {
+        "start_free": true,
+        "goal_free": true,
+        "free_in_slab": 0,
+        "free_in_slab_corner": 0,
+        "free_left": 1159,
+        "free_right": 1123
+      },
+      "cost_leaf_reduced_rows": 3782,
+      "cost_leaf_full_rows": 3782,
+      "cert_s": 0.11,
+      "verify_s": 0.05,
+      "verify_ok": true,
+      "n_reresolve_failed": 0
+    },
+    {
+      "k": 5,
+      "lam_degree": "affine",
+      "n_active_detected": 5,
+      "max_depth_limit": 60,
+      "verdict": "PROOF",
+      "termination": "certified",
+      "max_depth_reached": 2,
+      "leaves": 4,
+      "by_status": {
+        "outside": 2,
+        "collision": 2
+      },
+      "engine_s": 1.6,
+      "ground_truth": {
+        "start_free": true,
+        "goal_free": true,
+        "free_in_slab": 0,
+        "free_in_slab_corner": 0,
+        "free_left": 921,
+        "free_right": 949
+      },
+      "cost_leaf_reduced_rows": 18814,
+      "cost_leaf_full_rows": 18814,
+      "cert_s": 0.45,
+      "verify_s": 0.22,
+      "verify_ok": true,
+      "n_reresolve_failed": 0
+    },
+    {
+      "k": 6,
+      "lam_degree": "affine",
+      "n_active_detected": 6,
+      "max_depth_limit": 60,
+      "verdict": "PROOF",
+      "termination": "certified",
+      "max_depth_reached": 2,
+      "leaves": 4,
+      "by_status": {
+        "outside": 2,
+        "collision": 2
+      },
+      "engine_s": 10.8,
+      "ground_truth": {
+        "start_free": true,
+        "goal_free": true,
+        "free_in_slab": 0,
+        "free_in_slab_corner": 0,
+        "free_left": 635,
+        "free_right": 618
+      },
+      "cost_leaf_reduced_rows": 93878,
+      "cost_leaf_full_rows": 93878,
+      "cert_s": 2.42,
+      "verify_s": 1.16,
+      "verify_ok": true,
+      "n_reresolve_failed": 0
+    },
+    {
+      "k": 7,
+      "lam_degree": "affine",
+      "n_active_detected": 7,
+      "max_depth_limit": 60,
+      "verdict": "PROOF",
+      "termination": "certified",
+      "max_depth_reached": 1,
+      "leaves": 2,
+      "by_status": {
+        "collision": 2
+      },
+      "engine_s": 65.1,
+      "ground_truth": {
+        "start_free": true,
+        "goal_free": true,
+        "free_in_slab": 0,
+        "free_in_slab_corner": 0,
+        "free_left": 353,
+        "free_right": 375
+      },
+      "cost_leaf_reduced_rows": 469006,
+      "cost_leaf_full_rows": 469006,
+      "cert_s": 14.57,
+      "verify_s": 6.82,
+      "verify_ok": true,
+      "n_reresolve_failed": 0
+    },
+    {
+      "k": 8,
+      "n_active_detected": 8,
+      "verdict": "UNDECIDED",
+      "termination": "budget_time",
+      "max_depth_reached": 1,
+      "leaves": 2,
+      "by_status": {
+        "undecided": 2
+      },
+      "engine_s": 455.5,
+      "cost_leaf_reduced_rows": null,
+      "exact_verify": "not run (>= laptop single-run budget at ~2.3M rows)",
+      "ground_truth": {
+        "start_free": true,
+        "goal_free": true,
+        "free_in_slab": 0,
+        "free_in_slab_corner": 0,
+        "free_left": 339,
+        "free_right": 327
+      }
+    }
+  ]
+}

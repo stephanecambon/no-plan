@@ -1,0 +1,45 @@
+{
+  "session": "S10",
+  "gate": "G4'",
+  "commit": "64b6c61",
+  "git_dirty": true,
+  "note": "premier certificat 7-DOF NON synthetique (vs S9d synthetique / S9f scelle)",
+  "row": {
+    "scene": "scenes/S5_iiwa_shelf.yaml",
+    "robot": "iiwa-LIKE (bac technique A21), 7-DOF tous libres, q*=0",
+    "verdict": "PROOF",
+    "verify_ok": true,
+    "n_active": 3,
+    "active_dims": [
+      0,
+      1,
+      2
+    ],
+    "passive_dims": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "leaves": 8,
+    "by_status": {
+      "outside": 4,
+      "collision": 4
+    },
+    "n_reresolve_failed": 0,
+    "cost_leaf_reduced_rows": 766,
+    "cost_leaf_full_rows": 469006,
+    "reduction_x": 612.3,
+    "certify_s": 16.17,
+    "verify_s": 3.54,
+    "predicted": {
+      "leaves": 8,
+      "cost_leaf_reduced_rows": 766,
+      "active_dims": [
+        0,
+        1,
+        2
+      ]
+    }
+  }
+}
