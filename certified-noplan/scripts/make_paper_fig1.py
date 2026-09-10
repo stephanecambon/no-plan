@@ -1,41 +1,98 @@
-"""S11 Tâche 3 — COMPOSITE « Figure 1 » du papier (flagship vrai iiwa7).
+"""Figure 1 of the paper — the KUKA iiwa7 flagship certificate (publication version, S14).
 
-Trois panneaux, une histoire lisible sans légende orale (critère V7) :
+Three panels, readable without an oral explanation:
 
-  (a) **rendu 3-D du VRAI robot** : le KUKA iiwa7 entier (silhouettes convexes de ses meshes
-      de visu Drake, même doctrine « niveau 1 » que le corps certifié), l'étagère en surplomb,
-      et les trois poses — start et goal en fantômes (bras incliné, corps bas, LIBRE, de part
-      et d'autre) et le TRANSIT ``q2≈0`` en pleine opacité, où le bras se redresse et où le
-      CORPS CERTIFIÉ (coque 40 sommets du certificat, verbatim) percute l'étagère (rouge) ;
-  (b) **coupe C-space** sur l'axe SÉPARATEUR (tangage d'épaule ``s1 = q2``) × le lacet de
-      base : la dalle ``|φ| ≤ δ`` est un MUR de collision PLEINE HAUTEUR entre start et goal
-      — c'est la déconnexion, et la redondance distale n'y change rien ;
-  (c) **encadré de chiffres**, lus DANS le JSON de benchmark archivé (jamais retapés : critère
-      V7 « les chiffres des tables correspondent aux JSON de benchmarks/results/ »).
+  (a) a 3-D rendering of the real robot (convex silhouettes of Drake's visual meshes), the
+      overhead shelf, start and goal as ghosts (arm inclined, free) and the upright transit
+      pose, where the certified link (the 40-vertex hull of the certificate, verbatim) strikes
+      the shelf;
+  (b) a configuration-space cut along the separating joint (shoulder pitch) against base yaw:
+      the slab is a full-height collision wall between start and goal;
+  (c) the certificate's numbers — every one READ from the S14 reproduce benchmark
+      (``benchmarks/results/<stamp>/reproduce.json``), never retyped.
 
-Les couleurs de collision viennent de l'oracle CORPS-CONVEXE (A43) ; la figure ne peut donc
-pas dessiner un corps libre dans l'obstacle (A40).
+Collision colours come from the convex-body oracle, and the drawing asserts that the pose it
+colours as colliding does collide: the figure cannot show a free body inside the obstacle.
 
-Run: python scripts/make_paper_fig1.py  ->  benchmarks/figures/paper/fig1.png
+S14: rewritten in English with no internal annotation codes; numbers from reproduce.json
+(the S11 version read the pre-export-contract benchmark and was in French).
+
+Run: python scripts/make_paper_fig1.py [--reproduce PATH]  ->  benchmarks/figures/paper/fig1.png
 """
 from __future__ import annotations
 
 import glob
 import json
+import math
 import os
 
 import numpy as np
 
-from cnp import certificate as _cert
 from cnp import scenes, viz
 
 SCENE = "scenes/S6_iiwa_real_shelf.yaml"
-CERT = "scenes/S6_iiwa_real_shelf.cert.json"
 OUT = os.path.join("benchmarks", "figures", "paper", "fig1.png")
-BENCH_GLOB = "benchmarks/results/*/flagship_S10_iiwa_real.json"
+REPRODUCE_GLOB = "benchmarks/results/*/reproduce.json"
 ESCAPE = [(-0.6, 0.0), (-0.3, 0.45), (-0.1, 0.6), (0.0, 0.62), (0.1, 0.6), (0.3, 0.45),
-          (0.6, 0.0)]
+          (0.6, 0.0)]                               # (s2, s1): a detour through base yaw
 START, GOAL, TRANSIT = "#4a90d9", "#3faa78", "#b8bcc4"
+HIT, FREE_BODY = "#c62828", "#e0a93b"
+
+
+def latest_reproduce(path=None) -> tuple:
+    paths = [path] if path else sorted(glob.glob(REPRODUCE_GLOB))
+    if not paths:
+        raise SystemExit(f"no reproduce benchmark found ({REPRODUCE_GLOB}); run `make reproduce`")
+    with open(paths[-1]) as f:
+        return json.load(f), paths[-1]
+
+
+def deg(s) -> float:
+    return math.degrees(2.0 * math.atan(float(s)))
+
+
+def english_joint_names(sc) -> list:
+    """Physical joint type per UNLOCKED joint from its effective world axis at the reference
+    configuration. A vertical axis is the base YAW for the first such joint and a ROLL about
+    the (then vertical) link axis for every later one — the effective axis alone cannot tell
+    the two apart (iiwa7: yaw, pitch, roll, pitch, roll, pitch, roll). The joint right after
+    the certified link, when unlocked, is the elbow."""
+    if sc.robot.kind != "spatial_revolute":
+        return [f"joint {i + 1}" for i in range(sc.robot.n)]
+    word = {(0, 0, 1): "yaw", (0, 1, 0): "pitch", (1, 0, 0): "roll"}
+    locked = sc.robot.locked_angles
+    names, seen_yaw = [], False
+    for i, e in enumerate(viz._effective_axes(sc)):
+        w = word.get(tuple(abs(round(float(v))) for v in e), "rotation")
+        if w == "yaw" and i not in locked:
+            w, seen_yaw = ("roll" if seen_yaw else "yaw"), True
+        names.append(w)
+    bl1 = sc.body_link + 1
+    if 0 <= bl1 < len(names) and bl1 not in locked:
+        names[bl1] = "elbow"
+    return [names[i] for i in range(len(names)) if i not in locked]
+
+
+def joint_box_text(sc) -> str:
+    """e.g. 'q1 yaw ±70°, q2 pitch ±70°, q3 roll ±70°; q4–q7 ±143°' (consecutive equal
+    symmetric ranges are grouped)."""
+    names = english_joint_names(sc)
+    items = []
+    for i, (lo, hi) in enumerate(sc.box):
+        a, b = deg(lo), deg(hi)
+        rng = f"±{round(max(abs(a), abs(b)))}°" if abs(a + b) < 1.0 else f"{round(a)}–{round(b)}°"
+        items.append((i, names[i], rng))
+    out, k = [], 0
+    while k < len(items):
+        j = k
+        while j + 1 < len(items) and items[j + 1][2] == items[k][2] and j + 1 >= 3:
+            j += 1
+        if j > k:
+            out.append(f"q{items[k][0] + 1}–q{items[j][0] + 1} {items[k][2]}")
+        else:
+            out.append(f"q{items[k][0] + 1} {items[k][1]} {items[k][2]}")
+        k = j + 1
+    return ", ".join(out)
 
 
 def plt_patch(colour, label):
@@ -43,16 +100,8 @@ def plt_patch(colour, label):
     return mpatches.Patch(facecolor=colour, edgecolor="none", label=label)
 
 
-def _latest_bench() -> dict:
-    paths = sorted(glob.glob(BENCH_GLOB))
-    if not paths:
-        raise SystemExit(f"aucun bench archivé ({BENCH_GLOB}) — lancer "
-                         "scripts/flagship_iiwa_real_bench.py d'abord (règle 7)")
-    return json.load(open(paths[-1]))
-
-
 def _hull_faces(V):
-    """Triangles de la coque, ORIENTÉS vers l'extérieur (sinon le rendu paraît creux)."""
+    """Hull triangles oriented outwards (otherwise the rendering looks hollow)."""
     from scipy.spatial import ConvexHull
     V = np.asarray(V, float)
     c = V.mean(axis=0)
@@ -66,11 +115,8 @@ def _hull_faces(V):
 
 
 def _drake_arm():
-    """(coques de liens en repère lien, fonction de pose) du VRAI iiwa7, via Drake.
-
-    Réutilise l'extraction déjà écrite pour l'export 3-D partageable (``export_flagship_3d_html``)
-    plutôt que de la dupliquer : mêmes meshes de VISU, même décimation par support, donc le
-    papier et l'artefact partagé montrent LE MÊME robot."""
+    """(link hulls in link frame, pose function) of the real iiwa7, via Drake — the same
+    visual meshes and support decimation as the shareable 3-D page."""
     import importlib.util
     spec = importlib.util.spec_from_file_location(
         "export_flagship_3d_html", os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -81,7 +127,6 @@ def _drake_arm():
     hulls = mod._link_hulls(plant, sg)
 
     def posed(s):
-        """Les 8 coques de liens en coordonnées MONDE à la configuration ``s``."""
         plant.SetPositions(ctx, 2.0 * np.arctan(np.asarray(s, float)))
         out = {}
         for L in mod.LINKS:
@@ -97,8 +142,6 @@ _LIGHT = _LIGHT / np.linalg.norm(_LIGHT)
 
 
 def _shade(tri, base):
-    """Ombrage lambertien d'un triangle : sans lui, une coque convexe se lit comme une tache
-    plate et le robot n'apparaît pas comme un objet. ``base`` est une couleur matplotlib."""
     import matplotlib.colors as mcolors
     a, b, c = tri
     n = np.cross(b - a, c - a)
@@ -109,14 +152,6 @@ def _shade(tri, base):
 
 
 def _panel_3d(ax, sc, oracle):
-    """Le VRAI iiwa7, pas seulement son corps certifié : sans le robot, la figure ne montre que
-    des capsules colorées et le lecteur ne voit ni la machine ni pourquoi elle est coincée.
-
-    Rendu : les liens viennent des meshes de VISU Drake (coques convexes décimées, doctrine
-    « niveau 1 », la même que le corps certifié) ; seul le corps CERTIFIÉ est la coque 40
-    sommets du certificat, mise en évidence. Tous les triangles d'une pose vont dans UNE seule
-    ``Poly3DCollection`` — mplot3d ne trie qu'entre collections, et une collection par lien
-    donnait un empilement faux. Éclairage lambertien pour que le bras se lise en volume."""
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
     body = scenes._body_fk(sc)
@@ -128,9 +163,6 @@ def _panel_3d(ax, sc, oracle):
     zmax = 0.0
 
     def draw_arm(s, base, alpha, upto=None):
-        """``upto`` limite les liens dessinés : les poses fantômes s'arrêtent au corps certifié
-        (le reste du bras, incliné, sort du cadre et noie la lecture) ; la pose de transit est
-        dessinée entière."""
         nonlocal zmax
         W = posed(s)
         tris, cols = [], []
@@ -143,30 +175,25 @@ def _panel_3d(ax, sc, oracle):
                 t = [V[i] for i in f]
                 tris.append(t)
                 cols.append(_shade(t, base))
-        B = np.array([body.eval_world_point(v, s) for v in hv])      # coque DU CERTIFICAT
+        B = np.array([body.eval_world_point(v, s) for v in hv])     # the CERTIFICATE's hull
         hit = bool(oracle(s))
-        assert hit == (base == TRANSIT), "la figure mentirait (A40)"
-        bcol = "#c62828" if hit else "#e0a93b"
+        assert hit == (base == TRANSIT), "the figure would contradict the collision oracle"
         for f in _hull_faces(B):
             t = [B[i] for i in f]
             tris.append(t)
-            cols.append(_shade(t, bcol))
-        ax.add_collection3d(Poly3DCollection(
-            tris, facecolors=cols, edgecolor="none", alpha=alpha,
-            zsort="average", rasterized=True))
+            cols.append(_shade(t, HIT if hit else FREE_BODY))
+        ax.add_collection3d(Poly3DCollection(tris, facecolors=cols, edgecolor="none",
+                                             alpha=alpha, zsort="average", rasterized=True))
 
-    # fantômes d'abord : épaule + corps certifié seulement (A24-b — chaque vue déclare ce
-    # qu'elle montre ; ici « la pose libre, jusqu'au corps certifié »)
-    draw_arm(st, START, 0.42, upto=4)
+    draw_arm(st, START, 0.42, upto=4)          # ghosts: base, shoulder and the certified link
     draw_arm(go, GOAL, 0.42, upto=4)
-
-    for nm, (A, b) in sc.obstacles.items():
+    for _nm, (A, b) in sc.obstacles.items():
         bnds = viz._box_bounds(A, b)
         if bnds is None:
             continue
         (x0, x1), (y0, y1), (z0, z1) = bnds
         x1 = min(x1, 0.5); y1 = min(y1, 0.42); x0 = max(x0, -0.5); y0 = max(y0, -0.42)
-        z1 = min(z1, z0 + 0.05)                       # on ne dessine que le dessous utile
+        z1 = min(z1, z0 + 0.05)                   # only the useful underside is drawn
         c = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
              [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]
         faces = [[c[i] for i in f] for f in
@@ -174,19 +201,18 @@ def _panel_3d(ax, sc, oracle):
                   [1, 2, 6, 5], [0, 3, 7, 4])]
         ax.add_collection3d(Poly3DCollection(faces, facecolor="0.55", edgecolor="0.3",
                                              alpha=0.32, lw=0.5, zsort="average"))
-        # étiquette en coordonnées d'AXES : une annotation 3-D se fait rogner par le cadre
-        ax.text2D(0.60, 0.545, f"{nm}\n(étagère, H-rep exacte)", transform=ax.transAxes,
-                  fontsize=6.8, weight="bold", ha="left", va="center", color="#2b2b2b",
+        ax.text2D(0.60, 0.545, f"overhead shelf\nunderside z = {z0:.2f} m",
+                  transform=ax.transAxes, fontsize=7.2, weight="bold", ha="left",
+                  va="center", color="#2b2b2b",
                   bbox=dict(boxstyle="round,pad=0.22", fc="white", ec="0.7", alpha=0.85))
+    draw_arm(mid, TRANSIT, 0.97)
 
-    draw_arm(mid, TRANSIT, 0.97)                 # …puis la pose de transit, opaque
-
-    handles = [plt_patch(START, "start (q2<0) — épaule + corps certifié, LIBRE"),
-               plt_patch(GOAL, "goal (q2>0) — épaule + corps certifié, LIBRE"),
-               plt_patch(TRANSIT, "transit q2≈0 : le bras se REDRESSE"),
-               plt_patch("#c62828", "CORPS CERTIFIÉ en collision (lien 3, coque 40 sommets)"),
-               plt_patch("#e0a93b", "corps certifié libre")]
-    ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.02), fontsize=6.6,
+    handles = [plt_patch(START, "start pose (free): base, shoulder and certified link"),
+               plt_patch(GOAL, "goal pose (free): base, shoulder and certified link"),
+               plt_patch(TRANSIT, "transit: the arm passes upright (full arm drawn)"),
+               plt_patch(HIT, "certified link 3 in collision (40-vertex convex hull)"),
+               plt_patch(FREE_BODY, "certified link 3, free")]
+    ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.02), fontsize=7.0,
               framealpha=0.94, borderpad=0.35, handlelength=1.4)
     ax.set_xlim(-0.4, 0.4); ax.set_ylim(-0.4, 0.4); ax.set_zlim(0, max(1.05, zmax + 0.06))
     ax.set_box_aspect((1, 1, 1.35))
@@ -195,107 +221,116 @@ def _panel_3d(ax, sc, oracle):
     ax.set_ylabel("y (m)", labelpad=-8, fontsize=7)
     ax.set_zlabel("z (m)", labelpad=-6, fontsize=7)
     ax.tick_params(labelsize=5.5, pad=-3)
-    ax.set_title("(a) le VRAI KUKA iiwa7 — le corps proximal certifié\nne peut pas se redresser",
-                 fontsize=9, pad=0)
+    ax.set_title("(a) KUKA iiwa7: the certified link cannot pass upright",
+                 fontsize=9.5, pad=0)
 
 
 def _panel_cspace(ax, sc, oracle, n=110):
+    """Cut along shoulder pitch (the barrier joint) x base yaw, other joints at 0, in degrees."""
     bdim, other = 1, 0
-    xs = np.linspace(float(sc.box[bdim][0]), float(sc.box[bdim][1]), n)
-    ys = np.linspace(float(sc.box[other][0]), float(sc.box[other][1]), n)
+    names = english_joint_names(sc)
+    qx = np.linspace(deg(sc.box[bdim][0]), deg(sc.box[bdim][1]), n)
+    qy = np.linspace(deg(sc.box[other][0]), deg(sc.box[other][1]), n)
     grid = np.zeros((n, n))
     s = np.zeros(sc.robot.n)
-    for b, sy in enumerate(ys):
-        for a, sx in enumerate(xs):
+    for b, y in enumerate(qy):
+        for a, x in enumerate(qx):
             s[:] = 0.0
-            s[bdim], s[other] = sx, sy
+            s[bdim], s[other] = math.tan(math.radians(x) / 2), math.tan(math.radians(y) / 2)
             grid[b, a] = 1.0 if oracle(s) else 0.0
-    ax.imshow(grid, origin="lower", extent=[xs[0], xs[-1], ys[0], ys[-1]], aspect="auto",
+    ax.imshow(grid, origin="lower", extent=[qx[0], qx[-1], qy[0], qy[-1]], aspect="auto",
               cmap="Greys", vmin=0, vmax=1.7, alpha=0.85)
-    delta = float(sc.delta)
-    ax.axvspan(-delta, delta, color="gold", alpha=0.35, zorder=2)
-    ax.text(0, ys[-1] * 0.82, f"dalle |φ| ≤ {sc.delta}\nMUR pleine hauteur", ha="center",
+    half = deg(sc.delta)
+    ax.axvspan(-half, half, color="gold", alpha=0.35, zorder=2)
+    ax.text(0, qy[-1] * 0.80, f"slab |φ| ≤ {sc.delta}\n(|q2| ≤ {half:.1f}°)", ha="center",
             fontsize=7.5, weight="bold", zorder=6,
             bbox=dict(boxstyle="round", fc="#fff7e0", ec="#e0c060", alpha=0.95))
-    P = np.asarray(ESCAPE, float)
+    P = np.array([[deg(a), deg(b)] for a, b in ESCAPE])
     ax.plot(P[:, 0], P[:, 1], "--", lw=1.8, color="#7f0000", zorder=4,
-            label="tentative d'évasion (détour par le lacet)")
-    st = [float(v) for v in sc.start_s]
-    go = [float(v) for v in sc.goal_s]
+            label="attempted detour through base yaw")
+    st = [deg(v) for v in sc.start_s]
+    go = [deg(v) for v in sc.goal_s]
     ax.plot(st[bdim], st[other], "*", color="#1f77b4", ms=17, mec="k", zorder=5, label="start")
     ax.plot(go[bdim], go[other], "P", color="#2ca02c", ms=13, mec="k", zorder=5, label="goal")
-    names = [nm for nm, _, _ in viz.joint_limits_deg(sc)]
-    ax.set_xlabel(f"{names[bdim]}  s1  (q2 = 2·arctan s1)   ★ SÉPARATEUR", fontsize=8)
-    ax.set_ylabel(f"{names[other]}  s0  (q1)", fontsize=8)
-    ax.tick_params(labelsize=7)
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.30), ncol=3, fontsize=6.8,
+    ax.set_xlabel(f"q2, shoulder {names[bdim]} (deg) — the separating joint", fontsize=8.5)
+    ax.set_ylabel(f"q1, base {names[other]} (deg)", fontsize=8.5)
+    ax.tick_params(labelsize=7.5)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.32), ncol=3, fontsize=7.0,
               framealpha=0.95)
-    ax.set_title("(b) coupe C-space — start et goal sont\ndans DEUX composantes libres",
-                 fontsize=9)
-    ax.text(0.5, -0.155, "le cadre de ce graphe = les limites articulaires (la boîte P)",
-            transform=ax.transAxes, ha="center", fontsize=6.6, style="italic")
+    ax.set_title("(b) configuration-space cut: start and goal lie\nin two free components "
+                 "(grey = collision)", fontsize=9.5)
+    ax.text(0.5, -0.16, "frame = the joint box; cut at q3 = … = q7 = 0",
+            transform=ax.transAxes, ha="center", fontsize=7.0, style="italic")
 
 
-def _panel_stats(ax, sc, bench, cert):
+def _sci(x: float) -> str:
+    m, e = f"{x:.2e}".split("e")
+    return f"{m}e{int(e)}"
+
+
+def _panel_stats(ax, sc, rep, rep_path):
     import textwrap
-    row = bench["row"]
+    row = rep["rows"]["flagship"]
     gt = row["groundtruth"]
-    ax.axis("off")
+    fid = rep.get("kinematic_fidelity", {})
     st = row["by_status"]
-    st_txt = ", ".join(f"{v} {k}" for k, v in st.items()) if isinstance(st, dict) else str(st)
+    n_act, n = len(row["active_dims"]), row["dof"]
+    passive = row["passive_dims"]
     lines = [
-        ("verdict", f"PROOF — re-vérifié en arithmétique EXACTE par un programme "
-                    f"indépendant, en {row['verify_s']} s"),
-        ("certificat", f"{row['leaves']} feuilles ({st_txt}) · dissonance "
-                       f"décision↔certificat A32 = {row['n_reresolve_failed']}"),
-        ("réduction A30", f"LP de feuille : {row['cost_leaf_reduced_rows']} lignes (réduit "
-                          f"aux 3 dims actives) contre {row['cost_leaf_full_rows']} en "
-                          f"pleine dim — ×{row['reduction_x']}"),
-        ("marge FRANCHE", f"+{gt['slab_penetration_mm']} mm de pénétration dans la dalle · "
-                          f"+{gt['startgoal_clearance_mm']} mm de dégagement aux poses "
-                          f"(le marginal a été refusé, cf. les ~6 mm du lacet de base)"),
-        ("fidélité au robot", f"cinématique {row['kinematics_parity_urdf']} · silhouette "
-                              f"convexe {row['body_parity']} — modèle interne EXACT "
-                              f"(verify recompte en Fraction)"),
-        ("redondance", "les 4 joints distaux sont PROUVÉS passifs pour cette paire : ils ne "
-                       "peuvent pas dégager le corps. C'est la thèse."),
-        ("limites (A25)", viz.limits_caption(sc)),
+        ("Verdict", f"PROOF, re-checked in exact rational arithmetic by an independent "
+                    f"verifier in {row['verify_s']:.2f} s"),
+        ("Certificate", f"{row['leaves']} leaves ({st.get('collision', 0)} collision, "
+                        f"{st.get('outside', 0)} outside)"),
+        ("Active dimensions", f"{n_act} of {n} (q{row['active_dims'][0] + 1}–"
+                              f"q{row['active_dims'][-1] + 1}); q{passive[0] + 1}–"
+                              f"q{passive[-1] + 1} are covered by the proof at no extra cost"),
+        ("LP size per leaf", f"{row['lp_reduced']['rows']:,} rows in the active dimensions "
+                             f"vs {row['lp_full']['rows']:,} in full dimension "
+                             f"({row['reduction_x']:.0f}× smaller)"),
+        ("Separation margins", f"trapping band {gt['slab_penetration_mm']} mm inside the "
+                               f"shelf; start and goal clear it by "
+                               f"{gt['startgoal_clearance_mm']} mm"),
+        ("Fidelity", f"URDF-faithful kinematics: {_sci(fid['chain_flange_position_error_m'])} m "
+                     f"at the flange; link-3 hull: {_sci(fid['body_vertex_position_error_m'])} m"
+         if "chain_flange_position_error_m" in fid else "(kinematic fidelity not measured)"),
+        ("Joint box", joint_box_text(sc)),
     ]
     y = 0.985
-    ax.text(0.0, y, "(c) ce que le certificat établit", fontsize=10.5, weight="bold",
+    ax.axis("off")
+    ax.text(0.0, y, "(c) what the certificate establishes", fontsize=10.5, weight="bold",
             va="top")
     y -= 0.075
     for k, v in lines:
-        ax.text(0.0, y, k, fontsize=8.0, weight="bold", va="top", color="#1a237e")
+        ax.text(0.0, y, k, fontsize=8.2, weight="bold", va="top", color="#1a237e")
         y -= 0.036
-        for chunk in textwrap.wrap(v, 62):
-            ax.text(0.025, y, chunk, fontsize=7.4, va="top")
+        for chunk in textwrap.wrap(v, 64):
+            ax.text(0.025, y, chunk, fontsize=7.6, va="top")
             y -= 0.031
-        y -= 0.018
+        y -= 0.016
     y -= 0.01
-    ax.text(0.0, y, "ce que le certificat NE prouve PAS", fontsize=8.0, weight="bold",
-            va="top", color="#7a2020")
+    ax.text(0.0, y, "What it does NOT establish", fontsize=8.2, weight="bold", va="top",
+            color="#7a2020")
     y -= 0.036
     for chunk in textwrap.wrap(
-            "rien hors de ces limites articulaires ni hors de la géométrie modélisée ; "
-            "rien de dynamique (vitesses, capteurs, arrêts). UNDECIDED ≠ infaisable. "
-            "Fidèle à l'URDF iiwa7 à ~2e-6 près — PAS « le iiwa exact ».", 62):
-        ax.text(0.025, y, chunk, fontsize=7.4, va="top", style="italic", color="#7a2020")
+            "anything outside this joint box or the modelled geometry; anything about "
+            "dynamics, sensing or moving obstacles; fidelity beyond that of the published "
+            "URDF. An undecided run would not mean infeasible.", 64):
+        ax.text(0.025, y, chunk, fontsize=7.6, va="top", style="italic", color="#7a2020")
         y -= 0.031
-    ax.text(0.0, y - 0.02, f"source : commit {bench.get('commit','?')} · "
-                           f"benchmarks/results/ · {CERT}", fontsize=6.2, va="top",
-            color="#666")
+    clean = "clean tree" if rep.get("git_dirty_at_start") is False else "DIRTY tree"
+    ax.text(0.0, y - 0.02, f"source: {os.path.relpath(rep_path)} · commit "
+                           f"{rep['commit'][:7]} · {clean} · {row['certificate']}",
+            fontsize=6.0, va="top", color="#666")
 
 
-def main() -> int:
+def main(reproduce_path=None, out=OUT) -> dict:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    rep, rep_path = latest_reproduce(reproduce_path)
     sc, _ = scenes.load(SCENE)
-    cert = _cert.load(CERT)
-    bench = _latest_bench()
     oracle = scenes.convex_collision_oracle(sc)
 
     fig = plt.figure(figsize=(14.4, 6.2))
@@ -303,15 +338,17 @@ def main() -> int:
                           left=0.02, right=0.985, top=0.86, bottom=0.13)
     _panel_3d(fig.add_subplot(gs[0, 0], projection="3d"), sc, oracle)
     _panel_cspace(fig.add_subplot(gs[0, 1]), sc, oracle)
-    _panel_stats(fig.add_subplot(gs[0, 2]), sc, bench, cert)
-    fig.suptitle("Infaisabilité CERTIFIÉE sur un vrai bras redondant 7 axes : "
-                 "start et goal sont libres, et pourtant AUCUN chemin ne les relie",
-                 fontsize=12.5, y=0.975)
-    fig.savefig(OUT, dpi=300, bbox_inches="tight")
+    _panel_stats(fig.add_subplot(gs[0, 2]), sc, rep, rep_path)
+    fig.suptitle("Certified infeasibility on a redundant 7-DOF arm: start and goal are free, "
+                 "yet no continuous path connects them", fontsize=12.5, y=0.975)
+    fig.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
-    print(f"wrote {OUT}  ({os.path.getsize(OUT)/1024:.0f} ko)")
-    return 0
+    print(f"written {out}  ({os.path.getsize(out) / 1024:.0f} KB)  from {rep_path}")
+    return {"figure": out, "reproduce": rep_path, "commit": rep["commit"]}
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--reproduce", default=None)
+    main(ap.parse_args().reproduce)

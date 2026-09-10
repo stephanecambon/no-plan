@@ -42,8 +42,7 @@ def _barrier_dim(sc):
     return dims.pop()
 
 
-def main(nb=40_000):
-    path = sys.argv[1] if len(sys.argv) > 1 else "scenes/S6_iiwa_real_shelf.yaml"
+def _ground_truth(path, nb):
     sc, _ = scenes.load(path)
     prob = scenes.build_problem(sc)
     views = engine.pair_views(prob)
@@ -144,7 +143,37 @@ def main(nb=40_000):
           and slab_min_top > z0 and sg_max_top < z0)
     print(f"==> PLAUSIBLE (digne de certification) : {ok}" if ok
           else f"==> NON PLAUSIBLE EN L'ÉTAT : {ok}")
-    return 0 if ok else 1
+    # [S14, D-P2-B] the same counts as a record, so they live in a dated JSON, not the journal
+    return {"start_free": a_start, "goal_free": a_goal,
+            "n_uniform_in_slab": nb, "free_in_slab": free_unif,
+            "n_slab_corners": n_corner, "free_at_slab_corners": free_corner,
+            "slab_corner_construction": f"2^{len(others)} extremes of the non-barrier joints "
+                                        f"x {len(s1_levels)} barrier levels",
+            "n_distal_extreme_combinations": 2 ** (n - 3),
+            "redundancy_all_collide": redundancy_invariant,
+            "n_per_side": NS, "free_left": free_left, "free_right": free_right,
+            "obstacle": obstacle, "obstacle_underside_z_m": round(z0, 4),
+            "slab_min_body_top_m": round(float(slab_min_top), 4),
+            "startgoal_max_body_top_m": round(float(sg_max_top), 4),
+            "slab_penetration_mm": round(float(slab_min_top - z0) * 1000, 1),
+            "startgoal_clearance_mm": round(float(z0 - sg_max_top) * 1000, 1),
+            "margin_grid": "q1 x q2-in-slab x q3 = 7 x 5 x 7, distal joints at 0",
+            "seed": GT_SEED, "plausible": bool(ok)}
+
+
+def ground_truth(path="scenes/S6_iiwa_real_shelf.yaml", nb=40_000, verbose=True) -> dict:
+    """Run every check above on ``path`` and return the counts as a dict (S14)."""
+    if verbose:
+        return _ground_truth(path, nb)
+    import contextlib
+    import io
+    with contextlib.redirect_stdout(io.StringIO()):
+        return _ground_truth(path, nb)
+
+
+def main(nb=40_000):
+    path = sys.argv[1] if len(sys.argv) > 1 else "scenes/S6_iiwa_real_shelf.yaml"
+    return 0 if ground_truth(path, nb)["plausible"] else 1
 
 
 if __name__ == "__main__":

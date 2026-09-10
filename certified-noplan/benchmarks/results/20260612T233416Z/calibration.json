@@ -1,4 +1,11 @@
 {
+  "provenance_annotation": {
+    "added": "a posteriori in S14 (2026-09-10); no measured value changed",
+    "producer": "scripts/calibrate_g2.py (prints JSON to stdout; it recorded neither commit nor git_dirty)",
+    "commit": "eb134e7b5f26a68dee7f5fce4678ae03b974d250",
+    "git_dirty": false,
+    "basis": "attributed by co-location: taken from results.json in the same dated directory (20260612T233416Z); not measured at the time of the calibration run"
+  },
   "family": [
     {
       "n": 3,

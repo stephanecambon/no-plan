@@ -91,8 +91,19 @@ def measure(sc, sep_dim: int, delta: float, start_s, goal_s, active, n_grid=7, n
     return out, len(slab)
 
 
-def main() -> int:
-    path = sys.argv[1] if len(sys.argv) > 1 else "scenes/S6_iiwa_real_shelf.yaml"
+_ENGLISH = {"lacet": "yaw", "tangage": "pitch", "roll": "roll", "coude": "elbow",
+            "rotation": "rotation"}
+
+
+def main(argv=None) -> int:
+    import argparse
+    import json
+    ap = argparse.ArgumentParser(description="lever per active joint on the real iiwa7 (A43)")
+    ap.add_argument("scene", nargs="?", default="scenes/S6_iiwa_real_shelf.yaml")
+    ap.add_argument("--json", default=None,
+                    help="[S14] also write the full measurement (margins in mm) to this JSON file")
+    args = ap.parse_args(sys.argv[1:] if argv is None else argv)
+    path = args.scene
     sc, _ = scenes.load(path)
     prob = scenes.build_problem(sc)
     views = engine.pair_views(prob)
@@ -113,6 +124,15 @@ def main() -> int:
 
     start_s = [float(x) for x in sc.start_s]
     goal_s = [float(x) for x in sc.goal_s]
+    names = [nm for nm, _, _ in viz.joint_limits_deg(sc)]
+    report = {"scene": path, "body_link": sc.body_link, "n_hull_vertices": len(sc.hull_vertices),
+              "active_dims": list(active), "passive_dims": list(passive), "delta": delta,
+              "robust_threshold_mm": 40.0,
+              "metric": "franc margin = A(slab, min support) - B(start/goal, max support), "
+                        "per candidate separator joint, world direction and obstacle motif",
+              "motifs": {"halfspace": "overhead / ceiling obstacle {x.u >= c}",
+                         "plate": "wall to cross {c1 <= x.u <= c2}"},
+              "separators": []}
     best = []
     for sep in active:
         # start/goal de la scène si le séparateur est celui de la scène ; sinon poses
@@ -123,6 +143,19 @@ def main() -> int:
             s0 = [0.0] * n; s1 = [0.0] * n
             s0[sep], s1[sep] = -0.6, 0.6
         res, npts = measure(sc, sep, delta, s0, s1, active)
+        report["separators"].append({
+            "separator_dim": sep, "joint": f"q{sep+1}",
+            # a vertical effective axis is the base yaw only for the FIRST such joint; later
+            # ones roll about the (vertical at q=0) link axis — q3 on the iiwa7 is the arm roll
+            "joint_type": ("roll" if _ENGLISH.get(names[sep].split(" ")[0]) == "yaw" and any(
+                _ENGLISH.get(names[j].split(" ")[0]) == "yaw" for j in range(sep))
+                else _ENGLISH.get(names[sep].split(" ")[0], names[sep])),
+            "poses": "scene start/goal" if any(e[sep] for e in sc.phi)
+                     else "symmetric s = -3/5 / +3/5 on the tested joint",
+            "slab_configs_sampled": npts,
+            "directions": {nm: {"halfspace_margin_mm": round(r["franc_margin_m"] * 1000, 1),
+                                "plate_margin_mm": round(r["plate_margin_m"] * 1000, 1)}
+                           for nm, r in res.items()}})
         print(f"--- séparateur s{sep} (q{sep+1}) --- dalle échantillonnée sur {npts} configs")
         for nm, r in sorted(res.items(), key=lambda kv: -kv[1]["franc_margin_m"]):
             def _flag(m):
@@ -140,6 +173,14 @@ def main() -> int:
     m, sep, nm, kind = best[0]
     print(f"MEILLEUR : séparateur s{sep} (q{sep+1}), obstacle {kind} de normale {nm}, "
           f"marge {m*1000:+.1f} mm  ({'FRANC' if m >= 0.040 else 'INSUFFISANT (<40 mm)'})")
+    if args.json:
+        report["best"] = {"separator_dim": sep, "joint": f"q{sep+1}", "motif":
+                          {"demi-espace": "halfspace", "plaque": "plate"}[kind],
+                          "direction": nm, "margin_mm": round(m * 1000, 1),
+                          "robust": bool(m >= 0.040)}
+        with open(args.json, "w") as f:
+            json.dump(report, f, indent=2)
+        print(f"written {args.json}")
     return 0
 
 

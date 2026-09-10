@@ -1,4 +1,11 @@
 {
+  "provenance_annotation": {
+    "added": "a posteriori in S14 (2026-09-10); no measured value changed",
+    "producer": "scripts/eval_L6_embedding.py:181 (writes this file next to L6_eval.json in the same run)",
+    "commit": "e48ac27",
+    "git_dirty": true,
+    "basis": "taken from L6_eval.json written by the same run in the same directory; this file is derived from that run and from wall_resonde_S9f.json (commit 93ef10d, git_dirty true)"
+  },
   "witness_S9f_k7": {
     "rows": 469006,
     "cols": 23,

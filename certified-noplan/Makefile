@@ -11,7 +11,7 @@ VENV_PY := $(VENV)/bin/python
 PYTEST  := $(VENV)/bin/pytest
 STAMP   := $(VENV)/.installed
 
-.PHONY: setup test test-fast test-slow bench-parallel figures clean
+.PHONY: setup test test-fast test-slow bench-parallel figures benchmark reproduce paper-figures clean
 
 # Idempotent: re-running `make setup` does nothing unless pyproject.toml changed.
 setup: $(STAMP)
@@ -56,6 +56,18 @@ figures: setup
 # passive-dimension cost-model sweep, written to benchmarks/results/<UTC>/ (rule 7).
 benchmark: setup
 	$(VENV_PY) benchmarks/run_benchmark.py
+
+# S14 — every row of the paper's summary table, ONE PROCESS PER ROW, on a CLEAN tree (the
+# harness refuses a dirty tree: commit first). Writes benchmarks/results/<UTC>/reproduce.json
+# and the certificate of every certified row (scenes/*.cert.json, scenes/wall/k*.cert.json),
+# each re-checked by the stdlib-only verifier module and by `cnp verify <cert> <scene>`.
+reproduce: setup
+	$(VENV_PY) benchmarks/run_benchmark.py --reproduce
+
+# S14 — publication figures (English, 300 dpi) into benchmarks/figures/paper/; every number
+# drawn is read from the latest reproduce.json, never retyped.
+paper-figures: setup
+	$(VENV_PY) scripts/make_paper_figures.py
 
 clean:
 	rm -rf $(VENV) .pytest_cache
