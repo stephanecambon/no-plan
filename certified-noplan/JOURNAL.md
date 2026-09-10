@@ -3710,3 +3710,90 @@ journal.
 - Constat de vérification (règle 9, A48) : `git log -- src/cnp/verify.py` confirme le « zéro diff
   depuis S9c » de la revue — dernier commit touchant `verify.py` = `3d2f00f` (S9c, joints
   verrouillés).
+
+## 2026-09-10 — Session P2 (Claude Code, AUTONOME) — **fact-check du brouillon §§ 6-9 contre les benchs archivés** ; 9 FAUX dont la promesse de reproductibilité et l'attribution des épisodes au vérificateur ; `verify.py` intact
+
+Session de **lecture, de mesure et de rapport**. Aucune ligne de `src/`, `tests/`, `scripts/` ni
+`benchmarks/` touchée. Livrable : `docs/papers/FACTCHECK-v0.2.md` (66 affirmations, table
+affirmation / verdict / preuve `fichier:ligne` ou `JSON + clé`, phrases de remplacement prêtes à
+coller, 4 décisions proposées).
+
+**Ouverture [A33]** : `git status` = `docs/papers/PAPER-DRAFT.md` (v0.2) **et**
+`docs/papers/PAPER-SKELETON.md` modifiés. Le second n'était pas annoncé : **STOP et question** —
+Stéphane confirme que les deux sont à lui. Rappel du détail P1 : le répertoire est `docs/papers/`
+(pluriel), le prompt dit `docs/paper/`. Second écart constaté : CLAUDE.md était en **v1.20**, pas
+v1.21 (voir la transcription de la revue P1 ci-dessus, point D70). Commit doc séparé `4fda533`
+(revue P1 + D67-D70).
+
+### Fait
+
+**Neuf affirmations FAUSSES.**
+1. **§ 7.8 — reproductibilité** : « `cnp verify <cert> <scene>` … with no third-party package ».
+   La commande importe `certificate` et `scenes` (numpy, yaml, sympy via `ratfk`), `cli.py:42-49`.
+   **Mesuré** : le module `cnp.verify.verify_file` re-prouve le flagship sous `python -S -I`
+   (site-packages désactivé) sans charger **aucun** paquet tiers. La propriété réelle est donc plus
+   forte que ce qu'il fallait concéder, mais ce n'est pas la commande annoncée.
+2. **§ 7.8** : « the certificates … reproduce every PROOF in the tables ». Le dépôt ne livre que
+   **4** certificats (les 3 iiwa7 + `S5_iiwa_shelf`, absent du papier) ; relay, comb, anchor, bac S4
+   et mur n'en ont pas.
+3. **§ 9 — attribution** : « the artefact designed to be independent of it caught both ». Dans les
+   deux épisodes de § 7.7, c'est le **moteur** qui refuse (`tests/test_adversarial.py:153-156`) ;
+   le vérificateur n'a jamais vu de certificat. § 7.7 est juste, § 9 non.
+4. **§ 9 / Abstract / § 1 — unité** : « 2·10⁻⁶ rad ». C'est une erreur de **position en mètres**
+   à la bride (`scripts/build_iiwa7_chain.py:176-179`). Même unité fausse dans la règle 9 (A41) →
+   D-P2-A.
+5. **§ 7.4 — hauteurs** : « inclined at ±62° it clears at 0.545 m ». **Mesuré** : 0,5967 m à ±61,93°
+   (start/goal), 0,5442-0,5449 m à ±69,98° (bord de boîte). Le journal disait juste (± 70°), le
+   brouillon a fusionné deux chiffres.
+6. **§ 6.3** : la silhouette fidèle « ne coûte rien » au LP réduit. **Mesuré** : 167 colonnes réduites
+   (40 × 4 + 6 + 1) vs 327 pleines ; avec un segment le réduit en aurait 15 ⟹ ×11 là aussi.
+7. **§ 7 préambule** : vérité-terrain « toujours » par oracle corps-convexe. Seules les 3 scènes
+   iiwa7 ; le mur utilise l'échantillonnage de segment (`scripts/wall_resonde_S9f.py:92`).
+8. **§ 7.1** : parité « coefficient par coefficient à 10⁻⁷ avec une implémentation SOS ». C'est la
+   marge t\* par cellule, contre l'oracle **Bernstein-LP** 2-D (`tests/regref.py:225-231`), sur E3.
+9. **§ 7.6** : « 0.1 s – 72 s » pour le mur. Aucune clé de `wall_resonde_S9f.json` ne porte 72.
+
+**Seize imprécisions**, dont : colonne « certify » de § 7.6 qui mélange trois définitions (moteur
+seul / moteur + export pré-S12 / bout-en-bout post-S12) ; temps de vérif 2,45 / 2,54 s tirés des
+benchs **S11 pré-S12** au lieu de S12 (2,43 / 2,50) ; bac S4 « ≈ 1,0 s » = chiffre composite
+**pré-contrat d'export** non daté comme tel ; « every UNDECIDED names its cause » (chemin sériel
+seulement, `engine.py:870-873`) ; parité FK « in the factory limits » alors que le tirage ±2,9 rad
+**sort** des limites ±120° de j2/j4/j6 (**lues dans le plant Drake**) ; « joints 3–6 passive » (j5, j6
+sont verrouillés) ; « 448 corner-biased samples » (coins déterministes) ; « 726 s de re-résolution »
+(726 s = certify complet ; re-résolution ≈ 581 s) ; « FK built twice » (second passage 1,2 s, cache
+chaud) ; largeur de micro-canal « a few millimetres » jamais mesurée.
+
+**Vérifié VRAI : 36** (+ 3 à préciser, 2 hors périmètre A28) — notamment toute la calibration § 6.2
+(766 → 93 878, ×122,6, ×24,6 par paire, `calibration.json`), le mur k = 3..7 (`wall_resonde_S9f.json`),
+les colonnes 327/23 et l'exposant 1,39 (`A44_columns_check.json`), tout le bloc résultat du flagship
+(`20260909T092652Z`), géométries et marges des deux cas d'usage, les deux épisodes de § 7.7.
+
+**Mesures de la session** (hors dépôt, rien écrit dans le repo) : hauteur du sommet du lien 3 en
+fonction de q₂ ; limites constructeur iiwa7 lues dans Drake ; colonnes des LP réduit/plein du
+flagship ; `verify_file` sans paquet tiers. Observation annexe : `JOURNAL.md:2926` (« q1 et q3
+laissent z invariant ») n'est vrai qu'à q₂ = 0 (à 61,9°, q₃ fait varier le sommet de 0,566 à 0,627 m).
+
+### Décisions requises de la supervision (proposées, NON appliquées)
+
+- **D-P2-A** — unité « rad » du 2e-6 : papier, squelette **et règle 9 (A41)** → « m (bride) ».
+  Règle ⟹ décision supervision (règle 14).
+- **D-P2-B** — chiffres du papier sans JSON daté (levier +175 / −73…−299, S3 150 000, 40 000 iiwa7,
+  4,9 s, 581 s) : élargir la convention à « JSON daté ou entrée de journal mesurée » (preprint) ;
+  archiver en JSON en S14.
+- **D-P2-C** — benchs iiwa7 post-S12 à `git_dirty = true` ; bac S4 non re-benché depuis le contrat
+  d'export : le dire au papier maintenant, re-bench propre en S14 (`make reproduce`).
+- **D-P2-D** — certificats livrés vs tables : phrase honnête maintenant ; livrer les 5 manquants en
+  S14 ; statuer sur `S5_iiwa_shelf.cert.json`.
+
+**Documents de supervision** : `PAPER-DRAFT.md` v0.2 et `PAPER-SKELETON.md` déposés par Stéphane,
+**commités tels quels, non modifiés par Code**.
+
+**Décompte exact (clôture)** : `make test` = **240 passed, 1 deselected, 0 skipped, 0 warnings**
+(1 090 s, machine chargée par les mesures). **`verify.py` zéro diff** (dernier commit `3d2f00f`, S9c).
+**Diffs CLAUDE.md** (commit `4fda533`) : en-tête v1.22 + note de numérotation ; paragraphe de changelog
+v1.20 → v1.22 ; mention « ratifiée revue P1, D68 » sur A48 (règle 9) ; puce D69 en S13. **Diff SPEC**
+(commit `4fda533`) : §2 (i) strict, v1.8.
+
+**Prochaine étape** : **supervision** — (1) intégrer `FACTCHECK-v0.2.md` §2 au brouillon, en
+commençant par § 7.8 (reproductibilité) et § 9 (attribution) ; (2) arbitrer D-P2-A à D-P2-D ;
+(3) toujours en attente : le bloc de revue S12 (D64/D65/D66, v1.21).

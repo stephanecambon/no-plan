@@ -26,7 +26,7 @@ parametrization of forward kinematics, a scalar barrier function defining a
 slab that separates start from goal, and per-cell witness certificates
 obtained by linear programming over Bernstein coefficients — no SDP, no
 numerical collision checking in the trust chain. We certify disconnection for
-arms up to 7 DOF on a laptop CPU — in seconds for 5–6-DOF scenes, and in under
+arms up to 7 DOF on a laptop CPU — in well under a second for the 2- to 5-DOF scenes, and in under
 a minute for our flagship: a KUKA iiwa7 with kinematics faithful to the
 published URDF (~2e-6 rad) and a faithful convex link silhouette, proven
 unable to reach a target behind an overhead shelf with a ~90 mm separation
@@ -201,7 +201,7 @@ additions listed there.)
 - Adversarial hardening: 26 mutations on planar certs + spatial suite +
   locked-joint suite (moved locks, corrupted cos/sin, removed leaves = holes,
   duplicated leaves = overlaps, relabeled leaves, scaled λ, negative μ, ...)
-  — all rejected; verifier never raises on corrupted input (returns reasons).
+  — all rejected (32 mutations: 26 planar + 6 locked-joint, plus spatial suite); returns (False, reason) on malformed input for the caught exception classes — NOT a fuzz-hardening claim (P1 fact-check D5).
 - Two-layer soundness boundary (explain, it will be asked): verify.verify
   checks INTERNAL validity (the robot the certificate declares);
   scene cross-check ties the statement to the authored scene file.
@@ -249,7 +249,7 @@ additions listed there.)
 - Planar regression (E3/E4, multi-pair relay, learned-φ pipeline).
 - 4-DOF shoulder-elbow anchor (Li-Dantam scenario reproduction, approximate,
   documented; PROOF exact since S9a; 0.043 s engine + 0.041 s verify).
-- 5–6-DOF iiwa-like bin (G2'): PROOF + exact verify, 1.0 s / 3.9 s, 8 leaves,
+- 5-DOF iiwa-like bin (G2', shipped scene S4): PROOF + exact verify, 1.0 s, 8 leaves; the 6-DOF point (3.9 s) is a calibration VARIANT (locks released), certified+verified but not a shipped scene file — say so,
   A32 = 0, laptop CPU, no GPU.
 - Active-dims wall bench (S9f): table k=3..8 with termination causes.
 - 7-DOF flagship (ACQUIRED, S10-quinquies, bench 20260908T121907Z):
@@ -333,6 +333,15 @@ additions listed there.)
 
 ## Writing conventions (binding for all sections)
 
+- FACT-CHECK RULE (P1, 2026-09-09): every claim about the implementation
+  (what verify checks, thresholds, defaults, counts) is confirmed by Code
+  against file:line BEFORE circulation; supervision does not assert code
+  behaviour from the journal. P1 found 3 false + 5 imprecise claims in §§1-5.
+- Never name the axis mode "oracle" in the paper (it means widest active
+  axis, not a ground truth); say "widest-axis" if it must be named.
+- The certificate establishes the OPEN slab {|φ|<δ} ⊆ C_obs; the proof picks
+  φ(s*)=0; the outside test is non-strict and that is correct.
+
 - Never: speed-race claims ("×15"), "we gained N dimensions", "the exact
   iiwa", UNDECIDED implied infeasible.
 - Always: "different settings" fence next to any Henrion comparison;
@@ -341,7 +350,7 @@ additions listed there.)
   framing for the proximal class.
 - Numbers only from dated benchmark JSONs (commit + git_dirty); no numbers
   from memory.
-- Timing: "seconds" applies to 5–6-DOF scenes and to the decision path;
+- Timing: "well under a second" applies to the 2- to 5-DOF shipped scenes and to the decision path;
   the 7-DOF real-geometry flagship is "under a minute, dominated by symbolic
   kinematics setup" (≈47 s, 83% FK build); verification is always seconds
   (2.4 s). Never blur the three. Never quote the pre-S12 "minutes" as
