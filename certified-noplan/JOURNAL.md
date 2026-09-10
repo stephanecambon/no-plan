@@ -3797,3 +3797,70 @@ v1.20 → v1.22 ; mention « ratifiée revue P1, D68 » sur A48 (règle 9) ; puc
 **Prochaine étape** : **supervision** — (1) intégrer `FACTCHECK-v0.2.md` §2 au brouillon, en
 commençant par § 7.8 (reproductibilité) et § 9 (attribution) ; (2) arbitrer D-P2-A à D-P2-D ;
 (3) toujours en attente : le bloc de revue S12 (D64/D65/D66, v1.21).
+
+## 2026-09-10 — Revue de supervision P2 (claude.ai) — fact-check §§6-9 endossé, A49-A51, décisions D-P2-A..D, complément biblio Henrion
+
+*(transcrite par Code en ouverture S14, circuit A16 — texte de la revue verbatim)*
+
+Verdict : P2 validée — 66 affirmations vérifiées aux JSON/lignes, 9 FAUSSES, 16 IMPRÉCISES,
+4 mesures hors dépôt, zéro code touché. Trois fautes STRUCTURELLES, toutes de la supervision :
+(1) UNITÉ — « 2·10⁻⁶ rad » écrit 11 fois (abstract, intro, §4, §9, squelette) ET dans
+CLAUDE.md règle 9/A41 ; la parité 1,99e-6 est une POSITION en mètres à la bride ; seul le
+3,67e-6 d'alignement des axes SDF est un angle. (2) ATTRIBUTION — §9 créditait « l'artefact
+indépendant » des deux refus de fausses déconnexions ; c'est le MOTEUR qui refuse (pas de
+témoin sur toutes les cellules ⟹ pas de certificat) ; le vérificateur n'a jamais rien vu.
+Reformulé : le certificat-exigé refuse les fausses déconnexions ; le vérificateur garde la
+faute OPPOSÉE. (3) REPRODUCTIBILITÉ — « cnp verify … sans paquet tiers » faux (numpy, yaml)
+et 3 certificats livrés sur 8. Code a MESURÉ la vraie propriété : cnp.verify.verify_file sous
+python -S -I re-prouve le flagship avec ZÉRO module tiers — plus fort que la concession.
+Autres : 0,545 m = ±70° (bord de boîte), 0,597 m aux poses ±62° ; la coque coûte des colonnes
+dans le LP réduit AUSSI (167 vs 15) ; parité E3 = t* par cellule vs oracle Bernstein-LP (pas
+SOS) ; peigne certifié par `margin` (54), active-axis a permis widest-axis (46) ensuite ;
+table §7.6 mélangeait trois définitions de « certify » et un « 72 s » sans source. Tout
+intégré au brouillon v0.3 puis au LaTeX.
+DÉCISIONS : D-P2-A (unité) → partout + règle 9 (D71). D-P2-B → convention élargie « JSON daté
+OU entrée de journal mesurée et datée » pour le preprint ; archivage JSON en S14. D-P2-C →
+dit dans le papier ; re-bench arbre PROPRE des 8 lignes en S14. D-P2-D → certificats de
+TOUTES les lignes livrés en S14 ; S5_iiwa_shelf.cert.json gardé comme artefact iiwa-LIKE,
+hors « released ».
+Complément biblio (10/09, sur remarque de Stéphane) : la production 2025-26 d'Henrion porte
+sur les CERTIFICATS EN ARITHMÉTIQUE EXACTE (arXiv:2509.01382 « Positively not SOS » ;
+2512.19141 Stengle rationnel ; 2605.31169 [auteurs à vérifier] certificat SOS rationnel +
+scripts Julia de vérification) — et la lignée Peyrl-Parrilo 2008 / Kaltofen 2008 / RealCertify
+(Magron & Safey El Din 2018-21, co-auteur d'Henrion sur la déconnexion) rationalise des SOS
+depuis quinze ans. L'intro de 2404.06985 énonce NOTRE motivation (« do not provide a
+certificate that can be checked a posteriori »). Le claim central reste vrai (aucun certificat
+d'infaisabilité de BRAS exactement re-vérifiable) mais la formulation « SOS = à croire sur
+parole » était fausse par omission. Repositionné : la différence est l'ABSENCE de l'étape
+fragile (récupérer une Gram PSD exacte) — LP/Bernstein ⟹ arrondir des rationnels, mesuré au
+premier palier sur 7 scènes — et l'application à un C-space de bras 7-DOF, pas à un polynôme.
+Risque stratégique nommé : 2404.06985 + rationalisation exacte = le pas suivant naturel du
+groupe ⟹ preprint d'horodatage encore plus pressant.
+[A49] Les UNITÉS d'un chiffre suivent la GRANDEUR calculée dans le code (fichier:ligne), pas
+l'intuition du rédacteur. Toute grandeur chiffrée du papier porte son unité vérifiée.
+[A50] Une garantie s'attribue au COMPOSANT qui l'a fournie. Les refus §7.7 = moteur ; le
+vérificateur garde la faute opposée (générateur écrivant un certificat faux). Nommer les deux.
+[A51] La passe biblio A28 vérifie les références citées ET « ce que les voisins directs ont
+publié depuis 12 mois ». Leçon : Henrion 2024 vérifié, sa lignée 2025-26 sur les certificats
+exacts manquée — trouvée par Stéphane, pas par la passe.
+Diffs : D71 (règle 9/A41 unité) ; D72 (A49-A51 → règle 9) ; D73 (erratum journal S11 l.2926,
+appendu) ; D74 (section S14) ; D75 (header v1.23).
+
+**Application (ouverture S14, Code — circuit A16, commit doc séparé)** :
+- **[D71]** `CLAUDE.md` règle 9, corollaire A41 : « (~2e-6 rad mesuré) » → « (~2e-6 m à la bride —
+  position, 1 500 configurations ; axes du SDF alignés à ~3,7e-6 rad) [unité corrigée, revue P2, D71] ».
+  Seule l'unité change ; le reste du corollaire est intact.
+- **[D72]** `CLAUDE.md` règle 9 : blocs A49, A50, A51 ajoutés après A48.
+- **[D73]** erratum appendu ci-dessous (on ne réécrit pas l'historique). Précision de lieu : la ligne
+  2926 appartient à l'entrée **S10-quater** (2026-06-26), pas à S11 comme l'écrit la revue ; le texte de
+  l'erratum est transcrit tel quel.
+- **[D74]** `CLAUDE.md` : section « S14 — Reproductibilité et buffer [ex-S13] » remplacée par « S14 —
+  REPRODUCE + FIGURES PAPIER » (= le prompt S14) ; le reste de l'ex-S14 (machine vierge, gel des
+  versions, tag v1.0) est noté comme non re-planifié.
+- **[D75]** en-tête `CLAUDE.md` v1.23 + paragraphe de changelog v1.22 → v1.23. La note de numérotation
+  est conservée : **v1.21 reste réservé à D66** (revue S12 toujours non fournie).
+
+### ERRATUM [D73, revue P2] — entrée S10-quater, `JOURNAL.md` l.2926
+
+JOURNAL S11 l.2926 : « q1 et q3 laissent z INVARIANT » n'est vrai qu'à q2 = 0 ; à q2 = 61,9° le
+sommet varie de 0,566 à 0,627 m selon q1/q3, toujours sous 0,68 (P2 §3.1).

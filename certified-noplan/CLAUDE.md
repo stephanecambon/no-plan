@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.22 — 10 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/P1 ; v1.0..v1.20 dans git).
+Version 1.23 — 10 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/P1/P2 ; v1.0..v1.22 dans git).
 **[Numérotation, P2]** — le numéro **v1.21 reste réservé à D66** (bascule groupée avec la
 transcription de la revue S12 + D64/D65, **toujours non fournie** au 10 septembre 2026). Le lot
 de la revue P1 (D67-D70) prend **v1.22** sur instruction D70 : le trou de numérotation est voulu
@@ -184,6 +184,23 @@ D-P2 (b) `except Exception` + vrai fuzz de garbage → section S13, GROUPÉ avec
 si nécessaire) = convention binding du squelette, pas une règle. **[D70]** ce header+changelog.
 Détail : entrée « Revue de supervision P1 » de JOURNAL.md.
 
+Changements v1.22 → v1.23 (revue P2, **[A49-A51]**, D71-D75 ; **v1.21 toujours réservé à D66**) :
+**fact-check §§ 6-9 endossé** (66 affirmations : 9 FAUSSES, 16 IMPRÉCISES, 4 mesures hors dépôt, zéro
+code touché) ; **unité de fidélité corrigée** — la parité 1,99e-6 est une POSITION en mètres à la bride,
+pas un angle (**[D71]** règle 9, corollaire A41 : c'est la faute d'unité de la supervision, pas une
+réécriture de règle) ; **attribution des refus au moteur** (le certificat exigé refuse les fausses
+déconnexions ; le vérificateur garde la faute opposée) ; **lignée des certificats exacts
+(Henrion / RealCertify) intégrée** au papier (la différence est l'ABSENCE de l'étape fragile — récupérer
+une Gram PSD exacte — et l'application à un C-space de bras 7-DOF) ; **S14 reproduce**. **[A49]** les
+unités suivent la grandeur calculée dans le code ; **[A50]** une garantie s'attribue au composant qui
+l'a fournie ; **[A51]** la passe biblio A28 couvre aussi ce que les voisins directs ont publié depuis
+12 mois — **[D72]** A49-A51 → règle 9. **[D73]** erratum appendu au journal (invariance de z en q1/q3,
+vraie seulement à q2 = 0). **[D74]** section S14 du plan réécrite. **[D75]** ce header+changelog.
+Décisions D-P2-A..D : A → partout + règle 9 ; B → convention « JSON daté OU entrée de journal mesurée
+et datée » pour le preprint, archivage JSON en S14 ; C → dit au papier, re-bench arbre PROPRE en S14 ;
+D → certificats de TOUTES les lignes livrés en S14, `S5_iiwa_shelf.cert.json` gardé hors « released ».
+Détail : entrée « Revue de supervision P2 » de JOURNAL.md.
+
 ---
 
 ## Règles non négociables
@@ -255,7 +272,8 @@ Détail : entrée « Revue de supervision P1 » de JOURNAL.md.
    inatteignable — le SDF iiwa7 n'est aligné aux axes qu'à ~3,67e-6 (quaternions arrondis)
    et verify.py porte des axes rationnels ; reformulé « fidèle au SDF ~4e-6 + interne exact »
    (doctrine A21 étendue à la cinématique). Corollaire papier : la fidélité au robot PHYSIQUE
-   est plafonnée par la précision de l'URDF publié (~2e-6 rad mesuré), pas par la méthode —
+   est plafonnée par la précision de l'URDF publié (~2e-6 m à la bride — position, 1 500 configurations ;
+   axes du SDF alignés à ~3,7e-6 rad) [unité corrigée, revue P2, D71], pas par la méthode —
    énoncer « cinématique fidèle à l'URDF iiwa7 à 2e-6 près », PAS « le iiwa exact ».
    **[A43, S10-ter] La FIDÉLITÉ GÉOMÉTRIQUE DU CORPS change la difficulté de conception du
    piège.** Tout le projet a piégé des corps-SEGMENTS (grand levier ⟹ déconnexion par lacet de
@@ -285,6 +303,18 @@ Détail : entrée « Revue de supervision P1 » de JOURNAL.md.
    large était correct et la preuve était mal construite (choisir φ(s*)=0, pas |φ|≤δ) ;
    3 affirmations fausses et 5 imprécises attrapées sur 31. **Corollaire : un fact-check P-n
    précède chaque bloc de rédaction qui touche au code.**
+   **[A49, revue P2, D72] Les UNITÉS d'un chiffre suivent la GRANDEUR calculée dans le code
+   (fichier:ligne), pas l'intuition du rédacteur. Toute grandeur chiffrée du papier porte son unité
+   vérifiée.** Leçon P2 : « 2·10⁻⁶ rad » écrit 11 fois (papier, squelette, et le corollaire A41
+   ci-dessus) alors que la parité mesure une POSITION en mètres à la bride
+   (`scripts/build_iiwa7_chain.py:176-179`) ; seul le 3,67e-6 d'alignement des axes SDF est un angle.
+   **[A50, revue P2, D72] Une garantie s'attribue au COMPOSANT qui l'a fournie.** Les refus du
+   micro-canal et de la scène leaky sont ceux du MOTEUR (pas de témoin sur toutes les cellules ⟹ pas
+   de certificat) ; le vérificateur n'a rien vu — il garde la faute OPPOSÉE (un générateur qui écrirait
+   un certificat faux). Nommer les deux.
+   **[A51, revue P2, D72] La passe biblio A28 vérifie les références citées ET ce que les voisins
+   directs ont publié depuis 12 mois.** Leçon : Henrion 2024 vérifié, sa lignée 2025-26 sur les
+   certificats en arithmétique exacte manquée — trouvée par Stéphane, pas par la passe.
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
@@ -958,12 +988,38 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
 - Sortie : CI complète verte, zéro skip requis ; zéro faux certificat sur ≥ 200
   scènes adversariales générées.
 
-### S14 — Reproductibilité et buffer [ex-S13, décalée par D62]
-- Entrée : S13.
-- Tâches : `make reproduce` one-shot (toutes scènes + benchmarks + figures) ;
-  gel des versions ; rattrapage ; revue finale JOURNAL → liste des claims
-  soutenus par artefacts (matière à papier).
-- Sortie : `make reproduce` regénère tout sur machine vierge ; tag v1.0.
+### S14 — REPRODUCE + FIGURES PAPIER [D74, revue P2 — avancée avant S13 : preprint d'abord]
+- Entrée : P2 (fact-check §§ 6-9) + LaTeX v0.3 déposé (`docs/paper/latex/`). Session AUTONOME,
+  taille moyenne. **`verify.py` SACRÉ, zéro diff ; aucun changement de moteur** — S14 ne touche que
+  `scripts/`, `benchmarks/`, `scenes/*.cert.json`, `docs/`, `Makefile`.
+- Tâches :
+  1. **`make reproduce`** sur arbre PROPRE (`git_dirty=false` vrai pendant le run), **un process par
+     scène** (cache FK par process, leçon S12) : `run_benchmark.py` chronomètre les TROIS phases
+     (engine = b&b seul ; certify = bout-en-bout avec export ; verify) sur les 8 lignes de la table
+     §7.6 (relay, comb, ancre S3, bac S4 post-L6, flagship S6, bac empilé, capot, mur k=3..7 + point
+     k=8 `budget_time`) → `benchmarks/results/<ts>/reproduce.json` (commit, git_dirty, machine,
+     versions). **Certificats de TOUTES les lignes** archivés (`scenes/*.cert.json`,
+     `scenes/wall/k{3..7}.cert.json`), chacun re-vérifié par `cnp.verify.verify_file` (module seul)
+     ET `cnp verify <cert> <scene>` ; `S5_iiwa_shelf.cert.json` conservé, marqué iiwa-LIKE hors
+     tables. **Archivage JSON des mesures journal-only** (D-P2-B) : levier iiwa7, vérité-terrain S3,
+     compteurs 40 000/448 des iiwa7 ; provenance (commit, git_dirty) ajoutée à `calibration.json` et
+     `A44_columns_check.json`.
+  2. **Figures papier** (`make paper-figures` → `benchmarks/figures/paper/`, 300 dpi, anglais, zéro
+     code interne) : fig1 (composite flagship, chiffres lus dans reproduce.json), cost_vs_active_dims
+     (une courbe + k=8 UNDECIDED), partition_E3 (hors-dalle hachuré, couleurs par paire), S3 sweep +
+     C-space. Chaque script lit ses chiffres dans les JSON (V7).
+  3. `docs/paper/FACTCHECK-figs.md` : chaque nombre visible confronté au paper.tex (paper.tex NON
+     modifié, la supervision intègre).
+  4. Biblio [VERIFY] (réseau) → `docs/paper/BIB-VERIFY-S14.md`.
+  5. Intégration LaTeX : `docs/paper/latex/figures/` → `benchmarks/figures/paper/` ; compilation si
+     TeX disponible ; README du dossier.
+- Coupe naturelle autorisée après 1 + 2 (3-5 → S14-bis).
+- Sortie : reproduce.json à `git_dirty=false` ; 8/8 lignes avec certificat livré et doublement
+  vérifié ; figures papier régénérées ; `make test` vert ; journal (table reproduce, certificats
+  livrés, divergences figures↔texte, VERIFY résolus) ; commit ET push. Prochaine étape : revue
+  supervision → relecture Stéphane → preprint arXiv → contact Dantam / Li / Henrion.
+- Reste de l'ex-S14 (machine vierge, gel des versions, tag v1.0) : non re-planifié — à arbitrer par
+  la supervision.
 
 ---
 
