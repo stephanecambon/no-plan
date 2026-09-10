@@ -1,0 +1,132 @@
+{
+  "scene": "scenes/S6_iiwa_real_shelf.yaml",
+  "body_link": 7,
+  "n_hull_vertices": 40,
+  "active_dims": [
+    0,
+    1,
+    2
+  ],
+  "passive_dims": [
+    3,
+    4,
+    5,
+    6
+  ],
+  "delta": 0.2,
+  "robust_threshold_mm": 40.0,
+  "metric": "franc margin = A(slab, min support) - B(start/goal, max support), per candidate separator joint, world direction and obstacle motif",
+  "motifs": {
+    "halfspace": "overhead / ceiling obstacle {x.u >= c}",
+    "plate": "wall to cross {c1 <= x.u <= c2}"
+  },
+  "separators": [
+    {
+      "separator_dim": 0,
+      "joint": "q1",
+      "joint_type": "yaw",
+      "poses": "symmetric s = -3/5 / +3/5 on the tested joint",
+      "slab_configs_sampled": 245,
+      "directions": {
+        "+x": {
+          "halfspace_margin_mm": -259.3,
+          "plate_margin_mm": -259.3
+        },
+        "-x": {
+          "halfspace_margin_mm": -258.0,
+          "plate_margin_mm": -259.3
+        },
+        "+y": {
+          "halfspace_margin_mm": -86.6,
+          "plate_margin_mm": -86.6
+        },
+        "-y": {
+          "halfspace_margin_mm": -73.5,
+          "plate_margin_mm": -86.6
+        },
+        "+z": {
+          "halfspace_margin_mm": -299.0,
+          "plate_margin_mm": -299.0
+        },
+        "-z": {
+          "halfspace_margin_mm": 0.0,
+          "plate_margin_mm": -299.0
+        }
+      }
+    },
+    {
+      "separator_dim": 1,
+      "joint": "q2",
+      "joint_type": "pitch",
+      "poses": "scene start/goal",
+      "slab_configs_sampled": 245,
+      "directions": {
+        "+x": {
+          "halfspace_margin_mm": -430.1,
+          "plate_margin_mm": -430.1
+        },
+        "-x": {
+          "halfspace_margin_mm": -429.3,
+          "plate_margin_mm": -430.1
+        },
+        "+y": {
+          "halfspace_margin_mm": -112.7,
+          "plate_margin_mm": -112.7
+        },
+        "-y": {
+          "halfspace_margin_mm": -72.5,
+          "plate_margin_mm": -112.7
+        },
+        "+z": {
+          "halfspace_margin_mm": 174.8,
+          "plate_margin_mm": -147.3
+        },
+        "-z": {
+          "halfspace_margin_mm": -147.3,
+          "plate_margin_mm": -147.3
+        }
+      }
+    },
+    {
+      "separator_dim": 2,
+      "joint": "q3",
+      "joint_type": "roll",
+      "poses": "symmetric s = -3/5 / +3/5 on the tested joint",
+      "slab_configs_sampled": 245,
+      "directions": {
+        "+x": {
+          "halfspace_margin_mm": -259.4,
+          "plate_margin_mm": -259.4
+        },
+        "-x": {
+          "halfspace_margin_mm": -258.5,
+          "plate_margin_mm": -259.4
+        },
+        "+y": {
+          "halfspace_margin_mm": -212.6,
+          "plate_margin_mm": -212.6
+        },
+        "-y": {
+          "halfspace_margin_mm": -199.7,
+          "plate_margin_mm": -212.6
+        },
+        "+z": {
+          "halfspace_margin_mm": -268.2,
+          "plate_margin_mm": -268.2
+        },
+        "-z": {
+          "halfspace_margin_mm": 0.0,
+          "plate_margin_mm": -268.2
+        }
+      }
+    }
+  ],
+  "best": {
+    "separator_dim": 1,
+    "joint": "q2",
+    "motif": "halfspace",
+    "direction": "+z",
+    "margin_mm": 174.8,
+    "robust": true
+  }
+}

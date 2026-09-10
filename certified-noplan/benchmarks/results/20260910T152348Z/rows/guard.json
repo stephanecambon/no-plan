@@ -1,0 +1,117 @@
+{
+  "row": "guard",
+  "scene": "scenes/usecase_capot_surete_iiwa7.yaml",
+  "dof": 7,
+  "axis": "margin",
+  "lam_degree": "affine",
+  "budget": {
+    "max_depth": 24,
+    "max_leaves": null,
+    "max_time_s": null
+  },
+  "verdict_engine": "PROOF",
+  "leaves": 4,
+  "by_status": {
+    "outside": 2,
+    "collision": 2
+  },
+  "termination": "certified",
+  "n_lp_solves": 5,
+  "verdict": "PROOF",
+  "verify_msg": "PROOF verified exactly: 4 leaves (2 collision, 2 outside); start/goal separated by the slab |phi| <= 9/50.",
+  "phases_s": {
+    "load_and_fk_build": 41.628,
+    "engine": 1.734,
+    "export": 6.65
+  },
+  "export_breakdown_s": {
+    "verify_loop_full_verifier": 2.524,
+    "verify_loop_calls": 1,
+    "per_leaf_exact_audit": 2.527,
+    "per_leaf_audit_calls": 2,
+    "audit_setup_fk_rederivation": 0.005
+  },
+  "engine_s": 1.734,
+  "certify_s": 50.012,
+  "verify_s": 2.605,
+  "certificate": "scenes/usecase_capot_surete_iiwa7.cert.json",
+  "cert_stats": {
+    "n_leaves": 4,
+    "n_collision": 2,
+    "n_outside": 2,
+    "n_reresolve_failed": 0,
+    "n_leaves_embedded": 2,
+    "n_leaves_resolved": 0,
+    "n_embed_rejected": 0
+  },
+  "recheck_stdlib_verify_file": {
+    "ok": true,
+    "msg": "PROOF verified exactly: 4 leaves (2 collision, 2 outside); start/goal separated by the slab |phi| <= 9/50.",
+    "third_party_modules_loaded": [],
+    "site_disabled": true,
+    "wall_s": 2.13,
+    "command": "python -S -I -c 'from cnp.verify import verify_file; verify_file(...)'"
+  },
+  "recheck_cli_verify_with_scene": {
+    "returncode": 0,
+    "ok": true,
+    "first_lines": [
+      "OK    \u2014 PROOF verified exactly: 4 leaves (2 collision, 2 outside); start/goal separated by the slab |phi| <= 9/50.",
+      "verdict: PROOF (verified in exact arithmetic + scene cross-check)"
+    ],
+    "command": "cnp verify scenes/usecase_capot_surete_iiwa7.cert.json scenes/usecase_capot_surete_iiwa7.yaml"
+  },
+  "active_dims": [
+    0,
+    1,
+    2
+  ],
+  "n_active": 3,
+  "passive_dims": [
+    3,
+    4,
+    5,
+    6
+  ],
+  "lp_reduced": {
+    "rows": 1070,
+    "cols": 167
+  },
+  "lp_full": {
+    "rows": 473870,
+    "cols": 327
+  },
+  "reduction_x": 442.9,
+  "lp_full_rows_formula": 473870,
+  "embedding_applicable": {
+    "GUARD_PANEL": {
+      "applicable": true,
+      "reason": "passive axes (3, 4, 5, 6) absent from the ORIGINAL D, numerators and phi, and A29 divided nothing \u21d2 direct embedding is exact"
+    }
+  },
+  "groundtruth": {
+    "start_free": true,
+    "goal_free": true,
+    "n_uniform_in_slab": 40000,
+    "free_in_slab": 0,
+    "n_slab_corners": 448,
+    "free_at_slab_corners": 0,
+    "slab_corner_construction": "2^6 extremes of the non-barrier joints x 7 barrier levels",
+    "n_distal_extreme_combinations": 16,
+    "redundancy_all_collide": true,
+    "n_per_side": 4000,
+    "free_left": 4000,
+    "free_right": 4000,
+    "obstacle": "GUARD_PANEL",
+    "obstacle_underside_z_m": 0.695,
+    "slab_min_body_top_m": 0.7781,
+    "startgoal_max_body_top_m": 0.6097,
+    "slab_penetration_mm": 83.1,
+    "startgoal_clearance_mm": 85.3,
+    "margin_grid": "q1 x q2-in-slab x q3 = 7 x 5 x 7, distal joints at 0",
+    "seed": 100011,
+    "plausible": true,
+    "oracle": "convex body vs H-rep polytope (scenes.convex_collision_oracle, LP)",
+    "wall_s": 252.9
+  }
+}

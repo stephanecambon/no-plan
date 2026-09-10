@@ -1,0 +1,40 @@
+{
+  "reproduce": "benchmarks/results/20260910T152348Z/reproduce.json",
+  "commit": "8d056e5645c8537f1bb9833cb8ced70534e52665",
+  "stamp": "20260910T152348Z",
+  "cost_vs_active_dims.png": {
+    "rows_k3_k7": [
+      766,
+      3782,
+      18814,
+      93878,
+      469006
+    ],
+    "rows_k8_formula": 2344262,
+    "ratio_per_dim": 4.974,
+    "k8_termination": "budget_time",
+    "k8_engine_s": 476.67
+  },
+  "partition_E3.png": {
+    "scene": "scenes/S1_relais.yaml",
+    "certificate": "scenes/S1_relais.cert.json",
+    "leaves": 46,
+    "collision_by_pair": {
+      "UP": 12,
+      "DOWN": 12,
+      "MID": 14
+    },
+    "outside": 8
+  },
+  "scene_S3_shoulder_elbow_{sweep,cspace}.png": {
+    "scene": "scenes/S3_shoulder_elbow.yaml",
+    "sweep_poses": 9,
+    "sweep_poses_in_collision": 3,
+    "limits": "joint limits: yaw ±70°, pitch ±44°, roll ±90°, elbow 0–109°"
+  },
+  "fig1.png": {
+    "figure": "benchmarks/figures/paper/fig1.png",
+    "reproduce": "benchmarks/results/20260910T152348Z/reproduce.json",
+    "commit": "8d056e5645c8537f1bb9833cb8ced70534e52665"
+  }
+}

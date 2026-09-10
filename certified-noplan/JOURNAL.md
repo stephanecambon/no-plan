@@ -3864,3 +3864,134 @@ appendu) ; D74 (section S14) ; D75 (header v1.23).
 
 JOURNAL S11 l.2926 : « q1 et q3 laissent z INVARIANT » n'est vrai qu'à q2 = 0 ; à q2 = 61,9° le
 sommet varie de 0,566 à 0,627 m selon q1/q3, toujours sous 0,68 (P2 §3.1).
+
+## 2026-09-10 — Session S14 (Claude Code, AUTONOME) — **`make reproduce` sur arbre PROPRE : 12 lignes PROOF doublement re-vérifiées + k=8 UNDECIDED ; certificats de TOUTES les lignes livrés ; figures papier en anglais** ; `verify.py` zéro diff, moteur intouché
+
+Tâches 1 à 5 faites, aucune coupe. `src/` : zéro diff. Session limitée à `scripts/`, `benchmarks/`,
+`scenes/`, `docs/`, `Makefile`, `.gitignore`.
+
+**Ouverture [A33] — trois écarts constatés, deux questions posées.**
+(1) À la première lecture, l'arbre était PROPRE : `docs/paper/latex/` n'avait pas été déposé ⟹ STOP et
+question. Stéphane a déposé puis déplacé : `docs/papers/` renommé en `docs/paper/` (5 fichiers
+**identiques octet pour octet** à HEAD, vérifié par `cmp`) et `docs/paper/latex/{paper.tex, refs.bib}` —
+**sans `README.md`** (créé en Tâche 5). Commité tel quel : `e9b5927`.
+(2) Machine NON quiète (charge 4,1 ; jeu Windows R.U.S.E. sous CrossOver à 182 % CPU ; VM Docker
+Desktop) ⟹ question ; réponse « tue les processus gênants » : Docker Desktop arrêté proprement
+(`quit app`), restes CrossOver/wine tués (`kill -9`, installateur VC_redist compris) ; Chrome, Word et
+Spotify **laissés** (données non sauvegardées possibles, CPU faible). Charge au lancement du run : 1,13.
+(3) **`benchmarks/results/` était ignoré par git** (`.gitignore:6`, `git ls-files` = 0) : aucun des
+JSON datés cités par le papier ni par P1/P2 n'était sur GitHub ⟹ question ; décision Stéphane :
+versionner. Commit `95fa854` (15 runs historiques, tels quels). Écart de chemin : le prompt dit
+`docs/paper/`, le dépôt disait `docs/papers/` — résolu par le renommage de Stéphane.
+`make test` d'ouverture : **240 passed, 1 deselected, 0 skipped, 0 warnings** (406 s).
+Ouverture DOC (circuit A16) : commit séparé `41b6378` (revue P2, D71-D75, voir entrée ci-dessus).
+
+### Fait
+
+**Tâche 1 — `make reproduce`** (`benchmarks/run_benchmark.py --reproduce`, commit du code `8d056e5`,
+run `benchmarks/results/20260910T152348Z/reproduce.json`, **`git_dirty_at_start = false`**, changements
+d'arbre en fin de run = **sorties du run uniquement**, vérifié par le harnais). Un process par ligne ;
+trois phases chronométrées (engine = b&b seul ; certify = chargement scène + build FK + engine + export ;
+verify) ; vérité-terrain ré-assertée APRÈS les phases chronométrées ; machine, versions et charge
+consignées.
+
+| ligne | DOF / actives | feuilles | engine | certify | verify | vérité-terrain |
+|---|---|---|---|---|---|---|
+| relais planaire | 2 / 2 | 46 | 0,45 s | 0,87 s | 0,09 s | — |
+| peigne | 3 / 2 | 54 | 1,35 s | 1,91 s | 0,17 s | 0 / 300 000 |
+| ancre épaule-coude | 4 / 2 | 8 | 0,10 s | 0,38 s | 0,04 s | 0 / 150 000 |
+| bac iiwa-like (post-L6) | 5 / 3 | 8 | 0,20 s | 1,14 s | 0,15 s | 0 / 40 000 |
+| iiwa7 étagère (flagship) | 7 / 3 | 2 | 1,39 s | 46,1 s | 2,40 s | 0 / 40 000 + 0 / 448 coins |
+| iiwa7 bac empilé | 7 / 3 | 2 | 1,95 s | 59,3 s | 3,24 s | 0 / 40 000 + 0 / 448 |
+| iiwa7 capot | 7 / 3 | 4 | 1,73 s | 50,0 s | 2,61 s | 0 / 40 000 + 0 / 448 |
+| mur scellé k = 3…7 | k / k | 2-4 | 0,12-70,7 s | 0,37-96,2 s | 0,011-7,28 s | 0 / 8 000 + 0 / 8 000 coins |
+| mur k = 8 | 8 / 8 | 2 | 476,7 s | — | — | UNDECIDED `budget_time` (300 s) |
+
+- **Certificats livrés : 8/8 lignes de la table** (12 certificats) — `scenes/S1_relais`, `S2_peigne`,
+  `S3_shoulder_elbow`, `S4_iiwa_bin` (nouveaux), `S6_iiwa_real_shelf`, `usecase_binpicking_iiwa7`,
+  `usecase_capot_surete_iiwa7` (régénérés : **identiques octet pour octet** aux certificats S12
+  commités), `scenes/wall/k3…k7` (nouveaux). **Chacun re-prouvé deux fois hors générateur** :
+  `cnp.verify.verify_file` sous `python -S -I` (**aucun module tiers chargé**) ET
+  `cnp verify <cert> <scene>` (recoupement de scène), les deux OK partout. Tous : `n_reresolve_failed = 0`,
+  `n_embed_rejected = 0` ; l'ancre exerce le **repli** (4 feuilles re-résolues).
+  `S5_iiwa_shelf.cert.json` conservé, non régénéré, hors « released ».
+- **Famille du mur figée en fichiers de scène** : `scripts/export_wall_scenes.py` →
+  `scenes/wall/k3…k8.yaml`, aller-retour prouvé (`scene_matches_cert` contre l'en-tête construit depuis
+  la scène S9f en mémoire).
+- **Taille du LP** : la formule faces × (DPAD+1)^k + K × (d_λ+1)^k est **égale au LP construit sur les
+  12 lignes certifiées** (consigné) ⟹ k = 8 : 2 344 262 lignes.
+- **Décomposition de l'export du flagship** (chronométrée par enveloppes de TIMING seulement, posées et
+  retirées dans le harnais, appel d'origine inchangé) : verify_loop 2,43 s + audit exact par feuille
+  2,48 s = **4,9 s** — la valeur du papier, désormais en JSON.
+- **Mesures journal-only archivées (D-P2-B)** : levier iiwa7 (`lever_iiwa7.json`, 3 joints × 6 directions
+  × 2 motifs, mm) ; vérité-terrain S3 (0 / 150 000) et comb (0 / 300 000) ; compteurs iiwa7 (40 000,
+  448 coins, 16 combinaisons distales, 4 000 par côté, hauteurs de corps) ; fidélité cinématique
+  (`kinematic_fidelity` : 1,985e-6 m à la bride sur 1 500 configurations ; 1,674e-6 m corps sur 200).
+- **Provenance a posteriori** : `calibration.json` (commit `eb134e7`, dirty false, par co-localisation —
+  le script n'enregistrait rien) et `A44_columns_check.json` (commit `e48ac27`, dirty true, même run que
+  `L6_eval.json`) — clé `provenance_annotation` ajoutée, **aucune valeur mesurée modifiée**.
+
+**Tâche 2 — figures papier** (`make paper-figures` → `benchmarks/figures/paper/`, 300 dpi, anglais, aucun
+code interne ; `SOURCES.json` dit ce que chaque figure a lu) : `fig1.png` (chiffres lus dans
+reproduce.json : verify 2,40 s, pas 3,79), `cost_vs_active_dims.png` (une courbe + k = 8 UNDECIDED ; la
+courbe « φ tendu » sort de la figure papier, reste dans la figure S9f du dépôt), `partition_E3.png`
+(hors-dalle hachuré, couleurs par obstacle, **panneau droit zoomé sur la dalle**),
+`scene_S3_shoulder_elbow_{sweep,cspace}.png`. **Relecture visuelle par Code, deux itérations** : étiquette
+k = 8 rognée ; panneau gauche de la partition qui masquait la dent du milieu (priorité de couleur) ;
+partition illisible pleine largeur (dalle de 11° dans 180°) ⟹ zoom ; encadré qui masquait « start » ;
+bras dessiné d'une seule épaisseur contre la légende ; légende du C-space S3 sur le mur puis sur le goal ;
+chemin de fichier « S6 » dans la ligne de source de la Fig. 1. Tout corrigé. **Le gate humain de
+SUFFISANCE (A45) reste à passer** : Code a vérifié la fidélité et la lisibilité, pas la suffisance.
+
+**Tâche 3 — `docs/paper/FACTCHECK-figs.md`.** Chiffres visibles conformes à `paper.tex`, sauf :
+(1) Fig. 1 verify **2,40 s** (reproduce) contre **2,42 s** (S12) — choisir une source ; (2) figure du coût :
+facteur **×4,97** (moyenne géométrique) contre **×4,99** (dernier pas) dans le texte ; point k = 8
+**tracé** alors que la légende dit « not plotted » ; courbe pointillée **retirée** alors que la légende
+la décrit ; (3) partition : panneau droit **zoomé**. Trois notes « [Draft: …] » des légendes sont
+résolues. **Constats texte** : §6.1 « negative in every direction » — le JSON du levier donne **0,0 mm
+exactement** en −z pour le lacet de base et le roulis (non positif, pas négatif) ; §7.3 le « 0,77 s† »
+**n'était pas bout-en-bout** (`calibrate_g2.py:71-73` chronomètre après le build) ; §6.2 « returns after
+455 s » contre 476,7 s ; ligne bac empilé mesurée sous charge plus haute (2,86) — bruit, pas régression.
+
+**Tâche 4 — `docs/paper/BIB-VERIFY-S14.md`** (passe agent + re-vérification directe par la session des
+points décisifs) : `feasibility2026` = Ansari, Arthi, Varma, Thomas ; `hypercube2026` = Sven Polak seul,
+scripts Julia de vérification confirmés ; **`magron2021jsc` : DOI FAUX** (…03.001 = Ansola et al.) —
+correct 10.1016/j.jsc.2021.03.005, JSC 107, 221-250 ; `magron2018realcertify` à citer comme article ACM
+CCA 52(2) 34-37 ; `dantam2018` et `garrett2018` corrects (DOI à ajouter) ; `magron2018putinar` pp.
+279-286. `refs.bib` non modifié.
+
+**Tâche 5 — LaTeX** : lien symbolique `docs/paper/latex/figures → ../../../benchmarks/figures/paper`
+(le prompt disait `../../` : trop court d'un niveau depuis `docs/paper/latex/`) ; **aucune distribution TeX
+sur la machine** (`latexmk`, `pdflatex` absents) ⟹ **compilation NON testée**, PDF non archivé ;
+`docs/paper/latex/README.md` créé (figures présentes, corrections biblio à porter).
+
+### Décisions (Code, dans le mandat)
+
+- **Vérité-terrain APRÈS les phases chronométrées** dans chaque process : elle ne peut pas chauffer le
+  cache FK dont dépendent les chronos.
+- **Nommage anglais des joints** : un axe effectif vertical est le lacet de base pour le PREMIER joint et
+  un ROULIS ensuite (iiwa7 : yaw, pitch, roll, pitch, roll, pitch, roll) — l'axe effectif seul confond
+  les deux, et la viz française existante nomme q3 « lacet ».
+- Pas de re-run de la ligne bac empilé pour « avoir un meilleur chiffre » : la charge est consignée, le
+  choix de la source revient à la supervision.
+
+### Pièges
+
+- `calibrate_g2.py` chronomètre `cert.certify` **après** `build_problem` : ses temps ne sont pas
+  bout-en-bout (cause du « 0,77 s† »).
+- Un JSON de benchmark dans un dossier ignoré par git n'est « archivé » que sur une machine.
+- Le contrôle `git_dirty` en DÉBUT de run ne suffit pas : le harnais écrit des sorties (certificats,
+  résultats) ; il vérifie en fin de run que les seuls changements sont ces sorties.
+
+**Décompte exact (clôture)** : `make test` = **240 passed, 1 deselected, 0 skipped, 0 warnings** (425 s),
+lancé après les modifications de `run_benchmark.py` et des scripts de vérité-terrain/levier ; les
+retouches de mise en page des deux scripts de figures postérieures ne sont importées par aucun test.
+**`verify.py` zéro diff ; `src/` zéro diff.** **Diffs CLAUDE.md** (commit `41b6378`) : en-tête v1.23 ;
+changelog v1.22 → v1.23 ; règle 9 corollaire A41 (unité m, D71) ; règle 9 blocs A49-A51 (D72) ; section
+S14 réécrite (D74). **Diff SPEC** : aucun. **`.gitignore`** : `benchmarks/results/` retiré.
+
+**Prochaine étape** : **revue de supervision** — intégrer `FACTCHECK-figs.md` (légendes des trois figures,
+source unique des chronos, §6.1 « non-positive ») et `BIB-VERIFY-S14.md` (DOI JSC) dans `paper.tex` ;
+**gate humain de suffisance des figures (A45)** ; relecture Stéphane ; compilation LaTeX sur une
+machine équipée ; preprint arXiv ; contact Dantam / Li / Henrion. Toujours en attente : le bloc de revue
+S12 (D64/D65/D66, v1.21).

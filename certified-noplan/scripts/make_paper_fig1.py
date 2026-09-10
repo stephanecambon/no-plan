@@ -255,11 +255,11 @@ def _panel_cspace(ax, sc, oracle, n=110):
     ax.set_xlabel(f"q2, shoulder {names[bdim]} (deg) — the separating joint", fontsize=8.5)
     ax.set_ylabel(f"q1, base {names[other]} (deg)", fontsize=8.5)
     ax.tick_params(labelsize=7.5)
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.32), ncol=3, fontsize=7.0,
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=3, fontsize=7.0,
               framealpha=0.95)
     ax.set_title("(b) configuration-space cut: start and goal lie\nin two free components "
                  "(grey = collision)", fontsize=9.5)
-    ax.text(0.5, -0.16, "frame = the joint box; cut at q3 = … = q7 = 0",
+    ax.text(0.5, -0.115, "frame = the joint box; cut at q3 = … = q7 = 0",
             transform=ax.transAxes, ha="center", fontsize=7.0, style="italic")
 
 
@@ -319,7 +319,7 @@ def _panel_stats(ax, sc, rep, rep_path):
         y -= 0.031
     clean = "clean tree" if rep.get("git_dirty_at_start") is False else "DIRTY tree"
     ax.text(0.0, y - 0.02, f"source: {os.path.relpath(rep_path)} · commit "
-                           f"{rep['commit'][:7]} · {clean} · {row['certificate']}",
+                           f"{rep['commit'][:7]} · {clean}",
             fontsize=6.0, va="top", color="#666")
 
 
