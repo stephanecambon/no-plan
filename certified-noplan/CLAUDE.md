@@ -1,10 +1,11 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.23 — 10 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/P1/P2 ; v1.0..v1.22 dans git).
-**[Numérotation, P2]** — le numéro **v1.21 reste réservé à D66** (bascule groupée avec la
-transcription de la revue S12 + D64/D65, **toujours non fournie** au 10 septembre 2026). Le lot
-de la revue P1 (D67-D70) prend **v1.22** sur instruction D70 : le trou de numérotation est voulu
-et visible, pas une omission. A48 (appliquée en addendum P1) est ratifiée par ce lot (D68).
+Version 1.24 — 29 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/S12/P1/P2/S14 ; v1.0..v1.23 dans git).
+**[Numérotation]** — **v1.21 = D66, appliqué a posteriori le 29/09/2026** (ouverture S15) : la
+revue S12 (09/09) avait été livrée sans être remise dans un prompt, faute de circuit supervision ;
+elle est transcrite au journal en ouverture S15 avec D64/D65. Le lot P1 (D67-D70) avait pris
+**v1.22** sur instruction D70 pour laisser ce trou visible ; il est désormais comblé, dans l'ordre
+des numéros et non des dates. A48 (appliquée en addendum P1) est ratifiée par le lot P1 (D68).
 Règles binding pour Claude Code (modèle : Opus) + plan de développement par
 sessions. Lire SPEC.md avant toute session. Tenir JOURNAL.md à jour.
 
@@ -171,8 +172,16 @@ signal d'**ERREUR DE MESURE**, pas un succès (le plancher attendu est celui de 
 → **[D61]** règle 9, à côté d'A28/A41. **[D63]** ce header+changelog. Détail : entrée « Revue de
 supervision S11 » de JOURNAL.md.
 
-Changements v1.20 → v1.22 (revue P1, **[A48]**, D67-D70 ; **v1.21 réservé à D66**, revue S12 non
-fournie) : **P1 validée** — fact-check §§ 1-5 endossé (31 affirmations : 3 FAUSSES, 5 IMPRÉCISES,
+Changements v1.20 → v1.21 (revue S12, **[A47]**, D64-D66 — **appliqués a posteriori en ouverture S15**,
+29/09/2026 ; la revue datée du 09/09 n'avait pas été remise dans un prompt) : **S12 validée** — bascule
+L6 sound sous les quatre gardes (`verify.py` zéro diff, 240/1/0/0, 0 changement de verdict, repli
+exercé sur S3) ; gains ×15,5 / ×12,3 / ×10,6. **[A47]** une garde de soundness s'implémente avec le
+code de l'ARBITRE lui-même, jamais par ré-implémentation → **[D64]** règle 9 ; **[D65]** FW-perf (build FK
+sympy ~39 s ; `_body_numerators` ×2 ; audit ≈ verify complet — soundness non concernée) → section S13 ;
+**[D66]** ce header+changelog. Détail : entrée « Revue de supervision S12 » de JOURNAL.md.
+
+Changements v1.21 → v1.22 (revue P1, **[A48]**, D67-D70 ; posé avant v1.21, voir la note de
+numérotation) : **P1 validée** — fact-check §§ 1-5 endossé (31 affirmations : 3 FAUSSES, 5 IMPRÉCISES,
 3 à renforcer, 19 vraies ; toutes intégrées au brouillon v0.2). Point critique : la preuve du
 théorème rédigée par la supervision supposait un test outside STRICT ; le code est LARGE partout
 (SPEC, engine, verify) et c'est CORRECT — la preuve choisit φ(s*) = 0 (TVI), correction purement
@@ -200,6 +209,17 @@ Décisions D-P2-A..D : A → partout + règle 9 ; B → convention « JSON daté
 et datée » pour le preprint, archivage JSON en S14 ; C → dit au papier, re-bench arbre PROPRE en S14 ;
 D → certificats de TOUTES les lignes livrés en S14, `S5_iiwa_shelf.cert.json` gardé hors « released ».
 Détail : entrée « Revue de supervision P2 » de JOURNAL.md.
+
+Changements v1.23 → v1.24 (revue S14, décisions de publication, S15 ; D76-D78) : **S14 validée** —
+`make reproduce` endossé (12 lignes PROOF + k=8 UNDECIDED budget, 8 certificats doublement re-prouvés).
+Décisions : **(a)** source UNIQUE des chronos courants du papier = `reproduce.json` (chiffres historiques
+726 s, 291 s/feuille, ×39,9 sourcés S11/S12 et cités comme tels) ; **(b)** ligne bac empilé tournée sous
+charge ⟹ rerun COMPLET sur machine quiète, le papier cite UN seul `reproduce.json` ; **(c)** intégration
+supervision, gate de suffisance des figures, compilation, preprint. Choix de publication (Stéphane) :
+arXiv cs.RO + cross-lists math.OC, cs.SC, licence arXiv perpetual non-exclusive ; repo rendu public avec
+son historique + archivage Zenodo. **[D76]** section S15 au plan ; **[D77]** règle 9 : audit de fuite de
+tout ce qui devient public ; **[D78]** ce header+changelog. Détail : entrée « Revue de supervision S14 »
+de JOURNAL.md.
 
 ---
 
@@ -296,6 +316,10 @@ Détail : entrée « Revue de supervision P2 » de JOURNAL.md.
    robot qui bouge faux ; remplacé par un ancrage des 8 liens sur 200 configurations aléatoires
    (1,14e-6). **Règle : tout contrôle de parité échantillonne TOUS les DOF et prend sa référence
    HORS de l'objet testé.** (Même famille qu'A28/A41 : on vérifie la source avant d'affirmer.)
+   **[A47, revue S12, D64] Une garde de soundness s'implémente avec le code de l'ARBITRE lui-même,
+   jamais par ré-implémentation.** Leçon S12 : l'audit par feuille de l'export embedé appelle
+   `verify._check_collision_leaf` — une garde qui EST l'arbitre ne peut pas diverger de lui ; une
+   ré-implémentation le pourrait, et c'est précisément la dérive qu'une garde doit exclure.
    **[A48, P1 — ratifiée revue P1, D68] Les affirmations du papier sur l'IMPLÉMENTATION (ce que verify teste, seuils,
    défauts, décomptes) sont confirmées par Code contre fichier:ligne AVANT toute circulation ;
    la supervision ne reconstruit pas le comportement du code depuis le journal.** Leçon P1 : la
@@ -315,6 +339,10 @@ Détail : entrée « Revue de supervision P2 » de JOURNAL.md.
    **[A51, revue P2, D72] La passe biblio A28 vérifie les références citées ET ce que les voisins
    directs ont publié depuis 12 mois.** Leçon : Henrion 2024 vérifié, sa lignée 2025-26 sur les
    certificats en arithmétique exacte manquée — trouvée par Stéphane, pas par la passe.
+   **[D77, revue S14] Tout ce qui devient public — papier, repo, figures — passe un AUDIT DE FUITE** :
+   secrets sur TOUT l'historique git (toutes branches), données personnelles, placeholders visibles.
+   Un vrai secret trouvé est RÉVOQUÉ (côté Stéphane) AVANT toute purge ; une purge d'historique
+   (force-push) ne se fait que sur accord exprès de Stéphane, jamais par Code seul.
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
@@ -985,6 +1013,10 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   diff de `verify.py` vaut plus qu'une ligne ; règles 1 et 4 (suite adversariale complète,
   < 500 lignes). Pas un défaut de soundness (le vérificateur lève au lieu d'accepter). Le papier
   porte déjà la phrase honnête (D-P2 (a)).
+- **[D65, revue S12 — FW-perf]** (soundness NON concernée) : build FK sympy ~39 s par process (cache
+  par scène / Drake RationalFK) ; `_body_numerators` calculé deux fois ; l'audit par feuille de l'export
+  coûte ≈ un verify complet (A47 : on garde l'arbitre comme garde, on n'optimise pas en le
+  ré-implémentant).
 - Sortie : CI complète verte, zéro skip requis ; zéro faux certificat sur ≥ 200
   scènes adversariales générées.
 
@@ -1020,6 +1052,30 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   supervision → relecture Stéphane → preprint arXiv → contact Dantam / Li / Henrion.
 - Reste de l'ex-S14 (machine vierge, gel des versions, tag v1.0) : non re-planifié — à arbitrer par
   la supervision.
+- ✅ **S14 ACTÉE (10/09/2026)**, validée par la revue S14 (15/09) — décisions (a)/(b)/(c), voir changelog v1.24.
+
+### S15 — PUBLICATION [D76, revue S14] — GATÉE (G1 décisions d'audit, G2 mise en public)
+- Entrée : S14 validée + version supervision du papier (29/09) déposée. **`verify.py` SACRÉ ; aucun
+  changement de moteur.** Code ne rend JAMAIS le repo public, ne crée pas de release publique, ne réécrit
+  pas l'historique et ne force-push pas de lui-même (actions irréversibles réservées à Stéphane ou
+  exécutées sur son accord exprès, action par action).
+- Tâches :
+  0. Si S14-bis n'a pas eu lieu : `make reproduce` COMPLET sur machine quiète (décision (b)), arbre
+     propre, un process par scène ; `make paper-figures` sur ce JSON ; `docs/paper/TABLE-reproduce.md`.
+  1. **Audit de publication** (lecture seule, D77) → `docs/PUBLICATION-AUDIT.md` : secrets sur tout
+     l'historique (gitleaks/trufflehog) ; inventaire de la racine `no-plan/`, 20 plus gros objets,
+     données personnelles ; candidats au retrait (HEAD seul ou purge) ; cohérence historique ↔ §9.
+  2. **Fichiers de publication** (préparés, pas publiés) : `LICENSE` (MIT par défaut), `README.md` racine
+     en anglais, `CITATION.cff`, `.zenodo.json` ; test depuis un clone frais (verify_file sous
+     `python -S -I` sur tous les certificats + commandes du README telles qu'écrites).
+  3. **Finalisation du papier** (édition limitée à : légendes des figures, chronos depuis la source
+     unique, §7.8 URL + licence + `\ZENODODOI{}`, scan final, compilation tectonic + abstract < 1 920
+     caractères, archive arXiv autonome).
+- **Gate G1** (STOP) : audit (secrets en tête), retraits, README, PDF ; licence, ORCID, nom du repo.
+- **Gate G2** (STOP) : Stéphane rend le repo public, active Zenodo, crée la release v1.0.0, transmet le
+  concept DOI ; Code remplit `\ZENODODOI`, recompile, régénère l'archive, prépare v1.0.1.
+- Sortie : journal (Fait / décisions G1-G2 / état du repo public / DOI / archive arXiv prête), commit ET
+  push. Prochaine étape : soumission arXiv par Stéphane (cs.RO, cross-lists math.OC + cs.SC).
 
 ---
 

@@ -3995,3 +3995,65 @@ source unique des chronos, §6.1 « non-positive ») et `BIB-VERIFY-S14.md` (DOI
 **gate humain de suffisance des figures (A45)** ; relecture Stéphane ; compilation LaTeX sur une
 machine équipée ; preprint arXiv ; contact Dantam / Li / Henrion. Toujours en attente : le bloc de revue
 S12 (D64/D65/D66, v1.21).
+
+## 2026-09-09 — Revue de supervision S12 (claude.ai) — bascule L6 validée, A47, FW-perf
+
+*(transcrite par Code en ouverture S15, 29/09/2026, circuit A16 — texte de la revue verbatim ; la revue
+datée du 09/09 n'avait jamais été remise dans un prompt)*
+
+Verdict : S12 validée. Quatre gardes tenues (applicabilité à l'exécution par paire sur tenseurs
+ORIGINAUX, S3 = repli exercé 0/4/0 ; règle 1 : 240/1/0/0, 0 changement de verdict, 16 tests
+dont deux mutations ; A32 étendu 2/0/0 ; SPEC v1.7). verify.py zéro diff — la raison pour
+laquelle la bascule est sound. Gains ×15,5 / ×12,3 / ×10,6 (46-47 s), un process par scène.
+Au-dessus de l'attendu : audit par feuille = verify._check_collision_leaf lui-même (A47) ;
+A46 appliquée le jour même (banc enchaîné « 9,2 s » reconnu trop beau, re-mesuré) ; mutation
+« λ/μ d'une AUTRE feuille » qui prouve que l'audit travaille ; optimum LP non unique dit tel
+quel (« un témoin également vérifié, pas le même témoin »).
+[A47] Une garde de soundness s'implémente avec le code de l'ARBITRE lui-même, jamais par
+ré-implémentation. [FW-perf → S13] build FK sympy ~39 s ; _body_numerators ×2 ; audit ≈ verify
+complet — soundness non concernée.
+Diffs : D64 (A47 → règle 9) ; D65 (FW-perf → section S13) ; D66 (header v1.21, appliqué a
+posteriori — revue livrée le 09/09 sans être remise dans un prompt, faute de circuit
+supervision).
+
+## 2026-09-15 — Revue de supervision S14 (claude.ai) — reproduce endossé, décisions a/b/c
+
+*(transcrite par Code en ouverture S15, 29/09/2026, circuit A16 — texte de la revue verbatim)*
+
+Verdict : S14 validée. 12 lignes PROOF + k=8 UNDECIDED budget (476,7 s pour 300 s) ; 8
+certificats livrés, chacun re-prouvé deux fois (verify_file sans module tiers + cnp verify
+avec cross-check) ; iiwa7 octet-identiques à S12 ; mesures journal-only archivées en JSON ;
+benchmarks/results/ enfin versionné. Trouvailles utiles : DOI faux de magron2021jsc (pointait
+vers un autre article) ; « negative in every direction » faux au sens strict (0,0 mm en −z →
+« non-positive ») ; le « 0,77 s » n'était pas un bout-en-bout (1,14 s).
+DÉCISIONS : (a) source UNIQUE des chronos courants du papier = reproduce.json ; les chiffres
+historiques (726 s, 291 s/feuille, ×39,9) restent sourcés S11/S12 et cités comme tels.
+(b) la ligne « bac empilé » tournée sous charge (59,3 s) ⟹ rerun COMPLET sur machine quiète,
+pas une ligne isolée : le papier cite UN seul reproduce.json. (c) intégration supervision,
+gate de suffisance des figures par Stéphane, compilation, preprint.
+Suites (29/09, supervision) : bib corrigée (Arthi = nom unique ; DOI JSC 107:221-250 ; RealCertify
+= ACM CCA 52(2) ; dantam2018 et garrett2018 vérifiés exacts) ; abstract ramené sous la limite
+arXiv de 1 920 caractères ; bloc titre « draft / not for circulation » retiré ; commentaires
+retirés de la source (arXiv publie la source) ; §9 renommé « Provenance and anticipated
+objections », ouvre sur la responsabilité de l'auteur. Choix de publication (Stéphane) :
+arXiv, cs.RO principal, cross-lists math.OC et cs.SC, licence arXiv perpetual non-exclusive
+(irrévocable ; garde RSS et revues ouvertes) ; endossement cs.RO requis ; repo rendu public
+avec son historique + archivage Zenodo (DOI) — c'est l'objet de S15.
+Diffs : D76 (section S15 au plan = ce prompt) ; D77 (règle 9 : « tout ce qui devient public
+— papier, repo, figures — passe un audit de fuite : secrets sur tout l'historique, données
+personnelles, placeholders visibles ») ; D78 (header CLAUDE.md, changelog « revue S14 ;
+décisions de publication ; S15 »).
+
+**Application (ouverture S15, Code — circuit A16, commit doc séparé)** — les deux revues, dans l'ordre :
+- **[D64]** `CLAUDE.md` règle 9 : bloc A47 inséré entre A46 et A48 (ordre des numéros).
+- **[D65]** `CLAUDE.md` section S13 : puce « [D65, revue S12 — FW-perf] » (build FK sympy ~39 s ;
+  `_body_numerators` ×2 ; audit ≈ verify complet ; soundness non concernée).
+- **[D66]** `CLAUDE.md` : paragraphe de changelog **v1.20 → v1.21** inséré ; le paragraphe P1 devient
+  « v1.21 → v1.22 » ; la note de numérotation dit que le trou v1.21 est comblé a posteriori (29/09).
+- **[D76]** `CLAUDE.md` : section « S15 — PUBLICATION » ajoutée au plan après S14 (+ S14 marquée actée).
+- **[D77]** `CLAUDE.md` règle 9 : bloc « audit de fuite » ajouté après A51.
+- **[D78]** en-tête `CLAUDE.md` **v1.24** (29/09/2026) + paragraphe de changelog v1.23 → v1.24.
+- **Constat d'ouverture (A33)** : à la première lecture l'arbre était PROPRE (version supervision non
+  déposée) ⟹ STOP et question ; Stéphane a déposé `paper.tex`, `refs.bib` (modifiés) et `paper.bbl`
+  (nouveau) — commités tels quels, `25d47e6`. **S14-bis n'a pas eu lieu** (pas d'entrée, un seul
+  `reproduce.json`, 20260910T152348Z) ⟹ tâche 0 de S15 (rerun complet, décision (b)).
