@@ -1,7 +1,7 @@
 # Exact package versions of the reference run benchmarks/results/20260929T163849Z (S15),
 # Apple M4, macOS 26.5, Python 3.12.13. Used as pip CONSTRAINTS by `make setup LOCK=1`;
 # pyproject.toml keeps the loose lower bounds. Certificates were also reproduced byte for byte
-# with newer NumPy/SciPy/HiGHS; pinning makes the figures pixel-identical too.
+# with newer NumPy/SciPy/HiGHS; pinning makes the figures byte-identical too (checked S15).
 asttokens==3.0.1
 cffi==2.0.0
 clarabel==0.11.1
@@ -43,7 +43,6 @@ pydot==4.0.1
 Pygments==2.20.0
 pyngrok==8.1.2
 pyparsing==3.3.2
-pypdf==6.13.2
 pytest==9.0.3
 python-dateutil==2.9.0.post0
 PyYAML==6.0.3

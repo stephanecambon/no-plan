@@ -4104,7 +4104,7 @@ papier déposée ⟹ STOP et question. Stéphane dépose `paper.tex`, `refs.bib`
 l'historique, toutes branches ; archive `certified-noplan-S0.zip` extraite et scannée à part). Pas de binaire
 volumineux (`.git` 15 Mo, plus gros objet 0,9 Mo). Candidats au retrait R1-R7 pour G1 (usecases commerciaux ;
 détails de machine personnelle dans ce journal ; listes de processus dans les `reproduce.json` ; note de reprise
-nommant des tiers ; « risque stratégique » ; zip S0 ; « prospect » dans deux docstrings). Cohérence §9 ↔
+nommant des tiers ; passage sur un groupe concurrent ; zip S0 ; « prospect » dans deux docstrings). Cohérence §9 ↔
 historique : cohérent, sauf « every design decision signed » (plus fort que l'historique — proposition P1).
 Relecture de contenu déléguée à un agent puis re-vérifiée ligne à ligne par la session.
 
@@ -4193,3 +4193,22 @@ seulement, aucune purge d'historique, aucun force-push** ; corrections P1-P9 app
 **Constat** : le harnais écrit `"session": "S14"` en dur dans `reproduce.json` ⟹ les deux runs S15 portent
 `session = S14`. Laissé tel quel (mesure archivée ; le stamp et le commit font foi) ; à corriger avec le prochain
 chantier du harnais.
+
+**Vérification du verrou (clone frais `make setup LOCK=1`)** : versions installées = `requirements-lock.txt`
+exactement (après retrait de `pypdf`, présent dans le venv de référence mais hors dépendances) ;
+`make paper-figures` ⟹ **les cinq figures identiques octet pour octet** à celles du dépôt.
+
+### CLÔTURE S15 (29/09/2026)
+
+- **Fait** : tâches 0-3 + décisions G1 appliquées (voir ci-dessus). `make test` = **240 passed, 1 deselected,
+  0 skipped, 0 warnings** (353 s, après les changements G1). `verify.py` et `src/` : **zéro diff** depuis S14.
+  gitleaks de clôture : 0 trouvaille (historique complet + arbre).
+- **G2 (simplifié par la décision G1)** : pas de release, pas de Zenodo, pas de soumission arXiv pour l'instant.
+  **État du repo** : privé au moment de ce commit ; Stéphane le rend public lui-même (GitHub → Settings →
+  Change visibility → Public). **DOI** : aucun. `\ZENODODOI{}` reste vide (n'affiche rien).
+- **Archive arXiv prête** (`docs/paper/arxiv-submission.tar.gz`, autonome) + `docs/paper/arxiv-abstract.txt`
+  (1 673 caractères) + PDF `docs/paper/paper.pdf` (13 pages) — pour le jour où Stéphane soumet.
+- **Diffs CLAUDE.md** de la session : ouverture (v1.24, D64-D66, D76-D78) ; état S15 ; annotation R5 (section S14).
+- **Prochaine étape** : Stéphane passe le repo en public. Plus tard, s'il le décide : release GitHub + Zenodo
+  (DOI daté), ORCID, soumission arXiv (cs.RO + math.OC, cs.SC) — il suffira alors de remplir `\ZENODODOI{}`,
+  recompiler et régénérer l'archive.

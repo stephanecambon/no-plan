@@ -56,7 +56,7 @@ renommés en `docs/paper/`, identiques octet pour octet), `scenes/usecase_etager
 
 | trouvaille | où | gravité |
 |---|---|---|
-| Email `scambon@gmail.com` en auteur/committer de tous les commits (87) | métadonnées git | BASSE — inévitable sans réécriture ; absent du **contenu** des fichiers (vérifié sur tout l'historique) |
+| Email de l'auteur en auteur/committer de tous les commits (87) | métadonnées git | BASSE — inévitable sans réécriture ; absent du **contenu** des fichiers (vérifié sur tout l'historique) |
 | Détails de la machine personnelle (applications de bureau nommées) | `JOURNAL.md` (entrée S14, « Ouverture [A33] ») | **HAUTE** — vie privée, sans valeur scientifique |
 | Liste des processus les plus actifs, avec chemins locaux (nom d'utilisateur) et applications de bureau ouvertes | `busiest_processes_at_start` des trois `reproduce.json` (`20260910T152348Z`, `20260929T160611Z`, `20260929T163849Z`) ; produite par `benchmarks/run_benchmark.py` (`_busiest_processes`) | MOYENNE — révèle nom d'utilisateur et applications ouvertes ; la charge (`load_avg`) suffit à l'argument « machine quiète » |
 | « MacBook (Apple Silicon) », « Apple M4, 24 Go » | papier §7, `reproduce.json` | BASSE — utile à la reproductibilité |
@@ -168,7 +168,7 @@ travail, fichiers non suivis compris) : **0 trouvaille**.
 
 ## 6. Test depuis un clone frais (tâche 2)
 
-`git clone /Users/scambon/Code/no-plan /tmp/noplan-clone` (commit `bec5a83`) :
+`git clone <dépôt local> /tmp/noplan-clone` (commit `bec5a83`) :
 1. `verify_file` sous `python -S -I` sur les **13** certificats de `scenes/` et `scenes/wall/` (dont l'iiwa-LIKE
    `S5_iiwa_shelf`) : **13/13 PROOF**, sous Python 3.9.6 (système macOS) et 3.12.13 ; modules hors stdlib
    chargés : `cnp` seul (`sys.stdlib_module_names`). Flagship : 1,9 s (3.12), 10,7 s (3.9).

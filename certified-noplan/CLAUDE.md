@@ -1076,8 +1076,9 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   concept DOI ; Code remplit `\ZENODODOI`, recompile, régénère l'archive, prépare v1.0.1.
 - Sortie : journal (Fait / décisions G1-G2 / état du repo public / DOI / archive arXiv prête), commit ET
   push. Prochaine étape : soumission arXiv par Stéphane (cs.RO, cross-lists math.OC + cs.SC).
-- 🔄 **S15 EN COURS (29/09/2026)** — tâches 0-3 faites (reproduce `20260929T163849Z` machine quiète, audit sans
-  secret, fichiers de publication, papier compilé + archive arXiv autonome) ; **G1 en attente**. (voir JOURNAL.md S15.)
+- ✅ **S15 ACTÉE (29/09/2026)** — reproduce `20260929T163849Z` machine quiète (source unique du papier) ; audit sans
+  secret ; G1 (Stéphane) : MIT, retraits en HEAD sans purge, P1-P9, versions figées (`make setup LOCK=1`) ;
+  **pas d'arXiv pour l'instant** — repo rendu public par Stéphane ; archive arXiv prête. (voir JOURNAL.md S15.)
 
 ---
 
