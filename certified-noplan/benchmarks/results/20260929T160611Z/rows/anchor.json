@@ -1,0 +1,96 @@
+{
+  "row": "anchor",
+  "scene": "scenes/S3_shoulder_elbow.yaml",
+  "dof": 4,
+  "axis": "margin",
+  "lam_degree": "affine",
+  "budget": {
+    "max_depth": 20,
+    "max_leaves": 4000,
+    "max_time_s": null
+  },
+  "verdict_engine": "PROOF",
+  "leaves": 8,
+  "by_status": {
+    "outside": 4,
+    "collision": 4
+  },
+  "termination": "certified",
+  "n_lp_solves": 11,
+  "verdict": "PROOF",
+  "verify_msg": "PROOF verified exactly: 8 leaves (4 collision, 4 outside); start/goal separated by the slab |phi| <= 1/10.",
+  "phases_s": {
+    "load_and_fk_build": 0.232,
+    "engine": 0.116,
+    "export": 0.115
+  },
+  "export_breakdown_s": {
+    "verify_loop_full_verifier": 0.051,
+    "verify_loop_calls": 1,
+    "per_leaf_exact_audit": 0.0,
+    "per_leaf_audit_calls": 0,
+    "audit_setup_fk_rederivation": 0.0
+  },
+  "engine_s": 0.116,
+  "certify_s": 0.463,
+  "verify_s": 0.041,
+  "certificate": "scenes/S3_shoulder_elbow.cert.json",
+  "cert_stats": {
+    "n_leaves": 8,
+    "n_collision": 4,
+    "n_outside": 4,
+    "n_reresolve_failed": 0,
+    "n_leaves_embedded": 0,
+    "n_leaves_resolved": 4,
+    "n_embed_rejected": 0
+  },
+  "recheck_stdlib_verify_file": {
+    "ok": true,
+    "msg": "PROOF verified exactly: 8 leaves (4 collision, 4 outside); start/goal separated by the slab |phi| <= 1/10.",
+    "third_party_modules_loaded": [],
+    "site_disabled": true,
+    "wall_s": 0.06,
+    "command": "python -S -I -c 'from cnp.verify import verify_file; verify_file(...)'"
+  },
+  "recheck_cli_verify_with_scene": {
+    "returncode": 0,
+    "ok": true,
+    "first_lines": [
+      "OK    \u2014 PROOF verified exactly: 8 leaves (4 collision, 4 outside); start/goal separated by the slab |phi| <= 1/10.",
+      "verdict: PROOF (verified in exact arithmetic + scene cross-check)"
+    ],
+    "command": "cnp verify scenes/S3_shoulder_elbow.cert.json scenes/S3_shoulder_elbow.yaml"
+  },
+  "active_dims": [
+    0,
+    1
+  ],
+  "n_active": 2,
+  "passive_dims": [
+    2,
+    3
+  ],
+  "lp_reduced": {
+    "rows": 158,
+    "cols": 13
+  },
+  "lp_full": {
+    "rows": 3782,
+    "cols": 17
+  },
+  "reduction_x": 23.9,
+  "lp_full_rows_formula": 3782,
+  "embedding_applicable": {
+    "PANEL": {
+      "applicable": false,
+      "reason": "A29 divided (1+s^2) on axes (2,) \u21d2 the reduced geometry is the original divided by a positive factor the slab T does not carry; full-dim re-resolution required"
+    }
+  },
+  "groundtruth": {
+    "oracle": "segment sampling (scenes.collision_oracle, 30 points per link)",
+    "n_uniform_in_slab": 150000,
+    "free_in_slab": 0,
+    "seed": 0,
+    "wall_s": 14.9
+  }
+}
