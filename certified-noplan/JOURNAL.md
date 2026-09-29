@@ -4057,3 +4057,110 @@ décisions de publication ; S15 »).
   déposée) ⟹ STOP et question ; Stéphane a déposé `paper.tex`, `refs.bib` (modifiés) et `paper.bbl`
   (nouveau) — commités tels quels, `25d47e6`. **S14-bis n'a pas eu lieu** (pas d'entrée, un seul
   `reproduce.json`, 20260910T152348Z) ⟹ tâche 0 de S15 (rerun complet, décision (b)).
+
+## 2026-09-29 — Session S15 (Claude Code, GATÉE) — PUBLICATION : reproduce sur machine quiète, audit de fuite, fichiers de publication, papier finalisé ; **G1 en attente**
+
+`verify.py` zéro diff ; `src/` zéro diff ; aucun changement de moteur. Rien n'a été rendu public, aucune
+release, aucun historique réécrit, aucun force-push.
+
+**Ouverture [A33].** Première lecture : arbre PROPRE, alors que le prompt attendait la version supervision du
+papier déposée ⟹ STOP et question. Stéphane dépose `paper.tex`, `refs.bib` (modifiés) et `paper.bbl`
+(nouveau) ⟹ commités tels quels (`25d47e6`). S14-bis n'avait pas eu lieu ⟹ tâche 0. `make test` d'ouverture :
+**240 passed, 1 deselected, 0 skipped, 0 warnings** (359 s). Ouverture DOC (circuit A16) : commit séparé
+`74b5fe8` (revues S12 et S14 transcrites, D64-D66, D76-D78 ; voir l'entrée « Application » ci-dessus).
+
+### Fait
+
+**Tâche 0 — `make reproduce` complet sur machine quiète (décision (b)).**
+- **Premier run `20260929T160611Z`** (arbre propre, commit `74b5fe8`) : 12 PROOF + k=8 UNDECIDED, mais
+  perturbation externe pendant la ligne k=5 (engine **3,85 s** contre 1,58 s en S14 ; charge 1 min **45,0**
+  enregistrée avant k=6, 33,5 avant k=7 ; les lignes k=6..8, elles, plus rapides qu'en S14). Cause non
+  identifiée (aucun échantillonneur n'était en place). Décision (b) ⟹ **archivé tel quel** (`fb9926f`, règle
+  7) et **non cité**.
+- **Second run `20260929T163849Z` = source unique du papier** (commit `fb9926f`, `git_dirty_at_start=false`,
+  changements de fin de run = sorties seules ; charge 1,65 au départ, 2,17 à la fin ; échantillonneur de charge
+  toutes les 15 s pendant tout le run : **maximum 3,93**, dû au run lui-même). 27 min 17 s.
+
+| ligne | DOF / actives | feuilles | engine | certify | verify |
+|---|---|---|---|---|---|
+| relais | 2 / 2 | 46 | 0,44 s | 0,79 s | 0,089 s |
+| peigne | 3 / 2 | 54 | 1,32 s | 1,88 s | 0,172 s |
+| ancre | 4 / 2 | 8 | 0,10 s | 0,38 s | 0,042 s |
+| bac iiwa-like | 5 / 3 | 8 | 0,20 s | 1,13 s | 0,142 s |
+| iiwa7 étagère | 7 / 3 | 2 | 1,34 s | 45,5 s | 2,408 s |
+| iiwa7 bac empilé | 7 / 3 | 2 | 1,37 s | 44,4 s | 2,335 s |
+| iiwa7 capot | 7 / 3 | 4 | 1,61 s | 45,4 s | 2,498 s |
+| mur k = 3…7 | k / k | 2-4 | 0,12-66,0 s | 0,36-88,9 s | 0,011-6,66 s |
+| mur k = 8 | 8 / 8 | 2 | 411,6 s | — | — (UNDECIDED `budget_time`) |
+
+  Les 12 certificats : re-prouvés par `verify_file` sous `python -S -I` (zéro module tiers) ET par
+  `cnp verify <cert> <scene>` ; `n_reresolve_failed = n_embed_rejected = 0` ; l'ancre exerce le repli (4
+  feuilles re-résolues). **Les deux runs S15 régénèrent des certificats identiques octet pour octet à S14.**
+  La ligne bac empilé tournée sous charge en S14 (59,3 s) donne **44,4 s** machine quiète.
+  Décomposition flagship : FK 38,0 + b&b 1,3 + export 6,2 s, dont vérificateur deux fois 4,7 s.
+- `make paper-figures` sur ce JSON : seule `fig1.png` change (verify 2,41 s, source) ; les quatre autres sont
+  identiques octet pour octet. `docs/paper/TABLE-reproduce.md` généré par `scripts/make_table_reproduce.py`
+  (lit le JSON, ne retape rien). Commit `98f4a9e`.
+
+**Tâche 1 — audit de publication** → `docs/PUBLICATION-AUDIT.md`. **Aucun secret** (gitleaks 8.30.1 sur tout
+l'historique, toutes branches ; archive `certified-noplan-S0.zip` extraite et scannée à part). Pas de binaire
+volumineux (`.git` 15 Mo, plus gros objet 0,9 Mo). Candidats au retrait R1-R7 pour G1 (usecases commerciaux ;
+détails de machine personnelle dans ce journal ; listes de processus dans les `reproduce.json` ; note de reprise
+nommant des tiers ; « risque stratégique » ; zip S0 ; « prospect » dans deux docstrings). Cohérence §9 ↔
+historique : cohérent, sauf « every design decision signed » (plus fort que l'historique — proposition P1).
+Relecture de contenu déléguée à un agent puis re-vérifiée ligne à ligne par la session.
+
+**Tâche 2 — fichiers de publication** (racine `no-plan/`, commit `bec5a83`) : `LICENSE` (MIT par défaut),
+`README.md` en anglais, `CITATION.cff`, `.zenodo.json` (ORCID absent, à fournir). **Clone frais** (`git clone`
+dans `/tmp/noplan-clone`) : `verify_file` sous `-S -I` sur les **13** certificats de `scenes/` (dont `wall/` et
+l'iiwa-LIKE S5) ⟹ **13/13 PROOF**, sous Python 3.9.6 (système) ET 3.12.13 ; modules hors stdlib chargés :
+`cnp` seul. Commandes du README telles qu'écrites : one-liner = sortie annoncée ; `make setup` OK ; `make test` 240 passed,
+1 deselected ; `cnp verify <cert> <scene>` rc 0 ; `make reproduce` (27 min 13 s) 12 PROOF + k=8 UNDECIDED, **certificats
+identiques octet pour octet** alors que le clone a installé des versions plus récentes (matplotlib 3.11.2, numpy
+2.5.3, scipy 1.18.1, highspy 1.15.1 — `pyproject.toml` ne fixe que des bornes inférieures) ; `make paper-figures`
+OK, figures différentes au pixel (rendu matplotlib), identiques à l'œil. README corrigé ensuite : `.venv/bin/cnp`,
+durées réelles, versions non figées dites.
+
+**Tâche 3 — papier** (périmètre 3a-3f, commit `7d48c3b`) : légendes Fig. 1 (panneau central = coupe q2 × q1 +
+détour pointillé ; panneau droit complet) et Fig. 2 (feuilles grises hors dalle) alignées sur les figures ;
+Fig. 3 et Fig. 4 conformes. Chronos lus dans `20260929T163849Z` : abstract (2,4 s, inchangé), C4, Fig. 1,
+§5 (4,7 s ; 2,4 / 0,04 s), §6.2 (k=8 : 412 s), §6.3, §7 (phrase de provenance des chronos réécrite : source
+unique ; l'ancienne disait « trois benchs iiwa7 sur arbre aux certificats non commités », devenue fausse),
+§7.3-7.5, **table §7.6 complète** (les trois « — » remplis, légende réécrite), §8 « Time ». Chiffres
+historiques (726 s, ~580 s, 291 s/feuille, ×39,9, 3,3 s à 6 DOF) inchangés. §7.8 : URL
+`https://github.com/stephanecambon/no-plan` (nom confirmé par `gh repo view`, privé), licence MIT,
+`\ZENODODOI{}` (vide ⟹ rien d'affiché). Scan : aucun TODO/VERIFY/placeholder/commentaire/code interne ;
+« draft » seulement dans la phrase légitime du §9. Compilation **tectonic 0.17.0 : 13 pages, zéro citation ou
+référence non résolue**, `paper.bbl` régénéré identique au déposé ; PDF archivé `docs/paper/paper.pdf`.
+Abstract en texte brut `docs/paper/arxiv-abstract.txt` : **1 673 caractères** ; chaque phrase retrouvée dans
+le texte du PDF. Archive `docs/paper/arxiv-submission.tar.gz` (tex + bbl + 5 figures) : extraite seule dans
+`/tmp`, compilée en passes TeX seules (sans BibTeX, comme arXiv avec un .bbl fourni) : zéro non résolu,
+sortie identique à la compilation complète. Corrections proposées, non appliquées : P1-P9 (audit §4).
+
+### Décisions (Code, dans le mandat)
+
+- Premier run S15 non cité (décision (b) : un seul JSON, machine quiète) ; archivé.
+- La phrase §7 sur la provenance des chronos est réécrite (elle devenait fausse avec la source unique) —
+  rattachée à 3b, signalée à G1.
+- Harnais de reproduce non modifié malgré la fuite de `busiest_processes` : c'est une décision G1 (R3).
+
+### Pièges
+
+- **Créer un fichier dans l'arbre pendant `make reproduce` fausse le contrôle de fin de run** (« changements
+  = sorties du run ») : `scripts/make_table_reproduce.py` a été écrit puis sorti de l'arbre en cours de run
+  (le contrôle ne se fait qu'en fin de run ; `tree_changes_are_run_outputs_only = true` confirmé).
+- **tectonic relance BibTeX d'office** : sans `refs.bib`, il écrase le `.bbl` fourni (bibliographie vide,
+  12 pages). Tester une archive arXiv avec `tectonic --pass tex -k` répété, pas avec la commande par défaut.
+- **Heredoc shell non protégé** (`<<EOF` au lieu de `<<'EOF'`) contenant des backticks Markdown : le shell a
+  exécuté les fragments entre backticks (un `git clone` refusé car le dossier existait, deux `make` sans
+  Makefile, un gitleaks) — aucun effet sur le dépôt, vérifié par `git status`. Toujours `<<'EOF'`.
+- La charge 1 min d'un run peut exploser sans cause interne : un échantillonneur de charge pendant le run
+  permet de trancher (utilisé pour le second run).
+
+**Décompte exact** : `make test` = **240 passed, 1 deselected, 0 skipped, 0 warnings** (ouverture, 359 s) ;
+clone frais : **240 passed, 1 deselected** (358 s). **Diffs CLAUDE.md** (commit `74b5fe8`) : en-tête v1.24 ; changelog v1.20 → v1.21
+(D66) et v1.23 → v1.24 (D78) ; règle 9 blocs A47 (D64) et audit de fuite (D77) ; section S13 puce FW-perf
+(D65) ; section S15 (D76) ; S14 marquée actée. **Diff SPEC** : aucun.
+
+**Prochaine étape : GATE G1** (Stéphane) — licence MIT ou Apache ; retraits R1-R7 (HEAD seul ou purge) ;
+ORCID ; nom du repo confirmé (`stephanecambon/no-plan`) ; corrections P1-P9. Puis push, puis G2.

@@ -36,7 +36,7 @@ cd certified-noplan
 python3 -S -I -c "import sys; sys.path.insert(0, 'src'); from cnp.verify import verify_file; print(verify_file('scenes/S6_iiwa_real_shelf.cert.json'))"
 ```
 
-Expected output (a few seconds):
+Expected output (about 2 s with Python 3.12, about 11 s with the macOS system Python 3.9):
 
 ```
 (True, 'PROOF verified exactly: 2 leaves (2 collision, 0 outside); start/goal separated by the slab |phi| <= 1/5.')
@@ -48,10 +48,11 @@ of the paper. Every certificate in `certified-noplan/scenes/` (including `scenes
 checked the same way.
 
 The command-line form adds a field-by-field cross-check of the certificate's declared geometry
-against the authored scene file (it parses YAML, so it needs the package installed, see below):
+against the authored scene file (it parses YAML, so it needs the package installed by `make setup`,
+see below):
 
 ```bash
-cnp verify scenes/S6_iiwa_real_shelf.cert.json scenes/S6_iiwa_real_shelf.yaml
+.venv/bin/cnp verify scenes/S6_iiwa_real_shelf.cert.json scenes/S6_iiwa_real_shelf.yaml
 ```
 
 ## Reproduce the paper's table
@@ -74,7 +75,9 @@ iiwa7 kinematics and link hull from Drake's model.
 versions, load average — regenerates the certificate of every row, and re-proves each one twice:
 with `verify_file` under `python -S -I`, and with `cnp verify <cert> <scene>`. Expect about
 30 minutes on a laptop (27 minutes on an Apple M4), about 7 of them the deliberately over-budget
-`k = 8` point (UNDECIDED on a 300 s budget). Timings depend on the machine; verdicts and certificates do not.
+`k = 8` point (UNDECIDED on a 300 s budget). Timings depend on the machine; verdicts and certificates do not (a fresh clone with newer
+NumPy, SciPy and HiGHS releases regenerated all twelve certificates byte for byte). Package versions
+are not pinned: the versions of each run are recorded in its `reproduce.json`.
 
 ## Repository map
 
