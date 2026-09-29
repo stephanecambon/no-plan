@@ -57,8 +57,8 @@ renommés en `docs/paper/`, identiques octet pour octet), `scenes/usecase_etager
 | trouvaille | où | gravité |
 |---|---|---|
 | Email `scambon@gmail.com` en auteur/committer de tous les commits (87) | métadonnées git | BASSE — inévitable sans réécriture ; absent du **contenu** des fichiers (vérifié sur tout l'historique) |
-| Détails de la machine personnelle : jeu Windows (R.U.S.E. sous CrossOver), Chrome, Word, Spotify, Docker | `JOURNAL.md` (entrée S14, « Ouverture [A33] ») | **HAUTE** — vie privée, sans valeur scientifique |
-| Liste des processus les plus actifs, avec chemins locaux (`/Users/scambon/…`) et applications ouvertes (Steam/wine, Claude, Chrome) | `busiest_processes_at_start` des trois `reproduce.json` (`20260910T152348Z`, `20260929T160611Z`, `20260929T163849Z`) ; produite par `benchmarks/run_benchmark.py` (`_busiest_processes`) | MOYENNE — révèle nom d'utilisateur et applications ouvertes ; la charge (`load_avg`) suffit à l'argument « machine quiète » |
+| Détails de la machine personnelle (applications de bureau nommées) | `JOURNAL.md` (entrée S14, « Ouverture [A33] ») | **HAUTE** — vie privée, sans valeur scientifique |
+| Liste des processus les plus actifs, avec chemins locaux (nom d'utilisateur) et applications de bureau ouvertes | `busiest_processes_at_start` des trois `reproduce.json` (`20260910T152348Z`, `20260929T160611Z`, `20260929T163849Z`) ; produite par `benchmarks/run_benchmark.py` (`_busiest_processes`) | MOYENNE — révèle nom d'utilisateur et applications ouvertes ; la charge (`load_avg`) suffit à l'argument « machine quiète » |
 | « MacBook (Apple Silicon) », « Apple M4, 24 Go » | papier §7, `reproduce.json` | BASSE — utile à la reproductibilité |
 | Téléphone, adresse postale, nom d'hôte | — | aucun trouvé |
 
@@ -66,10 +66,10 @@ renommés en `docs/paper/`, identiques octet pour octet), `scenes/usecase_etager
 
 | trouvaille | où | gravité |
 |---|---|---|
-| Parcours personnel d'une chercheuse tierce (soutenance, poste actuel) ; « compétition réelle … ils exécuteraient la version complète plus vite » | `docs/infaisabilite-certifiee-barrieres-SOS-NOTE-DE-REPRISE.md` l.23, l.103-106 | **HAUTE** |
-| « Risque stratégique nommé : … le pas suivant naturel du groupe ⟹ preprint d'horodatage encore plus pressant » | `JOURNAL.md` (revue P2, complément biblio) | **HAUTE** — présente un groupe de recherche nommé comme concurrent à devancer |
-| Plan de contact « contact Dantam / Li / Henrion » ; « email à Dantam » | `CLAUDE.md` section S14, `JOURNAL.md` (S14, revue S14) | MOYENNE |
-| « survivre à un reviewer (possiblement Henrion lui-même) » | `DECISION-G2.md` l.135-136 | MOYENNE |
+| Parcours personnel d'un chercheur tiers ; passage sur la compétition entre groupes | `docs/infaisabilite-certifiee-barrieres-SOS-NOTE-DE-REPRISE.md` l.23, l.103-106 | **HAUTE** |
+| Passage présentant un groupe de recherche nommé comme concurrent | `JOURNAL.md` (revue P2, complément biblio) | **HAUTE** — présente un groupe de recherche nommé comme concurrent à devancer |
+| Plans de prise de contact avec des chercheurs nommés | `CLAUDE.md` section S14, `JOURNAL.md` (S14, revue S14) | MOYENNE |
+| Spéculation sur l'identité d'un relecteur | `DECISION-G2.md` l.135-136 | MOYENNE |
 
 ### 1e. Contenu interne, brouillons, bac à sable
 
@@ -99,12 +99,27 @@ pour l'argument de provenance).
 | R2 | Détails machine perso dans `JOURNAL.md` (S14) | **purge** si l'on purge quoi que ce soit ; sinon rédaction en HEAD (« applications de bureau fermées ») | HEAD seul |
 | R3 | `busiest_processes*` dans les `reproduce.json` + `_busiest_processes` du harnais | ne garder que `load_avg` : retirer la clé du harnais et des deux JSON (les **valeurs mesurées** ne changent pas ; règle 7 : on annote, on n'écrase pas une mesure) | garder |
 | R4 | `NOTE-DE-REPRISE.md` (tiers nommés, compétition) | HEAD seul ou purge | garder |
-| R5 | « Risque stratégique … horodatage » (JOURNAL, revue P2) + plans de contact (CLAUDE/JOURNAL) + « possiblement Henrion lui-même » (DECISION-G2) | rédaction en HEAD (on annote, on ne réécrit pas le journal : « [passage retiré avant publication, S15] ») | purge |
+| R5 | groupe nommé comme concurrent (JOURNAL, revue P2) + plans de contact (CLAUDE/JOURNAL) + spéculation sur un relecteur (DECISION-G2, JOURNAL revue DECISION-G2) | rédaction en HEAD (on annote, on ne réécrit pas le journal : « [passage retiré avant publication, S15] ») | purge |
 | R6 | `certified-noplan-S0.zip` | HEAD seul (doublon) | garder |
 | R7 | « prospect » dans deux docstrings (`scripts/export_flagship_3d_html.py:3`, `tests/test_share_3d_html.py:3`) | remplacer par « lecteur » en HEAD | garder |
 
 Tous ces passages sont **dans l'historique** : un retrait HEAD seul ne les rend pas illisibles. Le
 contenu R2/R4/R5 est le seul qui plaide pour une purge ; aucun n'est un secret.
+
+## 2 bis. Décisions G1 (Stéphane, 29/09/2026) — appliquées en HEAD, **aucune purge**
+
+« ok reco, applique tout » : licence **MIT** ; **aucune purge d'historique** (les passages restent lisibles dans
+l'historique git) ; repo rendu public par Stéphane, **sans soumission arXiv pour l'instant** (release, Zenodo et
+ORCID optionnels).
+- R1 **gardé** (contenu technique honnête, aucun client ni tarif).
+- R2, R5 **annotés en HEAD** : passage remplacé par « [retiré avant publication — S15, décision G1 de Stéphane] »
+  dans `JOURNAL.md` (4 passages), `CLAUDE.md` (1), `DECISION-G2.md` (1, corps signé annoté, pas réécrit au-delà).
+  Les descriptions de ce rapport sont elles-mêmes caviardées (plus de citation).
+- R3 **retiré** : `_busiest_processes` supprimé du harnais ; clé remplacée dans les trois `reproduce.json` par
+  `busiest_processes_at_start_redacted` (note) — aucune valeur mesurée modifiée, diff de 7 lignes par fichier.
+- R4, R6 **retirés de HEAD** (`git rm`).
+- R7 : « prospect » → « lecteur ».
+- Corrections du papier P1-P9 **appliquées** ; **versions figées** (`requirements-lock.txt`, `make setup LOCK=1`).
 
 ## 3. Ce que l'historique prouve (§9 du papier)
 

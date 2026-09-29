@@ -59,7 +59,7 @@ see below):
 
 ```bash
 cd certified-noplan
-make setup        # venv + pip install -e ".[drake,dev]"
+make setup        # venv + pip install -e ".[drake,dev]"; add LOCK=1 for the exact reference versions
 make test         # full test suite (correctness only; no timing assertions)
 make reproduce    # every row of the summary table, one process per row
 make paper-figures
@@ -76,8 +76,9 @@ versions, load average — regenerates the certificate of every row, and re-prov
 with `verify_file` under `python -S -I`, and with `cnp verify <cert> <scene>`. Expect about
 30 minutes on a laptop (27 minutes on an Apple M4), about 7 of them the deliberately over-budget
 `k = 8` point (UNDECIDED on a 300 s budget). Timings depend on the machine; verdicts and certificates do not (a fresh clone with newer
-NumPy, SciPy and HiGHS releases regenerated all twelve certificates byte for byte). Package versions
-are not pinned: the versions of each run are recorded in its `reproduce.json`.
+NumPy, SciPy and HiGHS releases regenerated all twelve certificates byte for byte). The exact versions
+of the reference run are in `requirements-lock.txt` (`make setup LOCK=1`); each run records its own in
+`reproduce.json`.
 
 ## Repository map
 
@@ -123,15 +124,14 @@ under its own license.
 
 ## Citation
 
-If you use this work, please cite the paper and, for the code and data, the archived release
-(see `CITATION.cff`):
+The paper (`certified-noplan/docs/paper/paper.pdf`) is a preprint distributed with this repository.
+If you use this work, please cite it as below (see also `CITATION.cff`):
 
 ```bibtex
 @misc{cambon2026certificates,
   author       = {Cambon, St{\'e}phane},
   title        = {Exactly Verifiable Infeasibility Certificates for Robot Motion Planning},
   year         = {2026},
-  howpublished = {arXiv preprint (identifier to be added)},
-  note         = {Code and data: \url{https://github.com/stephanecambon/no-plan}, doi: to be added}
+  howpublished = {Preprint and code, \url{https://github.com/stephanecambon/no-plan}}
 }
 ```

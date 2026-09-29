@@ -10,19 +10,21 @@ VENV    := .venv
 VENV_PY := $(VENV)/bin/python
 PYTEST  := $(VENV)/bin/pytest
 STAMP   := $(VENV)/.installed
+# `make setup LOCK=1` installs the exact versions of the reference run (requirements-lock.txt).
+CONSTRAINTS := $(if $(LOCK),-c requirements-lock.txt,)
 
 .PHONY: setup test test-fast test-slow bench-parallel figures benchmark reproduce paper-figures clean
 
 # Idempotent: re-running `make setup` does nothing unless pyproject.toml changed.
 setup: $(STAMP)
 
-$(STAMP): pyproject.toml
+$(STAMP): pyproject.toml requirements-lock.txt
 	@test -x "$(PYTHON)" || { echo "ERROR: $(PYTHON) not found. Install with: brew install python@3.12  (or pass PYTHON=...)"; exit 1; }
 	$(PYTHON) -m venv $(VENV)
 	$(VENV_PY) -m pip install --upgrade pip
 	# Drake is needed from S1 (ratfk). The sympy fallback (SPEC §9.4) lets the
 	# suite degrade gracefully (importorskip) if the wheel ever fails to install.
-	$(VENV_PY) -m pip install -e ".[drake,dev]"
+	$(VENV_PY) -m pip install $(CONSTRAINTS) -e ".[drake,dev]"
 	@touch $(STAMP)
 	@echo "setup OK: $$($(VENV_PY) --version) in $(VENV)"
 

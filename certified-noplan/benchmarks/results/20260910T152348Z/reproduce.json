@@ -24,13 +24,7 @@
     1.69,
     2.38
   ],
-  "busiest_processes_at_start": [
-    "38.9 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
-    "26.4 /opt/homebrew/Cellar/python@3.12/3.12.13_2/Frameworks/Python.framework/Versions/3.12/Resources/",
-    "23.7 /Users/scambon/Library/Application Support/Claude/claude-code/2.1.260/claude.app/Contents/MacOS",
-    "23.3 /Applications/Claude.app/Contents/Frameworks/Claude Helper (Renderer).app/Contents/MacOS/Claude",
-    "12.9 /Applications/Claude.app/Contents/Frameworks/Claude Helper.app/Contents/MacOS/Claude Helper"
-  ],
+  "busiest_processes_at_start_redacted": "process list (local paths and desktop applications) removed before publication, S15 G1 decision; no measured value changed; load_avg_* is the quietness record",
   "protocol": "one process per row; phases timed with time.monotonic; ground truth re-asserted after the timed phases",
   "rows": {
     "relay": {

@@ -2267,7 +2267,7 @@ S9b (une ligne chacune, non bloquantes pour la signature)** :
    gagne la ceinture « dans des cadres différents » : eux = schéma
    nécessaire-et-suffisant sur ensembles abstraits ; nous = schéma suffisant
    sur bras articulés. La comparaison est légitime mais doit être formulée
-   pour survivre à un reviewer — possiblement Henrion lui-même.
+   pour survivre à un reviewer [retiré avant publication — S15, décision G1 de Stéphane].
 
 **Diffs à appliquer par Code en ouverture de S9b** :
 - D42 [A37] DECISION-G2.md §3d : « structurel » → « pratique » + cause de
@@ -3834,8 +3834,7 @@ d'infaisabilité de BRAS exactement re-vérifiable) mais la formulation « SOS =
 parole » était fausse par omission. Repositionné : la différence est l'ABSENCE de l'étape
 fragile (récupérer une Gram PSD exacte) — LP/Bernstein ⟹ arrondir des rationnels, mesuré au
 premier palier sur 7 scènes — et l'application à un C-space de bras 7-DOF, pas à un polynôme.
-Risque stratégique nommé : 2404.06985 + rationalisation exacte = le pas suivant naturel du
-groupe ⟹ preprint d'horodatage encore plus pressant.
+[retiré avant publication — S15, décision G1 de Stéphane]
 [A49] Les UNITÉS d'un chiffre suivent la GRANDEUR calculée dans le code (fichier:ligne), pas
 l'intuition du rédacteur. Toute grandeur chiffrée du papier porte son unité vérifiée.
 [A50] Une garantie s'attribue au COMPOSANT qui l'a fournie. Les refus §7.7 = moteur ; le
@@ -3875,10 +3874,9 @@ Tâches 1 à 5 faites, aucune coupe. `src/` : zéro diff. Session limitée à `s
 question. Stéphane a déposé puis déplacé : `docs/papers/` renommé en `docs/paper/` (5 fichiers
 **identiques octet pour octet** à HEAD, vérifié par `cmp`) et `docs/paper/latex/{paper.tex, refs.bib}` —
 **sans `README.md`** (créé en Tâche 5). Commité tel quel : `e9b5927`.
-(2) Machine NON quiète (charge 4,1 ; jeu Windows R.U.S.E. sous CrossOver à 182 % CPU ; VM Docker
-Desktop) ⟹ question ; réponse « tue les processus gênants » : Docker Desktop arrêté proprement
-(`quit app`), restes CrossOver/wine tués (`kill -9`, installateur VC_redist compris) ; Chrome, Word et
-Spotify **laissés** (données non sauvegardées possibles, CPU faible). Charge au lancement du run : 1,13.
+(2) Machine NON quiète (charge 4,1 ; applications de bureau [retiré avant publication — S15, décision G1 de Stéphane]) ⟹ question ; réponse « tue les
+processus gênants » : les applications gourmandes arrêtées, les autres laissées (données non
+sauvegardées possibles, CPU faible). Charge au lancement du run : 1,13.
 (3) **`benchmarks/results/` était ignoré par git** (`.gitignore:6`, `git ls-files` = 0) : aucun des
 JSON datés cités par le papier ni par P1/P2 n'était sur GitHub ⟹ question ; décision Stéphane :
 versionner. Commit `95fa854` (15 runs historiques, tels quels). Écart de chemin : le prompt dit
@@ -3993,7 +3991,7 @@ S14 réécrite (D74). **Diff SPEC** : aucun. **`.gitignore`** : `benchmarks/resu
 **Prochaine étape** : **revue de supervision** — intégrer `FACTCHECK-figs.md` (légendes des trois figures,
 source unique des chronos, §6.1 « non-positive ») et `BIB-VERIFY-S14.md` (DOI JSC) dans `paper.tex` ;
 **gate humain de suffisance des figures (A45)** ; relecture Stéphane ; compilation LaTeX sur une
-machine équipée ; preprint arXiv ; contact Dantam / Li / Henrion. Toujours en attente : le bloc de revue
+machine équipée ; preprint arXiv ; prises de contact [retiré avant publication — S15, décision G1 de Stéphane]. Toujours en attente : le bloc de revue
 S12 (D64/D65/D66, v1.21).
 
 ## 2026-09-09 — Revue de supervision S12 (claude.ai) — bascule L6 validée, A47, FW-perf
@@ -4164,3 +4162,34 @@ clone frais : **240 passed, 1 deselected** (358 s). **Diffs CLAUDE.md** (commit 
 
 **Prochaine étape : GATE G1** (Stéphane) — licence MIT ou Apache ; retraits R1-R7 (HEAD seul ou purge) ;
 ORCID ; nom du repo confirmé (`stephanecambon/no-plan`) ; corrections P1-P9. Puis push, puis G2.
+
+### Addendum S15 — décisions G1 (Stéphane, 29/09/2026) et application
+
+**Décisions** : « ok reco, applique tout » — licence **MIT** ; **pas de soumission arXiv pour l'instant** : le repo
+est rendu public sur GitHub par Stéphane (release, Zenodo, ORCID optionnels, non faits) ; retraits **en HEAD
+seulement, aucune purge d'historique, aucun force-push** ; corrections P1-P9 appliquées ; versions figées.
+
+**Appliqué (Code)** :
+- R1 `docs/usecases/` **gardé**.
+- R2, R5 **annotés** « [retiré avant publication — S15, décision G1 de Stéphane] » : `JOURNAL.md` (revue
+  DECISION-G2, revue P2, entrée S14 ×2), `CLAUDE.md` (section S14), `DECISION-G2.md` (corps signé : annotation
+  seule). Les descriptions de `docs/PUBLICATION-AUDIT.md` sont elles-mêmes caviardées.
+- R3 : `_busiest_processes` retiré du harnais ; dans les trois `reproduce.json`, la clé est remplacée par
+  `busiest_processes_at_start_redacted` (note) — aucune valeur mesurée modifiée, 7 lignes par fichier.
+- R4 (note de reprise) et R6 (`certified-noplan-S0.zip`) **retirés de HEAD** (`git rm`) ; aucun autre fichier ne
+  les référençait.
+- R7 : « prospect » → « lecteur » (deux docstrings).
+- Papier : P1 (introduction et §9 : « every gate, scene validation, scoping decision and the go/no-go decision
+  … signed ; technical decisions taken within a written mandate and reviewed ») ; P2 (« all twelve certificates of
+  Table 2 ») ; P3 (`\label{sec:related}`) ; P4 (équation du LP rééquilibrée : plus aucun Overfull) ; P5
+  (`\texorpdfstring`) ; P6 (métadonnées PDF titre/auteur) ; P7 (« 1.5 s outside the verifier », lu dans le JSON :
+  export 6,24 − vérificateur 4,73) ; P8 (Apple M4, 10 cœurs, 24 Go) ; P9 (point k=8 : formule de taille, pointillé).
+  Recompilé : 13 pages, zéro non résolu, zéro Overfull, zéro avertissement hyperref ; `paper.bbl` régénéré
+  identique ; PDF et `arxiv-submission.tar.gz` régénérés, archive re-testée autonome. Abstract inchangé.
+- **Gel des versions** : `requirements-lock.txt` (60 paquets, versions exactes du run de référence, identiques à
+  celles de son `reproduce.json`) utilisé en contraintes par `make setup LOCK=1` ; `pyproject.toml` inchangé.
+- README : section Citation sans arXiv ni DOI (preprint + repo) ; instructions `LOCK=1`.
+
+**Constat** : le harnais écrit `"session": "S14"` en dur dans `reproduce.json` ⟹ les deux runs S15 portent
+`session = S14`. Laissé tel quel (mesure archivée ; le stamp et le commit font foi) ; à corriger avec le prochain
+chantier du harnais.

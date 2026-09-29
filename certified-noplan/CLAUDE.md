@@ -1049,7 +1049,7 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
 - Sortie : reproduce.json à `git_dirty=false` ; 8/8 lignes avec certificat livré et doublement
   vérifié ; figures papier régénérées ; `make test` vert ; journal (table reproduce, certificats
   livrés, divergences figures↔texte, VERIFY résolus) ; commit ET push. Prochaine étape : revue
-  supervision → relecture Stéphane → preprint arXiv → contact Dantam / Li / Henrion.
+  supervision → relecture Stéphane → preprint arXiv → prises de contact [retiré avant publication — S15, décision G1 de Stéphane].
 - Reste de l'ex-S14 (machine vierge, gel des versions, tag v1.0) : non re-planifié — à arbitrer par
   la supervision.
 - ✅ **S14 ACTÉE (10/09/2026)**, validée par la revue S14 (15/09) — décisions (a)/(b)/(c), voir changelog v1.24.

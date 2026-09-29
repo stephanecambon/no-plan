@@ -476,11 +476,6 @@ def _versions() -> dict:
     return out
 
 
-def _busiest_processes(n: int = 5) -> list:
-    out = subprocess.run(["ps", "-Ao", "pcpu,comm", "-r"], capture_output=True, text=True)
-    return [ln.strip()[:100] for ln in out.stdout.splitlines()[1:n + 1]]
-
-
 def reproduce(row_ids, allow_dirty: bool = False) -> str:
     """Run every requested row in its own process on a CLEAN tree and write reproduce.json."""
     dirty = _git_dirty()
@@ -493,7 +488,6 @@ def reproduce(row_ids, allow_dirty: bool = False) -> str:
     payload = {"stamp": stamp, "session": "S14", "commit": _commit_hash(),
                "git_dirty_at_start": dirty, "machine": _machine(), "versions": _versions(),
                "load_avg_at_start": [round(x, 2) for x in os.getloadavg()],
-               "busiest_processes_at_start": _busiest_processes(),
                "protocol": "one process per row; phases timed with time.monotonic; ground "
                            "truth re-asserted after the timed phases", "rows": {}}
     print(f"reproduce {stamp}  commit {payload['commit'][:10]}  dirty={dirty}")

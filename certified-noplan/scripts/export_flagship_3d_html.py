@@ -1,6 +1,6 @@
 """S11 Tâche 3 — export HTML 3D PARTAGEABLE et INTERACTIF (vrai iiwa7 + obstacle + preuve).
 
-Un fichier `.html` qu'un prospect ouvre dans son navigateur, **sans Python, sans serveur** : le
+Un fichier `.html` qu'un lecteur ouvre dans son navigateur, **sans Python, sans serveur** : le
 vrai KUKA iiwa7, l'obstacle, **7 curseurs articulaires** qui bougent le robot en direct, la
 **collision recalculée à chaque image**, les poses start/goal en **fantômes de bras ENTIER**, le
 **corps certifié surligné** avec la légende [A40], des **tentatives d'évasion** rejouées, et une

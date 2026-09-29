@@ -133,7 +133,7 @@ seedé). `lam_degree=affine` (le schéma livré).
   abstraits n≤3) — claim mesurable pour le papier. **Ceinture [A37] : dans des cadres DIFFÉRENTS**
   (eux = schéma *nécessaire-et-suffisant* sur ensembles abstraits ; nous = schéma *suffisant* sur
   bras articulés) ; la comparaison est légitime mais à formuler pour survivre à un reviewer
-  (possiblement Henrion lui-même). *(S9f re-mesure ce point : cf. §3d-bis.)*
+  [retiré avant publication — S15, décision G1 de Stéphane]. *(S9f re-mesure ce point : cf. §3d-bis.)*
 - **Le mur est à k=5** (mesure S9e), et c'est un **UNDECIDED PRATIQUE, pas de budget** : 48 feuilles
   (≪ 10⁴), 45 s (≪ 30 min) — le moteur termine sans certifier au témoin affine. **Cause de
   terminaison [A37] : à documenter exactement** — la subdivision Bernstein converge en théorie (à

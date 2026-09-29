@@ -24,13 +24,7 @@
     2.52,
     2.17
   ],
-  "busiest_processes_at_start": [
-    "20.5 /opt/homebrew/Cellar/python@3.12/3.12.13_2/Frameworks/Python.framework/Versions/3.12/Resources/",
-    "11.8 /Applications/Claude.app/Contents/Frameworks/Claude Helper (Renderer).app/Contents/MacOS/Claude",
-    "11.5 /Users/scambon/Library/Application Support/Claude/claude-code/2.1.284/claude.app/Contents/MacOS",
-    "8.0 C:\\Program Files (x86)\\Steam\\bin\\cef\\cef.win64\\steamwebhelper.exe",
-    "5.7 C:\\Program Files (x86)\\Steam\\bin\\cef\\cef.win64\\steamwebhelper.exe"
-  ],
+  "busiest_processes_at_start_redacted": "process list (local paths and desktop applications) removed before publication, S15 G1 decision; no measured value changed; load_avg_* is the quietness record",
   "protocol": "one process per row; phases timed with time.monotonic; ground truth re-asserted after the timed phases",
   "rows": {
     "relay": {

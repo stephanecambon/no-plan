@@ -1,6 +1,6 @@
 """S11 [A40] — invariant TESTÉ de l'artefact 3D PARTAGEABLE.
 
-`benchmarks/figures/share/*_3d.html` est un artefact d'ARGUMENT : c'est lui qu'un prospect ouvre,
+`benchmarks/figures/share/*_3d.html` est un artefact d'ARGUMENT : c'est lui qu'un lecteur ouvre,
 et il quitte le repo pour vivre sa vie dans un deck. Il doit donc être adossé à un test qui
 reproduit l'oracle de vérité (règle 11 / A40) — sur le FICHIER LIVRÉ, pas sur une re-génération.
 
