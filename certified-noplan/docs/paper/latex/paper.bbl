@@ -1,0 +1,229 @@
+\begin{thebibliography}{34}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Amice et~al.(2022)Amice, Dai, Werner, Zhang, and
+  Tedrake]{amice2022wafr}
+Alexandre Amice, Hongkai Dai, Peter Werner, Annan Zhang, and Russ Tedrake.
+\newblock Finding and optimizing certified, collision-free regions in
+  configuration space for robot manipulators.
+\newblock In \emph{Algorithmic Foundations of Robotics XV (WAFR 2022)}, 2022.
+
+\bibitem[Ansari et~al.(2026)Ansari, {Arthi}, Varma, and
+  Thomas]{feasibility2026}
+Sajid Ansari, {Arthi}, Girish Varma, and Antony Thomas.
+\newblock Learning motion feasibility from point clouds in cluttered
+  environments, 2026.
+\newblock arXiv:2606.26700.
+
+\bibitem[Cambon et~al.(2009)Cambon, Alami, and Gravot]{cambon2009}
+St\'ephane Cambon, Rachid Alami, and Fabien Gravot.
+\newblock A hybrid approach to intricate motion, manipulation and task
+  planning.
+\newblock \emph{The International Journal of Robotics Research}, 28\penalty0
+  (1):\penalty0 104--126, 2009.
+
+\bibitem[Canny(1988)]{canny1988}
+John~F. Canny.
+\newblock \emph{The Complexity of Robot Motion Planning}.
+\newblock MIT Press, 1988.
+
+\bibitem[Capco et~al.(2020)Capco, Safey El~Din, and Schicho]{capco2020}
+Jose Capco, Mohab Safey El~Din, and Josef Schicho.
+\newblock Robots, computer algebra and eight connected components.
+\newblock In \emph{Int. Symp. on Symbolic and Algebraic Computation (ISSAC)},
+  pages 62--69, 2020.
+
+\bibitem[Capco et~al.(2023)Capco, Safey El~Din, and Schicho]{capco2023}
+Jose Capco, Mohab Safey El~Din, and Josef Schicho.
+\newblock Positive dimensional parametric polynomial systems, connectivity
+  queries and applications in robotics.
+\newblock \emph{Journal of Symbolic Computation}, 115:\penalty0 320--345, 2023.
+
+\bibitem[Dai et~al.(2024)Dai, Amice, Werner, Zhang, and Tedrake]{dai2024ciris}
+Hongkai Dai, Alexandre Amice, Peter Werner, Annan Zhang, and Russ Tedrake.
+\newblock Certified polyhedral decompositions of collision-free configuration
+  space.
+\newblock \emph{The International Journal of Robotics Research}, 2024.
+\newblock DOI 10.1177/02783649231201437; arXiv:2302.12219.
+
+\bibitem[Dantam et~al.(2018)Dantam, Kingston, Chaudhuri, and
+  Kavraki]{dantam2018}
+Neil~T. Dantam, Zachary~K. Kingston, Swarat Chaudhuri, and Lydia~E. Kavraki.
+\newblock An incremental constraint-based framework for task and motion
+  planning.
+\newblock \emph{The International Journal of Robotics Research}, 37\penalty0
+  (10):\penalty0 1134--1151, 2018.
+
+\bibitem[Garloff(1985)]{garloff1985}
+J\"urgen Garloff.
+\newblock Convergent bounds for the range of multivariate polynomials.
+\newblock In \emph{Interval Mathematics 1985}, volume 212 of \emph{LNCS}, pages
+  37--56, 1985.
+
+\bibitem[Garrett et~al.(2018)Garrett, Lozano-P\'erez, and
+  Kaelbling]{garrett2018}
+Caelan~Reed Garrett, Tom\'as Lozano-P\'erez, and Leslie~Pack Kaelbling.
+\newblock {FFRob}: Leveraging symbolic planning for efficient task and motion
+  planning.
+\newblock \emph{The International Journal of Robotics Research}, 37\penalty0
+  (1):\penalty0 104--136, 2018.
+
+\bibitem[Henrion(2025{\natexlab{a}})]{henrion2025notsos}
+Didier Henrion.
+\newblock Positively not {SOS}: pseudo-moments and extreme rays in exact
+  arithmetic, 2025{\natexlab{a}}.
+\newblock arXiv:2509.01382.
+
+\bibitem[Henrion(2025{\natexlab{b}})]{henrion2025stengle}
+Didier Henrion.
+\newblock Solving {Stengle}'s example in rational arithmetic: exact values of
+  the moment-{SOS} relaxations, 2025{\natexlab{b}}.
+\newblock arXiv:2512.19141.
+
+\bibitem[Henrion et~al.(2024)Henrion, Miller, and Safey El~Din]{henrion2024}
+Didier Henrion, Jared Miller, and Mohab Safey El~Din.
+\newblock Algebraic proofs of path disconnectedness using time-dependent
+  barrier functions, 2024.
+\newblock arXiv:2404.06985. Preprint as of September 2026. Code:
+  github.com/jarmill/set\_connected.
+
+\bibitem[Huangfu and Hall(2018)]{huangfu2018}
+Qi~Huangfu and J.~A.~Julian Hall.
+\newblock Parallelizing the dual revised simplex method.
+\newblock \emph{Mathematical Programming Computation}, 10\penalty0
+  (1):\penalty0 119--142, 2018.
+
+\bibitem[Jaulin(2001)]{jaulin2001}
+Luc Jaulin.
+\newblock Path planning using intervals and graphs.
+\newblock \emph{Reliable Computing}, 7\penalty0 (1):\penalty0 1--15, 2001.
+
+\bibitem[Kaltofen et~al.(2008)Kaltofen, Li, Yang, and Zhi]{kaltofen2008}
+Erich Kaltofen, Bin Li, Zhengfeng Yang, and Lihong Zhi.
+\newblock Exact certification of global optimality of approximate
+  factorizations via rationalizing sums-of-squares with floating point scalars.
+\newblock In \emph{Int. Symp. on Symbolic and Algebraic Computation (ISSAC)},
+  pages 155--164, 2008.
+
+\bibitem[Li and Dantam(2020)]{li2020iros}
+Sihui Li and Neil~T. Dantam.
+\newblock Towards general infeasibility proofs in motion planning.
+\newblock In \emph{IEEE/RSJ Int. Conf. on Intelligent Robots and Systems
+  (IROS)}, pages 6704--6710, 2020.
+
+\bibitem[Li and Dantam(2021)]{li2021rss}
+Sihui Li and Neil~T. Dantam.
+\newblock Learning proofs of motion planning infeasibility.
+\newblock In \emph{Robotics: Science and Systems XVII}, 2021.
+\newblock Paper 64, DOI 10.15607/RSS.2021.XVII.064.
+
+\bibitem[Li and Dantam(2022)]{li2022wafr}
+Sihui Li and Neil~T. Dantam.
+\newblock Exponential convergence of infeasibility proofs for kinematic motion
+  planning.
+\newblock In \emph{Algorithmic Foundations of Robotics XV (WAFR 2022)}, 2022.
+\newblock DOI 10.1007/978-3-031-21090-7\_18.
+
+\bibitem[Li and Dantam(2023{\natexlab{a}})]{li2023ijrr}
+Sihui Li and Neil~T. Dantam.
+\newblock A sampling and learning framework to prove motion planning
+  infeasibility.
+\newblock \emph{The International Journal of Robotics Research}, 42\penalty0
+  (10):\penalty0 938--956, 2023{\natexlab{a}}.
+\newblock DOI 10.1177/02783649231154674.
+
+\bibitem[Li and Dantam(2023{\natexlab{b}})]{li2023ral}
+Sihui Li and Neil~T. Dantam.
+\newblock Scaling infeasibility proofs via concurrent, codimension-one,
+  locally-updated {Coxeter} triangulation.
+\newblock \emph{IEEE Robotics and Automation Letters}, 8\penalty0
+  (12):\penalty0 8303--8310, 2023{\natexlab{b}}.
+
+\bibitem[Li and Dantam(2024)]{li2024gpu}
+Sihui Li and Neil~T. Dantam.
+\newblock Scaling motion planning infeasibility proofs, 2024.
+\newblock arXiv:2406.04795. Preprint as of September 2026.
+
+\bibitem[Magron and Safey El~Din(2018{\natexlab{a}})]{magron2018putinar}
+Victor Magron and Mohab Safey El~Din.
+\newblock On exact {Polya} and {Putinar}'s representations.
+\newblock In \emph{Int. Symp. on Symbolic and Algebraic Computation (ISSAC)},
+  2018{\natexlab{a}}.
+
+\bibitem[Magron and Safey El~Din(2018{\natexlab{b}})]{magron2018realcertify}
+Victor Magron and Mohab Safey El~Din.
+\newblock {RealCertify}: a {Maple} package for certifying non-negativity.
+\newblock \emph{ACM Communications in Computer Algebra}, 52\penalty0
+  (2):\penalty0 34--37, 2018{\natexlab{b}}.
+
+\bibitem[Magron and Safey El~Din(2021)]{magron2021jsc}
+Victor Magron and Mohab Safey El~Din.
+\newblock On exact {Reznick}, {Hilbert-Artin} and {Putinar}'s representations.
+\newblock \emph{Journal of Symbolic Computation}, 107:\penalty0 221--250, 2021.
+\newblock DOI 10.1016/j.jsc.2021.03.005.
+
+\bibitem[McCarthy et~al.(2012)McCarthy, Bretl, and Hutchinson]{mccarthy2012}
+Zoe McCarthy, Timothy Bretl, and Seth Hutchinson.
+\newblock Proving path non-existence using sampling and alpha shapes.
+\newblock In \emph{IEEE Int. Conf. on Robotics and Automation (ICRA)}, pages
+  2563--2569, 2012.
+
+\bibitem[Peyrl and Parrilo(2008)]{peyrl2008}
+Helfried Peyrl and Pablo~A. Parrilo.
+\newblock Computing sum of squares decompositions with rational coefficients.
+\newblock \emph{Theoretical Computer Science}, 409\penalty0 (2):\penalty0
+  269--281, 2008.
+
+\bibitem[Polak(2026)]{hypercube2026}
+Sven Polak.
+\newblock Sum-of-squares certificates for symmetric polynomials on the
+  hypercube: a counterexample to a conjecture of {De Klerk} and {Laurent},
+  2026.
+\newblock arXiv:2605.31169. Exact rational certificate with archived
+  verification scripts.
+
+\bibitem[Putinar(1993)]{putinar1993}
+Mihai Putinar.
+\newblock Positive polynomials on compact semi-algebraic sets.
+\newblock \emph{Indiana University Mathematics Journal}, 42\penalty0
+  (3):\penalty0 969--984, 1993.
+
+\bibitem[Tedrake and {the Drake Development Team}(2019)]{drake}
+Russ Tedrake and {the Drake Development Team}.
+\newblock Drake: Model-based design and verification for robotics.
+\newblock \url{https://drake.mit.edu}, 2019.
+
+\bibitem[Thomas et~al.(2025)Thomas, Mastrogiovanni, and Baglietto]{thomas2025}
+Antony Thomas, Fulvio Mastrogiovanni, and Marco Baglietto.
+\newblock An incremental sampling and segmentation-based approach for motion
+  planning infeasibility.
+\newblock \emph{Robotics and Autonomous Systems}, 2025.
+\newblock arXiv:2501.11434.
+
+\bibitem[Varava et~al.(2021)Varava, Carvalho, Kragic, and Pokorny]{varava2021}
+Anastasiia Varava, J.~Frederico Carvalho, Danica Kragic, and Florian~T.
+  Pokorny.
+\newblock Free space of rigid objects: Caging, path non-existence, and narrow
+  passage detection.
+\newblock \emph{The International Journal of Robotics Research}, 40\penalty0
+  (10--11), 2021.
+
+\bibitem[Waki et~al.(2006)Waki, Kim, Kojima, and Muramatsu]{waki2006}
+Hayato Waki, Sunyoung Kim, Masakazu Kojima, and Masakazu Muramatsu.
+\newblock Sums of squares and semidefinite program relaxations for polynomial
+  optimization problems with structured sparsity.
+\newblock \emph{SIAM Journal on Optimization}, 17\penalty0 (1):\penalty0
+  218--242, 2006.
+
+\bibitem[Zhang et~al.(2008)Zhang, Kim, and Manocha]{zhang2008}
+Liangjun Zhang, Young~J. Kim, and Dinesh Manocha.
+\newblock Efficient cell labelling and path non-existence computation using
+  {C}-obstacle query.
+\newblock \emph{The International Journal of Robotics Research}, 27\penalty0
+  (11--12):\penalty0 1246--1257, 2008.
+
+\end{thebibliography}
