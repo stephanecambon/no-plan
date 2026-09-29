@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software or its certificates, please cite it as below."
+title: "Exactly Verifiable Infeasibility Certificates for Robot Motion Planning"
+type: software
+authors:
+  - family-names: Cambon
+    given-names: Stéphane
+    affiliation: Cambon AI
+license: MIT
+version: 1.0.0
+repository-code: "https://github.com/stephanecambon/no-plan"
+abstract: >-
+  Infeasibility certificates for motion planning of articulated arms that an
+  independent 499-line standard-library verifier re-checks in exact rational
+  arithmetic. The method combines a rational parametrization of forward
+  kinematics, a low-degree barrier whose slab separates start from goal inside
+  the obstacle region, and per-cell witnesses found by linear programming over
+  Bernstein coefficients. Includes the verifier, the generator, the scene files,
+  the certificates of every certified scene (up to a 7-DOF KUKA iiwa7), and the
+  dated benchmark files the paper reads its numbers from.
+keywords:
+  - motion planning
+  - infeasibility certificate
+  - path non-existence
+  - exact arithmetic
+  - Bernstein polynomials
+  - linear programming
+  - configuration space
+  - robot manipulators

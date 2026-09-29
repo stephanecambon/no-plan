@@ -1,0 +1,20 @@
+{
+  "title": "Exactly Verifiable Infeasibility Certificates for Robot Motion Planning — code, certificates and benchmark data",
+  "upload_type": "software",
+  "creators": [
+    {"name": "Cambon, Stéphane", "affiliation": "Cambon AI"}
+  ],
+  "description": "<p>Code, certificates and benchmark data accompanying the paper <em>Exactly Verifiable Infeasibility Certificates for Robot Motion Planning</em>. An independent 499-line verifier, using only the Python standard library, re-checks infeasibility certificates for articulated-arm motion planning in exact rational arithmetic. The release contains the verifier, the generator (rational forward kinematics, Bernstein-LP witnesses, branch-and-bound), the scene files, the certificate of every certified scene up to a 7-DOF KUKA iiwa7, the dated benchmark files the paper reads its numbers from, and the full development record (in French).</p>",
+  "license": "MIT",
+  "keywords": [
+    "motion planning",
+    "infeasibility certificate",
+    "path non-existence",
+    "exact arithmetic",
+    "Bernstein polynomials",
+    "linear programming",
+    "configuration space",
+    "robot manipulators"
+  ],
+  "language": "eng"
+}
