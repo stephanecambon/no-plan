@@ -1,0 +1,103 @@
+{
+  "row": "wall_k5",
+  "scene": "scenes/wall/k5.yaml",
+  "dof": 5,
+  "axis": "margin",
+  "lam_degree": "affine",
+  "budget": {
+    "max_depth": 60,
+    "max_leaves": 10000,
+    "max_time_s": 1800
+  },
+  "verdict_engine": "PROOF",
+  "leaves": 4,
+  "by_status": {
+    "outside": 2,
+    "collision": 2
+  },
+  "termination": "certified",
+  "n_lp_solves": 5,
+  "verdict": "PROOF",
+  "verify_msg": "PROOF verified exactly: 4 leaves (2 collision, 2 outside); start/goal separated by the slab |phi| <= 1/10.",
+  "phases_s": {
+    "load_and_fk_build": 0.299,
+    "engine": 1.496,
+    "export": 0.684
+  },
+  "export_breakdown_s": {
+    "verify_loop_full_verifier": 0.218,
+    "verify_loop_calls": 1,
+    "per_leaf_exact_audit": 0.216,
+    "per_leaf_audit_calls": 2,
+    "audit_setup_fk_rederivation": 0.003
+  },
+  "engine_s": 1.496,
+  "certify_s": 2.478,
+  "verify_s": 0.219,
+  "certificate": "scenes/wall/k5.cert.json",
+  "cert_stats": {
+    "n_leaves": 4,
+    "n_collision": 2,
+    "n_outside": 2,
+    "n_reresolve_failed": 0,
+    "n_leaves_embedded": 2,
+    "n_leaves_resolved": 0,
+    "n_embed_rejected": 0
+  },
+  "recheck_stdlib_verify_file": {
+    "ok": true,
+    "msg": "PROOF verified exactly: 4 leaves (2 collision, 2 outside); start/goal separated by the slab |phi| <= 1/10.",
+    "third_party_modules_loaded": [],
+    "site_disabled": true,
+    "wall_s": 0.23,
+    "command": "python -S -I -c 'from cnp.verify import verify_file; verify_file(...)'"
+  },
+  "recheck_cli_verify_with_scene": {
+    "returncode": 0,
+    "ok": true,
+    "first_lines": [
+      "OK    \u2014 PROOF verified exactly: 4 leaves (2 collision, 2 outside); start/goal separated by the slab |phi| <= 1/10.",
+      "verdict: PROOF (verified in exact arithmetic + scene cross-check)"
+    ],
+    "command": "cnp verify scenes/wall/k5.cert.json scenes/wall/k5.yaml"
+  },
+  "active_dims": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "n_active": 5,
+  "passive_dims": [],
+  "lp_reduced": {
+    "rows": 18814,
+    "cols": 19
+  },
+  "lp_full": {
+    "rows": 18814,
+    "cols": 19
+  },
+  "reduction_x": 1.0,
+  "lp_full_rows_formula": 18814,
+  "embedding_applicable": {
+    "WALL": {
+      "applicable": true,
+      "reason": "no passive axis: the reduced LP already IS the full-dim LP"
+    }
+  },
+  "groundtruth": {
+    "start_free": true,
+    "goal_free": true,
+    "free_in_slab": 0,
+    "free_in_slab_corner": 0,
+    "free_left": 921,
+    "free_right": 949,
+    "oracle": "segment sampling (scenes.collision_oracle, 50 points)",
+    "n_uniform_in_slab": 8000,
+    "n_corner_biased_in_slab": 8000,
+    "n_per_side": 1500,
+    "seed": 8,
+    "wall_s": 2.5
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "row": "relay",
+  "scene": "scenes/S1_relais.yaml",
+  "dof": 2,
+  "axis": "oracle",
+  "lam_degree": "affine",
+  "budget": {
+    "max_depth": 16,
+    "max_leaves": null,
+    "max_time_s": null
+  },
+  "verdict_engine": "PROOF",
+  "leaves": 46,
+  "by_status": {
+    "outside": 8,
+    "collision": 38
+  },
+  "termination": "certified",
+  "n_lp_solves": 249,
+  "verdict": "PROOF",
+  "verify_msg": "PROOF verified exactly: 46 leaves (38 collision, 8 outside); start/goal separated by the slab |phi| <= 1/20.",
+  "phases_s": {
+    "load_and_fk_build": 0.113,
+    "engine": 0.44,
+    "export": 0.24
+  },
+  "export_breakdown_s": {
+    "verify_loop_full_verifier": 0.089,
+    "verify_loop_calls": 1,
+    "per_leaf_exact_audit": 0.088,
+    "per_leaf_audit_calls": 38,
+    "audit_setup_fk_rederivation": 0.0
+  },
+  "engine_s": 0.44,
+  "certify_s": 0.794,
+  "verify_s": 0.089,
+  "certificate": "scenes/S1_relais.cert.json",
+  "cert_stats": {
+    "n_leaves": 46,
+    "n_collision": 38,
+    "n_outside": 8,
+    "n_reresolve_failed": 0,
+    "n_leaves_embedded": 38,
+    "n_leaves_resolved": 0,
+    "n_embed_rejected": 0
+  },
+  "recheck_stdlib_verify_file": {
+    "ok": true,
+    "msg": "PROOF verified exactly: 46 leaves (38 collision, 8 outside); start/goal separated by the slab |phi| <= 1/20.",
+    "third_party_modules_loaded": [],
+    "site_disabled": true,
+    "wall_s": 0.11,
+    "command": "python -S -I -c 'from cnp.verify import verify_file; verify_file(...)'"
+  },
+  "recheck_cli_verify_with_scene": {
+    "returncode": 0,
+    "ok": true,
+    "first_lines": [
+      "OK    \u2014 PROOF verified exactly: 46 leaves (38 collision, 8 outside); start/goal separated by the slab |phi| <= 1/20.",
+      "verdict: PROOF (verified in exact arithmetic + scene cross-check)"
+    ],
+    "command": "cnp verify scenes/S1_relais.cert.json scenes/S1_relais.yaml"
+  },
+  "active_dims": [
+    0,
+    1
+  ],
+  "n_active": 2,
+  "passive_dims": [],
+  "lp_reduced": {
+    "rows": 158,
+    "cols": 13
+  },
+  "lp_full": {
+    "rows": 158,
+    "cols": 13
+  },
+  "reduction_x": 1.0,
+  "lp_full_rows_formula": 158,
+  "groundtruth": {
+    "oracle": null,
+    "note": "no ground-truth pass for this row",
+    "wall_s": 0.0
+  }
+}

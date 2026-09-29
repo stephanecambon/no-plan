@@ -1,0 +1,89 @@
+{
+  "row": "comb",
+  "scene": "scenes/S2_peigne.yaml",
+  "dof": 3,
+  "axis": "margin",
+  "lam_degree": "affine",
+  "budget": {
+    "max_depth": 18,
+    "max_leaves": null,
+    "max_time_s": null
+  },
+  "verdict_engine": "PROOF",
+  "leaves": 54,
+  "by_status": {
+    "outside": 8,
+    "collision": 46
+  },
+  "termination": "certified",
+  "n_lp_solves": 297,
+  "verdict": "PROOF",
+  "verify_msg": "PROOF verified exactly: 54 leaves (46 collision, 8 outside); start/goal separated by the slab |phi| <= 1/20.",
+  "phases_s": {
+    "load_and_fk_build": 0.13,
+    "engine": 1.321,
+    "export": 0.425
+  },
+  "export_breakdown_s": {
+    "verify_loop_full_verifier": 0.173,
+    "verify_loop_calls": 1,
+    "per_leaf_exact_audit": 0.171,
+    "per_leaf_audit_calls": 46,
+    "audit_setup_fk_rederivation": 0.0
+  },
+  "engine_s": 1.321,
+  "certify_s": 1.876,
+  "verify_s": 0.172,
+  "certificate": "scenes/S2_peigne.cert.json",
+  "cert_stats": {
+    "n_leaves": 54,
+    "n_collision": 46,
+    "n_outside": 8,
+    "n_reresolve_failed": 0,
+    "n_leaves_embedded": 46,
+    "n_leaves_resolved": 0,
+    "n_embed_rejected": 0
+  },
+  "recheck_stdlib_verify_file": {
+    "ok": true,
+    "msg": "PROOF verified exactly: 54 leaves (46 collision, 8 outside); start/goal separated by the slab |phi| <= 1/20.",
+    "third_party_modules_loaded": [],
+    "site_disabled": true,
+    "wall_s": 0.19,
+    "command": "python -S -I -c 'from cnp.verify import verify_file; verify_file(...)'"
+  },
+  "recheck_cli_verify_with_scene": {
+    "returncode": 0,
+    "ok": true,
+    "first_lines": [
+      "OK    \u2014 PROOF verified exactly: 54 leaves (46 collision, 8 outside); start/goal separated by the slab |phi| <= 1/20.",
+      "verdict: PROOF (verified in exact arithmetic + scene cross-check)"
+    ],
+    "command": "cnp verify scenes/S2_peigne.cert.json scenes/S2_peigne.yaml"
+  },
+  "active_dims": [
+    0,
+    1
+  ],
+  "n_active": 2,
+  "passive_dims": [
+    2
+  ],
+  "lp_reduced": {
+    "rows": 158,
+    "cols": 13
+  },
+  "lp_full": {
+    "rows": 766,
+    "cols": 15
+  },
+  "reduction_x": 4.8,
+  "lp_full_rows_formula": 766,
+  "groundtruth": {
+    "oracle": "segment sampling (scenes.collision_oracle, 30 points per link)",
+    "n_uniform_in_slab": 300000,
+    "free_in_slab": 0,
+    "seed": 0,
+    "wall_s": 23.6
+  }
+}

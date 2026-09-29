@@ -1,0 +1,60 @@
+{
+  "row": "wall_k8",
+  "scene": "scenes/wall/k8.yaml",
+  "dof": 8,
+  "axis": "margin",
+  "lam_degree": "affine",
+  "budget": {
+    "max_depth": 60,
+    "max_leaves": 10000,
+    "max_time_s": 300
+  },
+  "verdict_engine": "UNDECIDED",
+  "leaves": 2,
+  "by_status": {
+    "undecided": 2
+  },
+  "termination": "budget_time",
+  "n_lp_solves": 1,
+  "verdict": "UNDECIDED",
+  "phases_s": {
+    "load_and_fk_build": 5.538,
+    "engine": 411.564
+  },
+  "engine_s": 411.564,
+  "certificate": null,
+  "note": "engine only: no certificate (UNDECIDED is not a proof and not a proof of feasibility)",
+  "active_dims": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "n_active": 8,
+  "passive_dims": [],
+  "lp_full_rows_formula": 2344262,
+  "embedding_applicable": {
+    "WALL": {
+      "applicable": true,
+      "reason": "no passive axis: the reduced LP already IS the full-dim LP"
+    }
+  },
+  "groundtruth": {
+    "start_free": true,
+    "goal_free": true,
+    "free_in_slab": 0,
+    "free_in_slab_corner": 0,
+    "free_left": 339,
+    "free_right": 327,
+    "oracle": "segment sampling (scenes.collision_oracle, 50 points)",
+    "n_uniform_in_slab": 3000,
+    "n_corner_biased_in_slab": 3000,
+    "n_per_side": 1500,
+    "seed": 8,
+    "wall_s": 3.0
+  }
+}
