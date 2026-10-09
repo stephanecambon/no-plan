@@ -1,0 +1,26 @@
+name = "CnpVerify"
+version = "0.1.0"
+keywords = ["math"]
+defaultTargets = ["CnpVerify", "cnp-verify"]
+
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+maxSynthPendingDepth = 3
+weak.linter.style.header = false # Mathlib file-header convention (copyright block): not ours
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.34.1"
+
+# The library: executable core (Tensor, Bernstein, Kinematics, Certificate, Check — core Lean
+# only) and the specification layer (Spec/*, Soundness — Mathlib).
+[[lean_lib]]
+name = "CnpVerify"
+
+# The checker binary. Its import closure is the executable core only: it does not link Mathlib.
+[[lean_exe]]
+name = "cnp-verify"
+root = "Main"

@@ -13,7 +13,7 @@ STAMP   := $(VENV)/.installed
 # `make setup LOCK=1` installs the exact versions of the reference run (requirements-lock.txt).
 CONSTRAINTS := $(if $(LOCK),-c requirements-lock.txt,)
 
-.PHONY: setup test test-fast test-slow bench-parallel figures benchmark reproduce paper-figures clean
+.PHONY: setup test test-fast test-slow bench-parallel figures benchmark reproduce paper-figures lean-parity clean
 
 # Idempotent: re-running `make setup` does nothing unless pyproject.toml changed.
 setup: $(STAMP)
@@ -70,6 +70,12 @@ reproduce: setup
 # drawn is read from the latest reproduce.json, never retyped.
 paper-figures: setup
 	$(VENV_PY) scripts/make_paper_figures.py
+
+# L1 — Lean 4 checker (lean/, Lake project CnpVerify). Builds `cnp-verify`, exports the adversarial
+# corpus from the test-suite mutations and compares Lean and Python verdicts on every shipped
+# certificate and every mutation. NOT part of `make test` (needs elan + the Mathlib cache).
+lean-parity: setup
+	bash lean/check_all.sh
 
 clean:
 	rm -rf $(VENV) .pytest_cache

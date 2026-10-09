@@ -1,6 +1,11 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
-Version 1.8 — 10 septembre 2026 (amendée post-S7/S8/S9c/S12/P2 ; v1.0..v1.7 dans git).
+Version 1.9 — 9 octobre 2026 (amendée post-S7/S8/S9c/S12/P2/L1 ; v1.0..v1.8 dans git).
+Amendement v1.8→v1.9 (acté L1, règle 12 — constat du port Lean, aucun changement de code) : §4 —
+les nombres du certificat sont des chaînes que `fractions.Fraction` lit exactement, **« num/den »
+OU décimales** : les bornes de cellule des feuilles sont écrites en décimal (`"-0.8"`, `"0.0625"`)
+depuis S4 (`certificate.py` sérialise `str(lo)` des bornes du moteur), ce que l'ancienne phrase
+« num/den » ne disait pas. §3 — sous-projet `lean/` (vérificateur Lean 4, session L1).
 Amendement v1.7→v1.8 (acté P2, décision de supervision [D67] — revue P1, règle 12) : §2 (i) —
 la condition de séparation start/goal est **stricte** : φ(s_start) < −δ et φ(s_goal) > +δ
 (était « ≤ −δ / ≥ +δ »). Aligné sur `verify.py:342-345` (qui teste strict depuis S4, cf. §2
@@ -158,6 +163,10 @@ certified-noplan/
 │   ├── verify.py              # VÉRIFICATEUR INDÉPENDANT (voir §5)
 │   ├── scenes.py              # parser YAML scène → modèle Drake + H-rep obstacles
 │   └── viz.py                 # Meshcat 3D + figures C-space/partition
+├── lean/                      # [L1] projet Lake CnpVerify : vérificateur Lean 4 `cnp-verify`
+│                              # (port exécutable de verify.py, parité `make lean-parity`) +
+│                              # énoncés à prouver (lean/PROOF-OBLIGATIONS.md) ; verify.py reste
+│                              # la spécification et l'arbitre du verdict PROOF
 ├── scenes/                    # *.yaml (voir §6)
 ├── benchmarks/                # harness + résultats datés (jamais écrasés)
 └── tests/                     # pytest ; inclut contrôles négatifs obligatoires
@@ -169,7 +178,8 @@ accepté pour le prototypage. Parallélisme : multiprocessing sur les feuilles.
 ## 4. Format de certificat (JSON)
 
 [schéma FINALISÉ S4] Tous les nombres sont des **chaînes rationnelles exactes**
-("num/den"). Le certificat est **auto-suffisant** en S4 (il embarque la scène exacte
+("num/den" **ou décimal exact** — grammaire de `fractions.Fraction(str)` ; les bornes de cellule
+des feuilles sont en décimal, p. ex. `"-0.8"` [amendé en L1]). Le certificat est **auto-suffisant** en S4 (il embarque la scène exacte
 que verify recalcule ; le croisement avec un YAML externe arrive en S6).
 ```json
 {
