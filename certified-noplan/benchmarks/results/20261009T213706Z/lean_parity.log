@@ -1,0 +1,120 @@
+lean-parity run — 2026-10-09T21:37:06Z
+commit: d02bc9d0ca256cf19587e61a265b7eedb5c3c1d9
+git_dirty_at_start: true
+lean: Lean (version 4.34.1, arm64-apple-darwin24.6.0, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)
+lake: Lake version 5.0.0-src+5045d00 (Lean version 4.34.1)
+mathlib: d13f23b723b8a846827a245b89c10fc7d3f11612 (rev = "v4.34.1")
+python: Python 3.12.13
+machine: Darwin 25.5.0 arm64, Apple M4
+load average at start: { 2.46 2.52 2.60 }
+
+
+== shipped certificates (13) ==
+| certificate | Python | Lean | Python s | Lean s | Lean wall s | Lean/Python |
+|---|---|---|---|---|---|---|
+| scenes/S1_relais.cert.json | PROOF | PROOF | 0.088 | 0.068 | 0.092 | x0.77 |
+| scenes/S2_peigne.cert.json | PROOF | PROOF | 0.169 | 0.131 | 0.151 | x0.78 |
+| scenes/S3_shoulder_elbow.cert.json | PROOF | PROOF | 0.041 | 0.036 | 0.055 | x0.87 |
+| scenes/S4_iiwa_bin.cert.json | PROOF | PROOF | 0.131 | 0.092 | 0.112 | x0.70 |
+| scenes/S5_iiwa_shelf.cert.json | PROOF | PROOF | 2.968 | 1.684 | 1.704 | x0.57 |
+| scenes/S6_iiwa_real_shelf.cert.json | PROOF | PROOF | 1.923 | 1.573 | 1.593 | x0.82 |
+| scenes/usecase_binpicking_iiwa7.cert.json | PROOF | PROOF | 1.897 | 1.579 | 1.600 | x0.83 |
+| scenes/usecase_capot_surete_iiwa7.cert.json | PROOF | PROOF | 2.018 | 1.593 | 1.615 | x0.79 |
+| scenes/wall/k3.cert.json | PROOF | PROOF | 0.011 | 0.009 | 0.042 | x0.79 |
+| scenes/wall/k4.cert.json | PROOF | PROOF | 0.051 | 0.051 | 0.070 | x0.99 |
+| scenes/wall/k5.cert.json | PROOF | PROOF | 0.206 | 0.202 | 0.222 | x0.98 |
+| scenes/wall/k6.cert.json | PROOF | PROOF | 1.088 | 0.975 | 0.995 | x0.90 |
+| scenes/wall/k7.cert.json | PROOF | PROOF | 6.119 | 5.903 | 5.923 | x0.96 |
+
+== adversarial corpus (48) ==
+| certificate | Python | Lean | Python reason | Lean reason | match |
+|---|---|---|---|---|---|
+| baseline/planar_E3 | PROOF | PROOF | PROOF | PROOF | ok |
+| baseline/locked_345 | PROOF | PROOF | PROOF | PROOF | ok |
+| baseline/locked_identity | PROOF | PROOF | PROOF | PROOF | ok |
+| baseline/spatial_S2b | PROOF | PROOF | PROOF | PROOF | ok |
+| planar/mu_negative | REJECT | REJECT | mu_negative leaf=4 idx=0 | mu_negative leaf=4 idx=0 | ok |
+| planar/mu_huge | REJECT | REJECT | face_not_certified leaf=4 idx=0 | face_not_certified leaf=4 idx=0 | ok |
+| planar/lambda_breaks_sum | REJECT | REJECT | lambda_sum leaf=4 | lambda_sum leaf=4 | ok |
+| planar/lambda_scaled | REJECT | REJECT | lambda_sum leaf=4 | lambda_sum leaf=4 | ok |
+| planar/lambda_negative | REJECT | REJECT | lambda_sum leaf=4 | lambda_sum leaf=4 | ok |
+| planar/cut_shifted | REJECT | REJECT | tiling_not_bisection | tiling_not_bisection | ok |
+| planar/drop_leaf_gap | REJECT | REJECT | tiling_not_bisection | tiling_not_bisection | ok |
+| planar/duplicate_leaf_overlap | REJECT | REJECT | tiling_not_bisection | tiling_not_bisection | ok |
+| planar/qstar_changed | REJECT | REJECT | qstar_nonzero | qstar_nonzero | ok |
+| planar/delta_x20 | REJECT | REJECT | cond_i_start | cond_i_start | ok |
+| planar/delta_negative | REJECT | REJECT | delta_nonpos | delta_nonpos | ok |
+| planar/start_wrong_side | REJECT | REJECT | cond_i_start | cond_i_start | ok |
+| planar/goal_wrong_side | REJECT | REJECT | cond_i_goal | cond_i_goal | ok |
+| planar/phi_sign_flipped | REJECT | REJECT | cond_i_start | cond_i_start | ok |
+| planar/obstacle_b_shrunk | REJECT | REJECT | face_not_certified leaf=8 idx=0 | face_not_certified leaf=8 idx=0 | ok |
+| planar/obstacle_a_changed | REJECT | REJECT | face_not_certified leaf=8 idx=0 | face_not_certified leaf=8 idx=0 | ok |
+| planar/hull_vertex_changed | REJECT | REJECT | face_not_certified leaf=4 idx=1 | face_not_certified leaf=4 idx=1 | ok |
+| planar/link_length_changed | REJECT | REJECT | face_not_certified leaf=4 idx=1 | face_not_certified leaf=4 idx=1 | ok |
+| planar/body_link_changed | REJECT | REJECT | face_not_certified leaf=4 idx=1 | face_not_certified leaf=4 idx=1 | ok |
+| planar/collision_relabelled_outside | REJECT | REJECT | outside_not_disjoint leaf=4 | outside_not_disjoint leaf=4 | ok |
+| planar/outside_relabelled_collision | REJECT | REJECT | malformed | malformed | ok |
+| planar/obstacle_swapped_in_leaf | REJECT | REJECT | face_not_certified leaf=13 idx=1 | face_not_certified leaf=13 idx=1 | ok |
+| planar/theorem_changed | REJECT | REJECT | not_disconnection | not_disconnection | ok |
+| planar/substitution_changed | REJECT | REJECT | unknown_substitution | unknown_substitution | ok |
+| planar/box_shrunk | REJECT | REJECT | tiling_not_bisection | tiling_not_bisection | ok |
+| planar/extra_cell_outside_box | REJECT | REJECT | tiling_not_bisection | tiling_not_bisection | ok |
+| locked/cos_sin_not_unit | REJECT | REJECT | lock_not_unit | lock_not_unit | ok |
+| locked/lock_moved_flip | REJECT | REJECT | face_not_certified leaf=0 idx=1 | face_not_certified leaf=0 idx=1 | ok |
+| locked/lock_moved_quarter | REJECT | REJECT | face_not_certified leaf=0 idx=3 | face_not_certified leaf=0 idx=3 | ok |
+| locked/lock_moved_straight | REJECT | REJECT | face_not_certified leaf=0 idx=4 | face_not_certified leaf=0 idx=4 | ok |
+| locked/lock_removed | REJECT | REJECT | n_mismatch | n_mismatch | ok |
+| locked/lock_wrong_index | REJECT | REJECT | face_not_certified leaf=0 idx=1 | face_not_certified leaf=0 idx=1 | ok |
+| spatial/axis_flipped_to_y | REJECT | REJECT | face_not_certified leaf=2 idx=3 | face_not_certified leaf=2 idx=3 | ok |
+| spatial/offset_lifted | REJECT | REJECT | face_not_certified leaf=2 idx=2 | face_not_certified leaf=2 idx=2 | ok |
+| spatial/axis_not_unit | REJECT | REJECT | axis_not_unit | axis_not_unit | ok |
+| spatial/lambda_busted | REJECT | REJECT | lambda_sum leaf=2 | lambda_sum leaf=2 | ok |
+| spatial/mu_negative | REJECT | REJECT | mu_negative leaf=2 idx=0 | mu_negative leaf=2 idx=0 | ok |
+| spatial/leaf_popped | REJECT | REJECT | tiling_not_bisection | tiling_not_bisection | ok |
+| spatial/collision_relabelled_outside | REJECT | REJECT | outside_not_disjoint leaf=2 | outside_not_disjoint leaf=2 | ok |
+| spatial/geometry_swap_internally_valid | PROOF | PROOF | PROOF | PROOF | ok |
+| garbage/empty | REJECT | REJECT | not_disconnection | not_disconnection | ok |
+| garbage/theorem_only | REJECT | REJECT | malformed | malformed | ok |
+| garbage/leaves_only | REJECT | REJECT | not_disconnection | not_disconnection | ok |
+| garbage/null_field | REJECT | REJECT | not_disconnection | not_disconnection | ok |
+
+shipped: 13 certificates; corpus: 43 rejected + 5 accepted by Python; divergences: 0
+
+== differential fuzz (seed 20261009) ==
+cases: 5000; both PROOF: 2536; both REJECT: 2405; Python raises / Lean rejects: 54; Lean stricter at parsing: 5; reason differs: 20; VERDICT DIVERGENCES: 0
+  mu               proof   435  reject   152
+  lambda_pair      proof   397  reject   148
+  lambda_one       proof     0  reject   187
+  lambda_new_term  proof   174  reject   179
+  geometry         proof   486  reject   272
+  barrier          proof   555  reject   164
+  partition        proof   233  reject   505
+  structure        proof   132  reject   260
+  respell          proof    95  reject   252
+  garbage          proof    29  reject   340
+  uncaught Python exceptions: {'IndexError': 54}
+  [lean_stricter_parse] #2379 locked_345 garbage: verify: malformed certificate (leaf mu: invalid rational "１")
+  [lean_stricter_parse] #2893 S4_iiwa_bin.cert.json garbage: verify: malformed certificate (locked cos: expected a rational string or an integer)
+  [lean_stricter_parse] #3218 S3_shoulder_elbow.cert.json garbage: verify: malformed certificate (obstacle A: invalid rational "１")
+  [lean_stricter_parse] #3676 S4_iiwa_bin.cert.json garbage: verify: malformed certificate (locked sin: expected a rational string or an integer)
+  [lean_stricter_parse] #3758 k3.cert.json garbage: verify: malformed certificate (obstacle A: invalid rational "１")
+  [reason_differs] #97 locked_identity structure: Python n_mismatch / Lean malformed
+  [reason_differs] #310 S4_iiwa_bin.cert.json structure: Python n_mismatch / Lean malformed
+  [reason_differs] #392 spatial_S2b garbage: Python face_not_certified leaf=2 idx=0 / Lean malformed
+  [reason_differs] #394 spatial_S2b garbage: Python tiling_leaf_mismatch / Lean malformed
+  [reason_differs] #438 k4.cert.json garbage: Python face_not_certified leaf=0 idx=4 / Lean malformed
+  [reason_differs] #573 locked_345 structure: Python n_mismatch / Lean malformed
+  [reason_differs] #1145 planar_E3 garbage: Python lambda_sum leaf=39 / Lean malformed
+  [reason_differs] #1310 S4_iiwa_bin.cert.json garbage: Python tiling_leaf_mismatch / Lean malformed
+  [reason_differs] #1466 locked_identity garbage: Python degenerate_box / Lean malformed
+  [reason_differs] #1629 k3.cert.json garbage: Python face_not_certified leaf=0 idx=5 / Lean malformed
+  [reason_differs] #1980 S3_shoulder_elbow.cert.json garbage: Python tiling_leaf_mismatch / Lean malformed
+  [reason_differs] #2044 k4.cert.json garbage: Python face_not_certified leaf=0 idx=3 / Lean malformed
+  [reason_differs] #2090 locked_345 structure: Python n_mismatch / Lean malformed
+  [reason_differs] #2348 S4_iiwa_bin.cert.json structure: Python n_mismatch / Lean malformed
+  [reason_differs] #2532 locked_identity structure: Python n_mismatch / Lean malformed
+  [reason_differs] #2634 locked_345 garbage: Python face_not_certified leaf=0 idx=5 / Lean malformed
+  [reason_differs] #2831 spatial_S2b garbage: Python face_not_certified leaf=2 idx=1 / Lean malformed
+  [reason_differs] #3322 planar_E3 garbage: Python face_not_certified leaf=9 idx=4 / Lean malformed
+  [reason_differs] #4059 k3.cert.json garbage: Python face_not_certified leaf=0 idx=2 / Lean malformed
+  [reason_differs] #4742 k4.cert.json garbage: Python lambda_sum leaf=1 / Lean malformed

@@ -31,15 +31,17 @@ run_parity() {
 # ARCHIVE=1 keeps the run (rule 7): benchmarks/results/<UTC>/lean_parity.log, never overwritten,
 # with the commit, the state of the tree and the pinned versions.
 if [ "${ARCHIVE:-0}" = "1" ]; then
+  # read the state of the tree BEFORE creating the archive directory (which makes it dirty)
+  DIRTY="$([ -n "$(git -C "$ROOT" status --porcelain)" ] && echo true || echo false)"
   OUT="$ROOT/benchmarks/results/$(date -u +%Y%m%dT%H%M%SZ)"
   mkdir "$OUT"
   {
     echo "lean-parity run — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "commit: $(git -C "$ROOT" rev-parse HEAD)"
-    echo "git_dirty_at_start: $([ -n "$(git -C "$ROOT" status --porcelain)" ] && echo true || echo false)"
+    echo "git_dirty_at_start: $DIRTY"
     echo "lean: $(lean --version)"
     echo "lake: $(lake --version)"
-    echo "mathlib: $(git -C .lake/packages/mathlib rev-parse HEAD) ($(grep -A1 'name = "mathlib"' lakefile.toml >/dev/null; grep '^rev' lakefile.toml))"
+    echo "mathlib: $(git -C .lake/packages/mathlib rev-parse HEAD) ($(grep '^rev' lakefile.toml))"
     echo "python: $("$PY" --version)"
     echo "machine: $(uname -srm), $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo unknown)"
     echo "load average at start: $(sysctl -n vm.loadavg 2>/dev/null || uptime)"
