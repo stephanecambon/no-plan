@@ -104,7 +104,7 @@ def run_lean(source: str, timeout: float, mem_gb: float) -> dict:
     proc.wait()
     wall = time.time() - t0
     log.seek(0)
-    out = log.read()
+    out = log.read().replace(path, "probe.lean")           # no machine-specific temp path in archives
     log.close()
     os.unlink(path)
     kernel = sum(float(v) * _UNITS[u]

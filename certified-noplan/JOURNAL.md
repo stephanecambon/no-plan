@@ -4960,3 +4960,334 @@ Diffs : D85 (décisions 1-5 → section L3) ; D86 (A53 → règle 9) ; D87 (head
   redémarrée 3 minutes plus tôt (`uptime` : load averages 70,92 / 27,01 / 10,57 à 17 h 26, indexation
   Spotlight en cours) ; aucun chrono n'est pris avant que la charge soit retombée, et la charge au
   lancement est notée à côté de chaque mesure de cette session.
+
+## 2026-10-10 — Session L4 (Claude Code, AUTONOME) — **VÉRIFICATEUR LEAN, étape 4 : `check wallK3 = true` ÉVALUÉ DANS LE NOYAU (par étapes, `decide +kernel` à chaque pas) ⟹ la disconnexion de `wall/k3` est un théorème Lean/Mathlib aux trois axiomes standard ; `decide` seul et `decide +kernel` en une évaluation ÉCHOUENT, chiffres à l'appui ; S3 et S6 hors de portée du noyau ; CI ; matière papier** ; `verify.py`, `src/`, `tests/` zéro diff ; cœur Lean = deux lignes de commentaire
+
+**Ouverture [A33].** `git status` PROPRE (HEAD `1e36456`). `lake build` vert, 0 `sorry`, 0 avertissement. Ouverture doc
+(circuit A16) : revue L3 transcrite, D85-D87 appliqués, commit séparé `75b6c88` (17:27:52).
+**Machine NON quiète, pendant TOUTE la session — la précondition 1 du prompt n'est pas tenue et je ne pouvais pas la
+tenir** : machine redémarrée 3 minutes avant l'ouverture (load 70 / 27 / 10 à 17 h 26), puis un jeu lancé par Stéphane
+(`RUSE.exe` sous Wine, ~190 % de CPU, soit 2 des 10 cœurs, constaté à 17 h 46 et encore présent en fin de session) ;
+load averages entre 4,5 et 8,5 d'un bout à l'autre. **Aucun chrono de cette session n'est un chrono de machine au repos.**
+Les ordres de grandeur (millisecondes / minutes / « ne tient pas en mémoire ») n'en dépendent pas ; le dernier chiffre,
+si. La charge au lancement est archivée avec chaque mesure ; `make lean-kernel-bench` rejoue tout sur machine quiète.
+
+### Fait
+
+**Jalon : `theorem wallK3_proof : check wallK3 = true`, prouvé par le noyau seul, à 18 h 09 ; commité à 18:17:29
+(`7b4b77d`).** `#print axioms` : `[propext, Classical.choice, Quot.sound]`. Corollaires, mêmes axiomes
+(`lean/Certs/Disconnected.lean`) :
+
+```lean
+theorem wallK3_disconnected_ref :
+    ¬ ∃ γ : C(unitInterval, Fin wallK3.n → ℝ),
+        (∀ t, γ t ∈ wallK3.box.toSet) ∧ γ 0 = vecR wallK3.sStart ∧ γ 1 = vecR wallK3.sGoal
+          ∧ ∀ t, CollisionFreeRef wallK3 (γ t) :=
+  soundness_ref wallK3 wallK3_proof
+```
+
+et `wallK3_disconnected` (forme S1, `soundness wallK3 wallK3_proof`, comme écrit au prompt). **Pour cette scène, la
+disconnexion est un théorème de Lean/Mathlib : ni compilateur, ni binaire, ni parseur JSON.**
+
+**MAIS pas par `by decide`, et pas en une ligne.** La preuve livrée est une preuve PAR ÉTAPES ; c'est le résultat
+principal de la session et c'est un écart au prompt (voir Écarts). Dans l'ordre où je l'ai appris :
+
+**Tâche 1.a — le certificat comme terme.** `scripts/cert_to_lean.py` (stdlib seule, n'importe rien de `src/`) lit le
+JSON et écrit `def wallK3 : Certificate where …` (`lean/Certs/WallK3.lean`, 53 lignes ; de même
+`S3ShoulderElbow.lean`, `S6IiwaRealShelf.lean`). Rationnels en `(a : Rat) / b` (`Rat` = `ℚ` : les fichiers générés sont
+du Lean cœur, sans Mathlib, donc sans la notation), entiers en numéraux, polynômes en
+`Tensor.ofTerms deg #[(exposants, coefficient), …]` — l'appel même que fait le parseur. Le script suit les règles de
+lecture de `Certificate.ofJson` (champs lus, grammaire `Fraction`, obstacles et termes en ordre de clé trié, degré de
+stockage = plus grand exposant LISTÉ) et refuse ce qu'il ne sait pas transcrire. `--check` : les fichiers commités sont
+ceux que le script écrit aujourd'hui (sha256 du JSON dans l'en-tête).
+**`parse json = wallK3` : VRAI sur les trois certificats**, par égalité décidable sur tous les champs
+(`lean/CertTermCheck.lean`, `deriving DecidableEq` hors du cœur), et `checkE` rend PROOF des deux côtés. Contrôle du
+contrôle (`lean/check_certs.sh`) : `delta` 1/10 → 1/11 dans une COPIE de k3 ⟹ sortie 1, « MISMATCH on 1 certificate »,
+les deux autres inchangés. **C'est un contrôle à l'exécution, pas une preuve** : `Lean.Json.parse` est `partial`
+(`Lean/Data/Json/Parser.lean:75-233`), donc opaque au noyau. Deux lecteurs indépendants du même fichier (Python, Lean)
+rendent le même objet ; et le théorème par scène n'en dépend pas — il porte sur le terme.
+
+**Tâche 1.b — `by decide` : ÉCHEC immédiat, et aucune limite à relever.** `decide` fait d'abord réduire l'instance
+`Decidable` par l'élaborateur, qui s'arrête sur le PREMIER test du checker, `δ > 0` :
+`reduction got stuck at … match Rat.blt 0 wallK3.delta, false with`. Cause : `Rat.mul`, `Rat.inv`, `Rat.add`, `Rat.sub`
+du cœur de Lean sont `@[irreducible]` (`Init/Data/Rat/Basic.lean:168, 191, 259, 295`) — `(1 : Rat) / 10 ≤ 0` n'est déjà
+pas décidable par `decide` ; viennent ensuite les boucles (`Array.all`, `for … in [0:n]`, bloquées de même). **C'est un
+blocage de TRANSPARENCE, pas une limite de ressources** : `maxRecDepth` et `maxHeartbeats`, que le prompt prévoyait de
+relever, ne sont pas ce qui arrête. La variante qui a un sens est `decide +kernel` (le noyau ignore les attributs de
+réductibilité) ; les deux produisent le même terme de preuve, `of_decide_eq_true (Eq.refl true)`, vérifié par le noyau,
+sans axiome.
+
+**Tâche 1.c — `by decide +kernel` en UNE évaluation : ÉCHEC par la mémoire, sur le plus petit certificat.**
+Banc : tué au-delà de 9 Gio résidents après 53 s (k3), 51 s (S3), 48 s (S6). Premier essai manuel sur k3, sans plafond : arrêté par moi à 131 s, 11 271 258 112 octets résidents (10,5 Gio), la machine (24 Go) commençant à swapper, sans conclure.
+Diagnostic (sondes par étapes, puis table archivée des opérations de tableau) : les contrôles (0), (i), (ii), (0')
+passent en quelques dizaines de millisecondes ; ce sont les tenseurs qui coûtent. Le noyau n'a pas de tableaux : un
+`Array` y est une liste, `set!` et l'indexation sont linéaires, et les combinateurs dont le checker est fait sont
+quadratiques avec une grosse constante —
+sur 125 entrées (un tenseur de degré 4 en 3 variables), `Array.foldl` 0,79 s, `Array.all` 0,84 s, `==` 1,56 s, `++` 1,30 s ; sur 625 entrées (4 variables) : 22 s, 21 s, 45 s, 38 s — alors qu'une boucle `for` sur `[0:625]` coûte 0,157 s et `List.range 625 |>.foldl` 0,055 s.
+Et la mémoire d'une évaluation n'est rendue qu'à la fin de la déclaration (constaté : le pic de la preuve par étapes est
+celui de sa plus grosse étape, pas leur somme).
+
+**Tâche 1.d — la preuve PAR ÉTAPES (ce qui est livré).** Même évaluation, coupée en évaluations noyau indépendantes,
+chacune dans sa déclaration donc avec sa mémoire propre :
+- `lean/Certs/Staged.lean` (Lean cœur seul, 8 théorèmes) : `check_of_stages` (les quatre contrôles globaux, la valeur
+  `G` de `c.geometry`, chaque feuille contrôlée sur `G` ⟹ `check c = true`), `checkLeaf_outside_of`,
+  `checkLeaf_collision_of` (chaque test de `checkCollisionLeaf` pris un par un, `X = Σλ_k N_k` et `T = δ² − φ²` donnés
+  en valeurs). Ce sont les RÉCIPROQUES des lemmes de dépaquetage de L3 (là : le contrôle a réussi donc chaque test
+  est passé ; ici : chaque test passe donc le contrôle réussit). La conclusion porte sur `checkLeaf` / `check` : aucune
+  ré-énonciation du checker n'entre dans la base de confiance (`witnessNumerator`, `slabTensor`, `faceTensor` nomment
+  trois sous-expressions, et la preuve les déplie pour retrouver les termes du checker).
+- `lean/CertStages.lean` (générateur, `lake env lean --run`) écrit `lean/Certs/WallK3Kernel.lean` : 34 évaluations
+  `by decide +kernel` + 5 théorèmes d'assemblage. Les littéraux `G`, `T`, `X0`, `X1` sont calculés par du code
+  COMPILÉ et **ne sont pas de confiance** : chacun est introduit par un théorème `… = littéral` que le noyau vérifie en
+  évaluant lui-même l'autre membre. Un littéral faux fait échouer la compilation du fichier, il ne fait rien passer.
+- Mesure : 34 étapes ; la cinématique est l'étape la plus lourde en mémoire (37 s, 5,6 Gio) ; chacune des 12 faces prend 18 à 28 s et 3,3 à 4,0 Gio ; les deux numérateurs de témoin 11 et 13 s ; les autres étapes moins d'une seconde. Le fichier entier (`lake build Certs`, une évaluation à la fois) : 277 s, 294 s et 359 s sur trois runs — le troisième pendant que je lançais moi-même `check_certs.sh` (load 11) —, pic 5,6 Gio. Somme des temps noyau des étapes prises une à une : 334 s.
+
+**Tâche 1.e — `by native_decide`, en regard.** Évaluation : 0,14 s (k3), 0,19 s (S3), 24,0 s (S6) ; processus entier 2,6 s, 1,1 s, 26,3 s, imports compris ; ~1,1 Gio.
+**L'axiome n'est pas `Lean.ofReduceBool`** (affirmation du prompt, vérifiée contre la source, A48) : en Lean 4.34.1,
+`native_decide` ajoute UN AXIOME PAR USAGE, nommé `<théorème>._native.native_decide.ax_…`, de type
+`decide p = true` (`Lean/Meta/Native.lean:37-90`) ; `Lean.ofReduceBool` existe toujours (`Init/Core.lean:2396`) mais
+n'est pas ce que la tactique utilise. `#print axioms wallK3_proof_native` :
+`[propext, Classical.choice, Quot.sound, CnpVerify.Certs.wallK3_proof_native._native.native_decide.ax_1_1]`.
+Et l'évaluation « native » est ici celle de l'INTERPRÉTEUR d'IR (le profileur la nomme : `interpretation of
+…_native.native_decide.decl_1`). Livrés pour la démonstration de l'écart, à part : `Certs/Native.lean` (les trois
+certificats) et `Certs/DisconnectedNative.lean` (`s3ShoulderElbow_disconnected_ref_native`,
+`s6IiwaRealShelf_disconnected_ref_native` : théorèmes MODULO LE COMPILATEUR, nommés et documentés comme tels).
+
+**Tâche 1.f — S3 et S6.** **S3 (n = 4, 8 feuilles) : ÉCHEC.** Les quatre contrôles globaux et une feuille outside passent
+(9 s, 2,2 Gio), mais trois types d'étape dépassent CHACUN 9 Gio, pris isolément sur des entrées littérales : la
+cinématique (tuée après 50 s), le numérateur du témoin (53 s) et UNE face — un seul test de Bernstein sur 5⁴ = 625
+coefficients (41 s). Étager plus fin ne coupe pas la face en deux. **S6 (n = 7, 40 sommets) : ÉCHEC, plus tôt encore.**
+La preuve par étapes ne peut même pas être écrite : son littéral `G` — 40 sommets × 3 coordonnées × 3⁷ = 262 440
+coefficients rationnels — ne passe pas l'ÉLABORATEUR (limite de heartbeats par défaut, après 28 s : ce n'est pas le
+noyau) ; et des étapes qui n'ont besoin d'aucun littéral dépassent déjà 9 Gio : `δ² − φ²`, UN produit de polynômes en
+7 variables (48 s), `Σλ ≡ 1` sur 40 multiplicateurs (48 s), les 40 tests `λ_k ≥ 0` (50 s). Les quatre contrôles
+globaux passent (1 s de noyau au plus). `native_decide` : 0,19 s (S3) et 24 s (S6) d'évaluation.
+*Correction en cours de session (un défaut du banc, pas du checker)* : dans le premier run archivé, toutes les sondes
+de S6 incluaient le préambule complet, donc le littéral `G`, et échouaient toutes sur lui — y compris
+`assumptions`, qui passe. Banc corrigé (chaque sonde n'inclut que les littéraux que son énoncé mentionne), S6 rejoué
+(run `20261010T171636Z`). **Les lignes S6 du run `20261010T163223Z` sont à ignorer** ; ses lignes k3 et S3 sont
+valides (aucun littéral n'y échoue à l'élaboration).
+
+**Table (`scripts/lean_kernel_bench.py`, run archivé `benchmarks/results/20261010T163223Z` (k3, S3), `20261010T171636Z` (S6) and `20261010T172639Z` (array operations)/`, un processus par
+tentative, tué au-delà de 9 Go résidents ou 1500 (first run) or 900 (second) s ; commit `157c671`, arbre propre au
+lancement ; load average au lancement [6.24, 5.39, 5.42] and [4.11, 4.97, 5.59]) :**
+
+| certificat | n | feuilles (collision / outside) | sommets du corps | `by decide` | `by decide +kernel`, une évaluation | preuve noyau par étapes | `by native_decide` (un axiome de plus) |
+|---|---|---|---|---|---|---|---|
+| `scenes/wall/k3.cert.json` | 3 | 2 (2 / 0) | 2 | ÉCHEC immédiat (bloqué sur `Rat.blt 0 c.delta`) | ÉCHEC — tué au-delà de 9 Gio après 53 s | **PROUVÉ** — 34 étapes, 277 à 359 s pour le fichier (trois runs), pic 5,6 Gio | 2,6 s (évaluation 0,14 s) |
+| `scenes/S3_shoulder_elbow.cert.json` | 4 | 8 (4 / 4) | 2 | ÉCHEC immédiat (idem) | ÉCHEC — tué au-delà de 9 Gio après 51 s | ÉCHEC — trois types d'étape dépassent chacun 9 Gio : cinématique (après 50 s), numérateur du témoin (53 s), UNE face (41 s) ; une feuille outside passe (9 s, 2,2 Gio) | 1,1 s (évaluation 0,19 s) |
+| `scenes/S6_iiwa_real_shelf.cert.json` | 7 | 2 (2 / 0) | 40 | ÉCHEC immédiat (idem) | ÉCHEC — tué au-delà de 9 Gio après 48 s | ÉCHEC — la preuve par étapes ne peut même pas être écrite : son littéral `G` (262 440 coefficients) ne passe pas l'élaborateur, et des étapes sans littéral dépassent déjà 9 Gio (`δ² − φ²` seul, après 48 s ; `Σλ ≡ 1` ; `λ_k ≥ 0`) ; les quatre contrôles globaux passent | 26,3 s (évaluation 24,0 s) |
+
+Lignes k3 et S3 : run `20261010T163223Z` ; ligne S6 : run `20261010T171636Z` (voir « Tâche 1.f » pour la raison du rejeu).
+
+Ce que le noyau paie pour les opérations de tableau dont le checker est fait — `by decide +kernel` sur UNE
+opération, tableau de N entiers, secondes de noyau (run `20261010T172639Z`, load 5,3 au lancement) :
+
+| opération | N = 125 | N = 625 | rapport |
+|---|---|---|---|
+| `for i in [0:N]` (somme) | 0,026 | 0,157 | ×6 |
+| `List.range N |>.foldl` | 0,011 | 0,055 | ×5 |
+| `Array.set!` puis `getD` | 0,046 | 0,228 | ×5 |
+| `Array.foldl` | 0,793 | 21,8 | ×27 |
+| `Array.all` | 0,843 | 21,2 | ×25 |
+| `Array.map` | 0,478 | 12,8 | ×27 |
+| `Array.ofFn` | 0,482 | 12,2 | ×25 |
+| `Array ==` | 1,560 | 44,6 | ×29 |
+| `Array ++` | 1,300 | 38,5 | ×30 |
+
+125 et 625 sont le nombre de coefficients d'un tenseur de degré 4 par variable en 3 et en 4 variables ; à 7 variables
+il y en a 78 125. Linéaire pour une boucle ou un pli de liste, QUADRATIQUE pour les combinateurs d'`Array`. (Chiffres
+bruités par la charge : `Array ==` à 125 entrées a donné 0,7 s dans le run précédent et 1,56 s ici.)
+
+**Tâche 2 — CI.** `.github/workflows/lean.yml` (à la racine du dépôt), `ubuntu-latest` : elan (toolchain épinglée par
+`lean-toolchain`) ; `lake exe cache get` ; `lake build` avec échec si le journal de build contient `sorry` ; audit
+d'axiomes des 19 et des lemmes cités ; `lean/check_certs.sh` (fichiers générés à jour, `lake build Certs` — donc la
+preuve noyau de k3 rejouée en CI —, objet parsé = terme + contrôle négatif, audit complet) ; parité
+`lean/check_all.sh` avec `FUZZ=200` sur les 13 certificats et le corpus. `scripts/lean_axioms.py` : `#print axioms`
+ASSERTÉ — les 19 obligations, 8 lemmes cités, 3 lemmes d'étapes et les 3 énoncés noyau de k3 doivent ne dépendre que
+des trois axiomes standard ; les 5 énoncés `…_native` doivent dépendre d'EXACTEMENT un axiome `native_decide` en plus
+(l'audit échoue aussi s'il manque : les deux familles ne peuvent pas être confondues) ; auto-test à chaque lancement
+(un `sorry` et un `native_decide` présentés comme preuves noyau doivent être signalés).
+Répétition locale du volet Python SANS Drake ni Mosek (venv jetable, `pip install -c requirements-lock.txt -e ".[dev]"`) :
+`export_mutations.py` écrit les 48 certificats (43 rejets, 5 acceptations), parité FUZZ=200 : 0 divergence, 2 min 28 s.
+**Temps CI : non mesuré à l'écriture de cette entrée** — la CI ne tourne qu'après le push de clôture ; le résultat (durée par étape, verdict) est consigné dans l'addendum qui suit cette entrée.
+
+**Tâche 3 — hygiène.** `CnpVerify/Bernstein.lean:7` « (sorry in L1) » → « (proved in L2) » ;
+`CnpVerify/Kinematics.lean:10` « (sorry in L1) » → « (proved in L3) ». `git diff 1e36456` sur le cœur exécutable
+(`Tensor`, `Bernstein`, `Kinematics`, `Certificate`, `Check`, `Main`) : **ces deux lignes, rien d'autre**. `lake build`
+n'a recompilé que ces deux modules (8,6 s) et **n'a pas refait le binaire** : `cnp-verify` est toujours celui de L1
+(daté du 9 octobre 23 h 35, sha256 `3f05ec22…`). **Parité rejouée et ARCHIVÉE** (règle 7) : `ARCHIVE=1 make lean-parity`, `benchmarks/results/20261010T173121Z/lean_parity.log`, commit `9f0366e`, arbre propre, load 6,6 au lancement — 13 certificats PROOF des deux côtés, corpus 43 rejets + 5 acceptations, 0 divergence ; fuzz 1 000 cas (graine 20261009) : 498 PROOF des deux côtés, 487 REJECT des deux côtés, 15 où Python lève et Lean rejette, 0 divergence de verdict (5 min 29 s). Mêmes décomptes qu'en L3, comme attendu d'un binaire inchangé.
+
+**Tâche 4 — matière papier.** `docs/paper/LEAN-NOTES.md` (anglais) : (a) la section « Trust base » de
+`lean/README.md` recopiée PAR SCRIPT, mise à jour pour L4 (ce qui sort de la base de confiance pour un théorème par
+scène) ; (b) chaque définition de référence avec son texte Lean extrait par script (`fichier:ligne`), la phrase qu'elle
+est censée formaliser, la section du papier (§3.1, §3.2, §4), sept conventions à vérifier pour la cinématique, et la
+table des différences entre le Théorème 1 du brouillon et `soundness_ref` ; (c) les constats 1-6 avec les noms de
+lemmes, le constat L2 sur la coupe, et sept constats L4 ; (d) versions, lignes, théorèmes, table noyau ; (e) la passe
+A28.
+
+**Passe biblio A28 (e).** Menée par un sous-agent de recherche sur sources primaires (Crossref, export Springer,
+arXiv, page de la revue, pages des auteurs) ; trois entrées rouvertes par moi (arXiv 1404.7282 ; Crossref
+10.1145/3018610.3018622 et 10.1007/s10817-012-9256-3). Résultat : **2 des 4 références du prompt étaient fausses.**
+1. Muñoz & Narkawicz, « Formalization of Bernstein Polynomials and Applications to Global Optimization », *J. Autom.
+   Reasoning* 51(2) : 151-196, 2013 — VÉRIFIÉE (pièges : en ligne 2012, numéro daté 2013 ; la page NASA des auteurs
+   ajoute « a Representation of » au titre).
+2. Solovyev & Hales, « Formal Verification of Nonlinear Inequalities with Taylor Interval Approximations », NFM 2013,
+   LNCS 7871, p. 383-397 — VÉRIFIÉE (papier distinct des mêmes auteurs sur les programmes linéaires, MKM 2011).
+3. **CORRIGÉE (ordre des auteurs)** : Magron, Allamigeon, Gaubert, Werner, « Formal Proofs for Nonlinear Optimization »,
+   *J. Formalized Reasoning* 8(1) : 1-24, 2015 — pas « Allamigeon–Gaubert–Magron–Werner » (ordre de deux papiers
+   voisins de 2013).
+4. **CORRIGÉE (la référence telle que donnée n'existe pas)** : « Roux–Voronin–Magron, ValidSDP, 2018 » confond trois
+   papiers ; Magron n'est auteur d'aucun. ValidSDP = Martin-Dorel & Roux, « A reflexive tactic for polynomial
+   positivity using numerical solvers and floating-point computations », CPP 2017, p. 90-99. Le « 2018 » est Roux,
+   Voronin, Sankaranarayanan, « Validating numerical semidefinite programming solvers for polynomial invariants »,
+   *FMSD* 53(2), 2018 (OCaml, pas un assistant de preuve).
+Voisinage 24 mois (A51) : aucun vérificateur formellement vérifié de certificats de Bernstein trouvé, aucun certificat
+d'infaisabilité de planification géométrique vérifié en assistant de preuve trouvé ; adjacents listés dans
+`LEAN-NOTES.md`. Ce que ces travaux FONT au-delà du titre et du résumé n'a pas été lu.
+
+### Constats (RÉSULTATS, utiles au papier)
+
+1. **Le théorème par scène existe, pour k3 seulement** : `wallK3_disconnected_ref`, trois axiomes standard. Ce qui
+   reste à croire pour CET énoncé : le noyau et Mathlib ; les définitions de référence ; la lecture du terme `wallK3` —
+   huit champs (3 joints, 2 sommets, 1 obstacle de 6 faces, la boîte, deux points). Le compilateur, le runtime, le
+   binaire, `Main.lean` et le parseur SORTENT de la base de confiance pour cet énoncé.
+2. **L'écart terme ↔ binaire est fermé sur une scène et MESURÉ sur les autres** : le checker tel qu'il est écrit (pour
+   être compilé : tableaux, boucles `for`, `set!`) n'est pas évaluable par le noyau au-delà de n = 3. Ce n'est pas le
+   temps qui manque d'abord, c'est la mémoire.
+3. **`decide` ne sait pas décider `(1 : Rat) / 10 ≤ 0`** dans Lean 4.34.1 (arithmétique `Rat` du cœur irréductible) :
+   toute preuve par réflexion sur des rationnels passe par `decide +kernel` ou par `native_decide`.
+4. **`native_decide` = un axiome par usage, visible** ; l'audit en fait une propriété testée dans les deux sens.
+5. **La preuve par étapes ne fait confiance à aucune valeur intermédiaire** : schéma « témoin calculé hors du noyau,
+   équation vérifiée par le noyau » — le même que celui du projet (certificat produit par un moteur non fiable, vérifié
+   en exact), un étage plus bas.
+6. **Coût de la confiance, chiffré** : sur k3, le binaire compilé répond en 28 ms (9 ms sur machine quiète, L3), `native_decide` (interpréteur d'IR) en 0,14 s, le noyau par étapes en ~5 minutes et 5,6 Gio — quatre ordres de grandeur entre « compilé » et « noyau », et la mémoire limite avant le temps.
+
+### Affirmations du prompt vérifiées contre le code et les sources (A48, A28)
+
+- « axiome `Lean.ofReduceBool` » : **FAUX pour Lean 4.34.1** (axiome par usage, ci-dessus). Le garde-fou « asserté sans
+  `sorryAx` ni `ofReduceBool` » est implémenté plus fort : liste BLANCHE des trois axiomes standard.
+- « si `decide` dépasse les limites (maxRecDepth, heartbeats), les relever » : sans objet, l'échec n'est pas une limite.
+- « `parse json = wallK3` (égalité décidable, ou au moins `check` identique) » : les deux, à l'exécution.
+- « S3 : 8 feuilles » : exact (4 collision, 4 outside) ; « S6 : 2 feuilles, 40 sommets, 7 dims » : exact.
+- Références (e) : 2 sur 4 fausses telles que données (ci-dessus).
+
+### Écarts au prompt (à valider par la supervision)
+
+1. **`wallK3_proof` n'est pas `:= by decide`** : c'est `check_of_stages …` sur 34 évaluations `decide +kernel`. Même
+   énoncé, mêmes axiomes, noyau seul — mais une preuve générée de 241 lignes et un fichier de lemmes de 210 lignes au
+   lieu d'une ligne. Le prompt disait « si impraticable, le dire avec les chiffres » : c'est dit, et la voie par étapes
+   est ce que j'ai trouvé pour obtenir quand même la phrase du papier. À la supervision de dire si cette voie lui
+   convient comme « évaluation dans le noyau ».
+2. **`lakefile.toml` modifié** : une bibliothèque `Certs` ajoutée (`globs = ["Certs.+"]`, HORS cibles par défaut — elle
+   coûte ~5 minutes et ~6 Go). `lake build` par défaut, la bibliothèque `CnpVerify` et le binaire ne changent pas. Sans
+   cela, `lean/Certs/WallK3.lean` (chemin imposé par le prompt) ne peut être importé par aucun autre fichier.
+3. **`Makefile` modifié** : cibles `lean-certs` et `lean-kernel-bench` (aucune cible existante touchée).
+4. **Fichiers hors du périmètre nommé** : `lean/Certs/Staged.lean`, `lean/CertStages.lean`, `lean/CertTermCheck.lean`,
+   `lean/check_certs.sh`, `scripts/lean_axioms.py`, `scripts/lean_kernel_bench.py`, `Certs/Native.lean`,
+   `Certs/DisconnectedNative.lean`, les termes S3 et S6.
+5. **CI : `lean/check_all.sh` appelé directement** (avec `PYTHON` et `FUZZ=200`) au lieu de `make lean-parity` : la
+   cible `make` dépend de `setup`, qui installe `.[drake,dev]` avec le Python Homebrew de macOS. Même script, même
+   contrôle, sans Drake.
+6. **CI : elan installé par le script officiel `elan-init.sh`** (`curl … | sh`), sur un runner jetable. Sur la machine
+   de Stéphane la règle reste Homebrew.
+7. **Les théorèmes `…_disconnected_ref_native`** (S3, S6) n'étaient pas demandés : ils rendent concret ce que
+   `native_decide` donne et ce qu'il coûte. À retirer si la supervision les juge de trop.
+8. **`SPEC.md` v1.10 → v1.11** (règle 12, « amendé en L4 ») : le commentaire de §3 mentionne `lean/Certs/` et
+   `make lean-certs`. Rien d'autre.
+9. **`lean/PROOF-OBLIGATIONS.md`** : la phrase « there is no … `native_decide` … in the project » était devenue fausse ;
+   restreinte à la bibliothèque `CnpVerify`, avec une note L4.
+10. **Machine non quiète** (ci-dessus) : précondition non tenue, signalée, non contournable par moi.
+11. **Trois runs de banc archivés au lieu d'un** : k3 et S3 dans le premier, S6 dans le second (défaut du banc corrigé
+    entre les deux, voir 1.f), les opérations de tableau dans le troisième (résolution à la milliseconde). Un rejeu complet
+    sur machine quiète donnera UN run de référence.
+12. **Le papier n'est pas touché** ; le README public à la racine du dépôt ne mentionne toujours pas le vérificateur
+    Lean (décision de publication, pas la mienne).
+
+### Décisions (Code, dans le mandat)
+
+- **Termes générés en Lean cœur, sans Mathlib**, comme le binaire : le terme est élaboré dans l'environnement où le
+  checker est défini, et `check wallK3 = true` ne dépend d'aucune instance de Mathlib. Mathlib n'entre qu'au corollaire.
+- **Polynômes écrits `Tensor.ofTerms …` (creux), pas en tableau dense** : lisibles en regard du JSON, et c'est ce que
+  fait le parseur ; l'égalité avec l'objet parsé est contrôlée.
+- **Littéraux des étapes dans un fichier GÉNÉRÉ et commité**, plutôt qu'un métaprogramme qui les calculerait à
+  l'élaboration : la preuve est un fichier que l'on peut lire, chaque ligne est une évaluation noyau.
+- **`set_option Elab.async false` dans la preuve par étapes** : une évaluation à la fois ; en parallèle, les mémoires
+  des étapes s'additionnent.
+- **Pas d'étagement plus fin** (cinématique joint par joint, Bernstein axe par axe) : k3 tient ; S3 ne tiendrait pas
+  davantage (voir Limites).
+- **Aucun énoncé, aucune définition de référence, aucune preuve de L1-L3 touchés.**
+
+### Limites assumées
+
+- **Un seul certificat est un théorème au sens plein**, le plus petit (n = 3, 2 feuilles, corps à 2 sommets). Le
+  flagship iiwa7 (S6) reste un `PROOF` du binaire sous la base de confiance de L3, ou un théorème modulo le compilateur.
+- **Le passage à l'échelle demande un autre objet** : un jumeau du checker écrit pour le noyau (structures à accès
+  logarithmique, pas de `Array`) et PROUVÉ égal à `check` — de l'ordre d'une session par composant (Bernstein,
+  tenseurs), non entrepris. Étager plus fin ne suffit pas : sur S3 la face — UN test de Bernstein sur 625 coefficients — dépasse 9 Gio à elle seule, et les opérations de tableau sont quadratiques dans le noyau (×25 à ×30 de 125 à 625 entrées) ; à n = 7 un tenseur de degré 4 a 78 125 coefficients.
+- **Terme = fichier : mesuré, pas prouvé** (`CertTermCheck`). Lisible à l'œil sur k3 (53 lignes).
+- **Chronos sous charge** (jeu en cours).
+- Inchangé depuis L3 : définitions de référence à RELIRE ; rien de prouvé sur `verify.py` ; rien sur le générateur.
+
+### Blocages
+
+**Aucun.** Deux tentatives arrêtées par moi pour protéger la machine (mémoire) : `decide +kernel` d'un seul tenant sur
+k3, tué à 131 s et 10,5 Gio résidents (la machine, 24 Go, commençait à swapper : 2,9 Go de swap) — chiffre du premier
+essai manuel, celui du banc est dans la table ; un contrôle de feuille ENTIER sur géométrie littérale, tué à 7 Gio après
+44 s. C'est ce qui a conduit à l'étagement par FACE.
+
+### Pièges
+
+- **Profileur et élaboration asynchrone** : avec `Elab.async` (défaut), les « type checking took » des théorèmes qui
+  SUIVENT un théorème lent affichent le temps d'attente de ce dernier (j'ai d'abord cru que `Array.replicate` sur des
+  `Rat` coûtait 140 ms). Mesurer avec `set_option Elab.async false`, un théorème par processus.
+- **`decide +kernel` et la synthèse d'instances** : `Decidable (c.geometry = G)` échoue si `G : Geometry 3` alors que
+  `c.geometry : Geometry c.n` — la résolution d'instances ne déplie pas `c` (transparence `instances`). Typer les
+  littéraux `Geometry c.n`, avec `abbrev c := wallK3`.
+- **Un sous-processus bavard bloque sur un tube plein** : le profileur à seuil 0 remplit le tube de sortie, le
+  processus Lean s'arrête d'écrire et « dépasse le délai ». Sortie vers un FICHIER.
+- **Le bloc `do` duplique sa continuation** dans les deux branches de chaque `if … then reject` (déjà noté en L3) :
+  pour la réciproque, `rw [ite_eq_right h]` test par test, puis `bind_ok_of` et `range_forIn'_ok_of`.
+- **`if_neg` est déprécié** dans cette version (`ite_eq_right`).
+- **Nom de l'axiome de `native_decide`** : `…ax_1` dans un fichier isolé, `…ax_1_1` dans la bibliothèque ; ne pas
+  l'écrire en dur (motif `\._native\.native_decide\.ax(_\d+)+$`).
+- **Un commentaire d'en-tête peut contenir une ligne qui commence par `theorem`** : un découpage de source par
+  expression régulière doit sauter l'en-tête.
+
+**Contrôles de clôture.** `lake build` : vert, **0** `sorry`, **0** avertissement (8 943 jobs). `lake build Certs` : vert
+(8 942 jobs ; `Certs.WallK3Kernel` 294 s, `Certs.Native` 22 s). `make lean-certs` : sortie 0 — les 3 termes et la preuve
+par étapes sont ceux que les générateurs écrivent aujourd'hui ; objet parsé = terme sur les 3 certificats ; contrôle négatif
+détecté ; audit d'axiomes OK (19 obligations + 8 lemmes cités + 6 énoncés de `Certs` aux trois axiomes standard ;
+5 énoncés `…_native` avec exactement un axiome `native_decide` de plus ; auto-test : `sorry` et `native_decide` signalés).
+`ARCHIVE=1 make lean-parity` : archivé, 0 divergence (ci-dessus). `scripts/lean_fk_parity.py` : 1 299 valeurs, 0 différence.
+**Décompte exact** : `make test` = **240 passed, 1 deselected, 0 skipped, 0 warnings** (958,5 s ; lancé à 19 h 36 après tous
+les changements de code, load 9,7 / 6,3 / 5,8 au lancement — le jeu et la fin de la parité ; 363 s sur machine quiète en L2).
+`git diff 1e36456 -- src tests` : **vide**. `git diff 1e36456 --numstat -- lean/CnpVerify lean/Main.lean` :
+`1 1 Bernstein.lean`, `1 1 Kinematics.lean`, rien d'autre — donc `Soundness.lean` et `Spec/` zéro diff : les 19 énoncés,
+leurs preuves et les définitions de référence sont ceux de L3. Binaire `cnp-verify` : inchangé (sha256 `3f05ec22…`, daté
+du 9 octobre).
+
+**Diffs CLAUDE.md** (tous listés, règle 14) : à l'ouverture, D85 (puce « Décisions de la revue L3 » dans la section L3
+du plan), D86 (A53 en règle 9), D87 (en-tête v1.27 + changelog) — instructions de la revue L3 ; à la clôture, section
+« L4 » ajoutée en fin de plan (entrée / sortie / ✅ actée / prochaine étape), au titre de l'état d'avancement
+(règle 14 b), marquée comme tenue par Code faute de diff de supervision. Aucune règle, aucun critère, aucune porte
+modifiés de ma propre initiative. **`SPEC.md` : v1.11**, commentaire de §3 seul.
+
+**Commits** : `75b6c88` (ouverture doc), `7b4b77d` (**JALON** : termes, lemmes d'étapes, preuve noyau de k3, corollaires,
+`native_decide` en regard, audit d'axiomes, bibliothèque `Certs`, les deux commentaires), `157c671` (banc, `check_certs.sh`,
+cibles `make`, CI), `ca2123a` (premier run archivé, banc corrigé, SPEC v1.11, note `PROOF-OBLIGATIONS`), `2784280` (second
+run : S6), `9f0366e` (README Lean à l'état L4, troisième run), commit de clôture (journal, état, `LEAN-NOTES.md`, parité
+archivée). Dépôt PUBLIC : ce qui est poussé a été relu pour fuite (D77) — recherche de nom, chemin personnel, adresse,
+jeton sur tout le diff depuis `1e36456` : rien. Seule trace de la machine : des chemins du répertoire temporaire de macOS
+(`/var/folders/…/T/tmp….lean`) dans les sorties d'erreur archivées des deux premiers runs du banc — ni nom ni secret ; le banc
+les remplace désormais par `probe.lean`.
+
+**Prochaine étape** (prompt) : relecture des définitions de référence par la supervision (`docs/paper/LEAN-NOTES.md`,
+partie (b)) ; v2 du papier (section « A machine-checked verifier ») ; preprint. **À trancher par la supervision** :
+(1) la preuve PAR ÉTAPES vaut-elle « évaluation dans le noyau » pour la phrase du papier — je pense que oui (noyau
+seul, trois axiomes), à condition de dire « staged » ; (2) garder ou retirer les théorèmes `…_native` de S3 et S6 ;
+(3) `lakefile.toml` et `Makefile` modifiés ; (4) SPEC v1.11 ; (5) faut-il un jumeau « noyau » du checker prouvé égal à
+`check` pour porter S6 au même statut que k3 — c'est le seul chemin que je vois, et c'est une ou plusieurs sessions ;
+(6) le Théorème 1 du brouillon dit « certified bodies » au pluriel, le format et l'énoncé Lean ont UN corps ;
+(7) rejouer `make lean-kernel-bench` sur machine quiète avant de citer un chrono ; (8) mention du vérificateur Lean
+dans le README public.

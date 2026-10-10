@@ -1200,6 +1200,36 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
 - **Prochaine étape : L4** — exécution dans le NOYAU (`decide` / `native_decide` comparés) sur `wall/k3` (2 feuilles),
   CI `lake build` + parité, section « verified checker » du papier.
 
+### L4 — VÉRIFICATEUR LEAN, étape 4 : exécution dans le NOYAU, CI, matière pour le papier [prompt de supervision du 10/10/2026]
+- Entrée : L3 validée (revue L3, D85-D87). **`verify.py`, `src/`, `tests/` SACRÉS, zéro diff ; cœur exécutable Lean modifié
+  pour les deux commentaires périmés SEULEMENT, parité rejouée.** `decide` et `native_decide` toujours distingués ; `#print
+  axioms` sur tout ce qui est cité. Section tenue par Code au titre de l'état d'avancement (règle 14 b) : le prompt L4 n'a
+  pas été porté au plan par un diff de supervision (circuit A16).
+- Sortie : `check wallK3 = true` évalué par le noyau (temps, mémoire, ou échec chiffré) et, en regard, par `native_decide` ;
+  corollaire `wallK3_disconnected` ; essais S3 et S6 ; CI `lake build` + axiomes + parité ; commentaires corrigés ;
+  `docs/paper/LEAN-NOTES.md`.
+- ✅ **L4 ACTÉE (10/10/2026)** — **`check wallK3 = true` est PROUVÉ PAR LE NOYAU SEUL** (jalon 18 h 09, commit `7b4b77d`),
+  d'où `wallK3_disconnected` et **`wallK3_disconnected_ref`** : la disconnexion de `wall/k3` est un théorème Lean/Mathlib
+  aux trois axiomes standard — ni compilateur, ni binaire, ni parseur. **Mais par une preuve PAR ÉTAPES**
+  (`lean/Certs/Staged.lean` + `lean/Certs/WallK3Kernel.lean`, 34 évaluations `decide +kernel`), pas par `by decide` :
+  `decide` échoue d'emblée (arithmétique `Rat` du cœur `@[irreducible]` — blocage de transparence, pas de ressources) et
+  `decide +kernel` en une évaluation épuise la mémoire sur k3 (tué au-delà de 9 Gio après 53 s ; 10,5 Gio à 131 s sans
+  plafond). Preuve par étapes : 277-359 s et 5,6 Gio de pic (trois runs, machine chargée). **S3 et S6 : hors de portée du
+  noyau** (S3 : cinématique, témoin et UNE face dépassent chacun 9 Gio ; S6 : `δ² − φ²` seul dépasse 9 Gio et le littéral de
+  la cinématique, 262 440 coefficients, ne passe pas l'élaborateur) ; `native_decide` les prouve en secondes au prix d'un
+  axiome par usage (`…._native.native_decide.ax_…` en Lean 4.34, pas `Lean.ofReduceBool`). Terme Lean = objet parsé sur les
+  trois certificats (`lean/CertTermCheck.lean`, contrôle négatif). CI `.github/workflows/lean.yml` ; audit d'axiomes asserté
+  (`scripts/lean_axioms.py`). Cœur exécutable : deux lignes de commentaire, binaire `cnp-verify` inchangé ; `verify.py`,
+  `src/`, `tests/` zéro diff. `make test` = 240 passed, 1 deselected ; parité archivée
+  (`benchmarks/results/20261010T173121Z`) : 0 divergence. SPEC v1.11 (commentaire §3). Passe biblio A28 : 2 des 4 références
+  du prompt corrigées (ordre des auteurs de Magron et al. 2015 ; « ValidSDP 2018 » = Martin-Dorel & Roux, CPP 2017).
+  **Chronos pris sur machine NON quiète** (jeu en cours) : à rejouer (`make lean-kernel-bench`) avant citation. Écarts à
+  valider par la supervision : preuve par étapes au lieu de `by decide` ; `lakefile.toml` (+ bibliothèque `Certs`, hors
+  cibles par défaut) et `Makefile` (+ deux cibles) modifiés ; théorèmes `…_native` pour S3 et S6. (voir JOURNAL.md L4.)
+- **Prochaine étape** : relecture des définitions de référence par la supervision (`docs/paper/LEAN-NOTES.md`, partie b) ;
+  v2 du papier (section « A machine-checked verifier ») ; preprint. Piste ouverte, non décidée : un jumeau du checker écrit
+  pour le noyau et prouvé égal à `check`, seul chemin vu pour porter S6 au statut de k3.
+
 ---
 
 ## Estimation honnête (inchangée sur le fond)
