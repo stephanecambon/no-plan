@@ -112,7 +112,7 @@ def run_lean(source: str, timeout: float, mem_gb: float) -> dict:
     errors = [ln for ln in out.splitlines() if re.search(r": error", ln)]
     ok = killed is None and proc.returncode == 0 and not errors
     return {"ok": ok, "killed": killed, "exit": proc.returncode, "wall_s": round(wall, 1),
-            "kernel_s": round(kernel, 1), "peak_rss_gb": round(peak / 2**30, 2),
+            "kernel_s": round(kernel, 3), "peak_rss_gb": round(peak / 2**30, 2),
             "load1_at_start": round(load, 2), "output": out}
 
 
