@@ -47,13 +47,133 @@ def CollisionFreeRef (c : Certificate) (s : Fin c.n → ℝ) : Prop :=
 
 /-! ### Proof obligations of the checks -/
 
+/-- The fold of `splitCells` on an already failed state stays failed. -/
+theorem splitFold_none {n : ℕ} (box : Box n) (ax : Fin n) (l : List (Box n)) :
+    List.foldl (fun acc cell =>
+        match acc with
+        | none => none
+        | some (lower, upper) =>
+          if cell.hi ax ≤ box.mid ax then some (lower.push cell, upper)
+          else if box.mid ax ≤ cell.lo ax then some (lower, upper.push cell) else none)
+      (none : Option (Array (Box n) × Array (Box n))) l = none := by
+  induction l with
+  | nil => rfl
+  | cons _ _ ih => simpa using ih
+
+/-- The fold of `splitCells` only moves cells of the list into its two sides. -/
+theorem splitFold_subset {n : ℕ} (box : Box n) (ax : Fin n) (cells : Array (Box n))
+    (l : List (Box n)) (a b a' b' : Array (Box n))
+    (ha : ∀ c ∈ a, c ∈ cells) (hb : ∀ c ∈ b, c ∈ cells) (hl : ∀ c ∈ l, c ∈ cells)
+    (h : List.foldl (fun acc cell =>
+        match acc with
+        | none => none
+        | some (lower, upper) =>
+          if cell.hi ax ≤ box.mid ax then some (lower.push cell, upper)
+          else if box.mid ax ≤ cell.lo ax then some (lower, upper.push cell) else none)
+      (some (a, b)) l = some (a', b')) :
+    (∀ c ∈ a', c ∈ cells) ∧ (∀ c ∈ b', c ∈ cells) := by
+  induction l generalizing a b with
+  | nil =>
+    simp only [List.foldl_nil, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact ⟨ha, hb⟩
+  | cons c l ih =>
+    simp only [List.foldl_cons] at h
+    have hc : c ∈ cells := hl c (by simp)
+    have hl' : ∀ c ∈ l, c ∈ cells := fun c hc => hl c (by simp [hc])
+    split_ifs at h with h1 h2
+    · refine ih _ _ ?_ hb hl' h
+      intro c' hc'
+      rcases Array.mem_push.1 hc' with h | rfl
+      · exact ha _ h
+      · exact hc
+    · refine ih _ _ ha ?_ hl' h
+      intro c' hc'
+      rcases Array.mem_push.1 hc' with h | rfl
+      · exact hb _ h
+      · exact hc
+    · rw [splitFold_none] at h
+      exact absurd h (by simp)
+
+/-- Both sides returned by `splitCells` are made of cells of the input. -/
+theorem splitCells_subset {n : ℕ} (box : Box n) (cells : Array (Box n)) (ax : Fin n)
+    (lower upper : Array (Box n)) (h : splitCells box cells ax = some (lower, upper)) :
+    (∀ c ∈ lower, c ∈ cells) ∧ (∀ c ∈ upper, c ∈ cells) := by
+  unfold splitCells at h
+  simp only at h
+  split at h
+  · rename_i lo up hfold
+    split at h
+    · exact absurd h (by simp)
+    · simp only [Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      rw [← Array.foldl_toList] at hfold
+      exact splitFold_subset box ax cells cells.toList #[] #[] _ _ (by simp) (by simp) (by simp)
+        hfold
+  · exact absurd h (by simp)
+
+/-- Two successive checks both succeed iff each does. -/
+theorem checkM_seq_ok (a b : CheckM Unit) (h : (a >>= fun _ => b) = Except.ok ()) :
+    a = Except.ok () ∧ b = Except.ok () := by
+  cases a with
+  | error e => simp [bind, Except.bind] at h
+  | ok u => cases u; exact ⟨rfl, by simpa [bind, Except.bind] using h⟩
+
 /-- [C1] COVERAGE of the tiling check: if `verifyCover` accepts, every point of the box lies in
 one of the cells. (Disjointness is also tested by the checker, as in `verify.py`, but the
-soundness proof only uses coverage.) -/
+soundness proof only uses coverage.)
+
+Proof (L2): induction on the recursion of `verifyCover`. A single cell IS the box. Otherwise the
+cells were split at the midpoint `m` of an axis into two sides, each made of cells of the input
+(`splitCells_subset`) and each accepted as a cover of its half-box; a point `x` of the box has
+`x ≤ m` or `m ≤ x` on that axis, so it lies in one of the two half-boxes. The value of the cut is
+never used: coverage only needs that the two half-boxes share it. That the two sides are
+DISJOINT (no cell straddles the cut) is tested by the checker but does not enter this proof. -/
 theorem verifyCover_covers {n : ℕ} (fuel : ℕ) (box : Box n) (cells : Array (Box n))
     (h : verifyCover fuel box cells = .ok ()) :
     ∀ x ∈ box.toSet, ∃ cell ∈ cells, x ∈ cell.toSet := by
-  sorry
+  induction fuel generalizing box cells with
+  | zero => simp [verifyCover, reject, throw, throwThe, MonadExceptOf.throw] at h
+  | succ fuel ih =>
+    unfold verifyCover at h
+    split_ifs at h with h1 h2
+    · intro x hx
+      have hsz : cells.size = 1 := by simpa using h1
+      have h0 : cells.getD 0 box = box := by simpa using h2
+      refine ⟨cells.getD 0 box, ?_, by rw [h0]; exact hx⟩
+      rw [Array.getD_eq_getD_getElem?]
+      simp [hsz]
+    · simp [reject, throw, throwThe, MonadExceptOf.throw] at h
+    · split at h
+      · rename_i ax lower upper hfind
+        obtain ⟨ax', -, hsplit⟩ := List.exists_of_findSome?_eq_some hfind
+        simp only [Option.map_eq_some_iff, Prod.mk.injEq] at hsplit
+        obtain ⟨⟨lo, up⟩, hsp, rfl, rfl, rfl⟩ := hsplit
+        obtain ⟨hlo, hup⟩ := splitCells_subset box cells ax' lower upper hsp
+        obtain ⟨hL, hU⟩ := checkM_seq_ok _ _ h
+        intro x hx
+        rcases le_total (x ax') ((box.mid ax' : ℚ) : ℝ) with hle | hge
+        · obtain ⟨cell, hcell, hxc⟩ := ih _ _ hL x (by
+            intro i
+            have := hx i
+            simp only [Box.lo, Box.hi, Fin.getElem_fin, Vector.getElem_set] at this ⊢
+            by_cases hi : ax'.val = i.val
+            · have : ax' = i := Fin.ext hi
+              subst this
+              simpa using ⟨(hx ax').1, hle⟩
+            · simpa [hi] using this)
+          exact ⟨cell, hlo _ hcell, hxc⟩
+        · obtain ⟨cell, hcell, hxc⟩ := ih _ _ hU x (by
+            intro i
+            have := hx i
+            simp only [Box.lo, Box.hi, Fin.getElem_fin, Vector.getElem_set] at this ⊢
+            by_cases hi : ax'.val = i.val
+            · have : ax' = i := Fin.ext hi
+              subst this
+              simpa using ⟨hge, (hx ax').2⟩
+            · simpa [hi] using this)
+          exact ⟨cell, hup _ hcell, hxc⟩
+      · simp [reject, throw, throwThe, MonadExceptOf.throw] at h
 
 /-- [C2] An accepted outside leaf is disjoint from the OPEN slab: `|φ| ≥ δ` on its cell. -/
 theorem checkOutsideLeaf_sound (c : Certificate) (i : ℕ) (cell : Box c.n)

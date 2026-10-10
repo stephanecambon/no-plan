@@ -5,6 +5,7 @@ import CnpVerify.Kinematics
 import CnpVerify.Certificate
 import CnpVerify.Check
 -- Specification layer (Mathlib): reference semantics and the statements to prove (L2/L3).
+import CnpVerify.Spec.Index
 import CnpVerify.Spec.Tensor
 import CnpVerify.Spec.Bernstein
 import CnpVerify.Spec.Kinematics
