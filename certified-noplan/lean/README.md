@@ -4,9 +4,14 @@
 rational arithmetic and prints `PROOF …` (exit code 0) or `REJECT [code] reason` (exit code 1).
 It is a port of `src/cnp/verify.py`, which remains the specification and is untouched.
 
-**Status (L1): executable, not proved.** The checker runs and agrees with `verify.py`; the
-theorems it is meant to satisfy are *stated* in Lean and type-check against Mathlib, each with
-`sorry` for a proof. They are listed in [PROOF-OBLIGATIONS.md](PROOF-OBLIGATIONS.md).
+**Status (L2): executable, partly proved — soundness is NOT proved yet.** The checker runs and
+agrees with `verify.py`. The 19 theorems it is meant to satisfy are stated in Lean and listed in
+[PROOF-OBLIGATIONS.md](PROOF-OBLIGATIONS.md). Ten are proved: the tensor arithmetic computes
+the polynomial operations it claims (T1–T7), the Bernstein test implies non-negativity on the
+box (B0, B1), the tiling test implies that the leaves cover the box (C1). Nine are still
+`sorry`: the kinematics (K1–K4), the two leaf checks (C2, C3), the bridge to the reference
+kinematics (C4) and the main statements (S1 `soundness`, S2 `soundness_ref`). The proofs are
+about the executable code as it was delivered in L1: it has not been modified.
 
 ## Layout
 
@@ -18,10 +23,11 @@ theorems it is meant to satisfy are *stated* in Lean and type-check against Math
 | `CnpVerify/Certificate.lean` | `Certificate`, JSON parser, `describe` | core Lean |
 | `CnpVerify/Check.lean` | the checks, in the order of `verify.py`; `check : Certificate → Bool` | core Lean |
 | `Main.lean` | the `cnp-verify` executable | core Lean |
-| `CnpVerify/Spec/Tensor.lean` | `Tensor.eval` over `ℝ` (noncomputable) and its algebra — statements | Mathlib |
-| `CnpVerify/Spec/Bernstein.lean` | `Box.toSet`, `bernstein_nonneg` — statement | Mathlib |
-| `CnpVerify/Spec/Kinematics.lean` | reference kinematics over `ℝ`, `body_position` — statements | Mathlib |
-| `CnpVerify/Soundness.lean` | `CollisionFree`, `soundness` — statements | Mathlib |
+| `CnpVerify/Spec/Index.lean` | the flat layout: `flatIndex`, `encode` / `decode`, loops as folds — proved | Mathlib |
+| `CnpVerify/Spec/Tensor.lean` | `Tensor.eval` over `ℝ` (noncomputable) and its algebra, T1–T7 — proved | Mathlib |
+| `CnpVerify/Spec/Bernstein.lean` | `Box.toSet`, `binom_eq_choose`, `bernstein_nonneg` — proved | Mathlib |
+| `CnpVerify/Spec/Kinematics.lean` | reference kinematics over `ℝ`, `body_position` — statements (`sorry`) | Mathlib |
+| `CnpVerify/Soundness.lean` | `CollisionFree`; `verifyCover_covers` proved; `soundness` — statement (`sorry`) | Mathlib |
 
 The executable core imports nothing but core Lean, so the binary does not link Mathlib; the
 specification layer imports the core and Mathlib. This is why the real-valued `eval` and the
@@ -35,7 +41,7 @@ Lean and Mathlib are pinned (`lean-toolchain`, `lake-manifest.json`). With
 ```
 cd lean
 lake exe cache get        # prebuilt Mathlib (several GB); only needed for the Spec layer
-lake build                # executable + library (19 `declaration uses sorry` warnings)
+lake build                # executable + library (9 `declaration uses sorry` warnings)
 lake exe cnp-verify ../scenes/S6_iiwa_real_shelf.cert.json
 ```
 

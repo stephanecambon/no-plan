@@ -4,7 +4,8 @@ import CnpVerify.Bernstein
 import CnpVerify.Kinematics
 import CnpVerify.Certificate
 import CnpVerify.Check
--- Specification layer (Mathlib): reference semantics and the statements to prove (L2/L3).
+-- Specification layer (Mathlib): reference semantics, the proofs closed in L2 (tensors, Bernstein,
+-- coverage of the tiling) and the statements still to prove (L3).
 import CnpVerify.Spec.Index
 import CnpVerify.Spec.Tensor
 import CnpVerify.Spec.Bernstein

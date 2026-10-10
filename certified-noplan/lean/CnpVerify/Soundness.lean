@@ -1,13 +1,16 @@
 /-
-CnpVerify.Soundness — the theorem the checker is meant to satisfy (L1: STATEMENT ONLY).
+CnpVerify.Soundness — the theorem the checker is meant to satisfy (STATEMENT; proof open).
 
 `soundness`: if `check c = true`, no continuous path inside the box joins the start to the goal
 while keeping the certified body out of every obstacle.
 
 The notions used in the statement (`Box.toSet`, `Obstacle.toSet`, `Certificate.bodyAt`,
 `CollisionFree`) are defined below from the kinematic numerators/denominator and the
-H-representations only — none of them mentions the checker. NOTHING IS PROVED in L1: every
-`sorry` is a proof obligation listed in `lean/PROOF-OBLIGATIONS.md`.
+H-representations only — none of them mentions the checker.
+
+State after L2: C1 (coverage of the tiling) is proved here; C2, C3, C4, S1 and S2 are still
+`sorry`. THE MAIN STATEMENT IS NOT PROVED. Every `sorry` is a proof obligation listed in
+`lean/PROOF-OBLIGATIONS.md`.
 -/
 import Mathlib
 import CnpVerify.Check
@@ -174,6 +177,22 @@ theorem verifyCover_covers {n : ℕ} (fuel : ℕ) (box : Box n) (cells : Array (
             · simpa [hi] using this)
           exact ⟨cell, hup _ hcell, hxc⟩
       · simp [reject, throw, throwThe, MonadExceptOf.throw] at h
+
+/-- The Bernstein test as the leaf checks call it: if `bernNonneg p d cell` answers `true`,
+then `p ≥ 0` on the cell. Corollary of T6 (the tensor padded to degree `d` denotes the same
+polynomial) and B1 (stated at the tensor's own degree). Not one of the 19 obligations: it is the
+form in which C2 and C3 (L3) use them. -/
+theorem bernNonneg_sound {n : ℕ} (p : Tensor n) (d : ℕ) (cell : Box n) (leaf : ℕ)
+    (h : bernNonneg p d cell leaf = .ok true) : ∀ x ∈ cell.toSet, 0 ≤ p.eval x := by
+  unfold bernNonneg at h
+  split at h
+  · simp [reject, throw, throwThe, MonadExceptOf.throw] at h
+  · rename_i q hq
+    have hall : allNonneg (bernsteinCoeffs cell q) = true := by
+      simpa [pure, Except.pure] using h
+    intro x hx
+    rw [← Tensor.eval_padTo p q d hq x]
+    exact bernstein_nonneg cell q hall x hx
 
 /-- [C2] An accepted outside leaf is disjoint from the OPEN slab: `|φ| ≥ δ` on its cell. -/
 theorem checkOutsideLeaf_sound (c : Certificate) (i : ℕ) (cell : Box c.n)
