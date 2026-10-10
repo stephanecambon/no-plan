@@ -5303,3 +5303,6 @@ le job trop long** : 93 s sur 608. Deux annotations non bloquantes, traitées da
 (1) `actions/checkout@v4` et `actions/setup-python@v5` visent Node 20, déprécié → `@v7` (dernières majeures, lues par
 l'API GitHub : `node24`) ; (2) `ubuntu-latest` passe à Ubuntu 26 à partir du 19 octobre 2026 → `runs-on: ubuntu-24.04`,
 l'image de ce run. Le run déclenché par ce changement est consigné à la ligne suivante.
+**Second run** (commit `5ea244e`, run `38074577122`, `ubuntu-24.04`, `actions/checkout@v7`, `actions/setup-python@v7`) :
+**VERT, 9 min 58 s, plus aucune annotation** ; `Certs.WallK3Kernel` 197 s ; audit d'axiomes OK (les deux passes) ; parité
+fuzz 200 : 0 divergence de verdict.
