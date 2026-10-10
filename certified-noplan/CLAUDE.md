@@ -1112,8 +1112,23 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   servent à ce que N/D SOIT la chaîne déclarée » va au papier ; **(3)** §5 du papier corrigé par la supervision ;
   **(4)** SPEC v1.9 validée ; **(5)** observations `verify.py` (IndexError hors except ; `body.link` négatif accepté ;
   longueurs non contrôlées) → D69/S13, groupées, `verify.py` non touché.
-- **Prochaine étape : L2** — preuve de `bernstein_nonneg` (B1, avec B0 et T1-T7 selon besoin) et de la couverture du
-  pavage (C1).
+
+### L2 — VÉRIFICATEUR LEAN, étape 2 : preuves — lemme de Bernstein (B1) et couverture du pavage (C1) [prompt de supervision du 10/10/2026]
+- Entrée : L1 validée (revue L1, D79-D81). **`verify.py` et `src/` SACRÉS, zéro diff** ; cœur exécutable Lean
+  (`CnpVerify/*.lean` hors `Spec/`) modifié SEULEMENT si l'option B1-bis est retenue, la parité L1 étant alors rejouée.
+  Section tenue par Code au titre de l'état d'avancement (règle 14 b) : le prompt L2 n'a pas été porté au plan par un
+  diff de supervision (circuit A16).
+- Sortie : B1 (ou B1-bis) et C1 fermés, T3-T6 fermés ; `lean/PROOF-OBLIGATIONS.md` à jour (fermé / ouvert, chemin
+  retenu) ; `lake build` sans `sorry` sur ces lemmes ; aucun énoncé modifié en silence ; `#print axioms` à chaque
+  fermeture.
+- ✅ **L2 ACTÉE (10/10/2026)** — **10 des 19 obligations PROUVÉES, 19 → 9 `sorry`** : T1-T7, B0, **B1 tel qu'énoncé en
+  L1 par le chemin DIRECT (pas B1-bis)**, C1 (couverture seule) ; les 19 énoncés identiques à L1 au caractère près ;
+  **cœur exécutable Lean, `verify.py`, `src/`, `tests/` zéro diff** (donc aucun surcoût et aucune parité à rejouer ;
+  `make lean-parity` relancé en contrôle : sortie 0) ; `#print axioms` sans `sorryAx` sur les 10 ; couche de preuve
+  283 → 1 665 l. `make test` = 240 passed, 1 deselected. **`soundness` (S1) reste en `sorry` : `cnp-verify` n'est PAS
+  un vérificateur prouvé.** Écart au prompt à valider par la supervision : l'ordre « B1-bis d'abord, B1 en repli » a
+  été inversé (le lemme d'axe est commun aux deux chemins ; B1 direct ne touche pas au checker). (voir JOURNAL.md L2.)
+- **Prochaine étape : L3** — sémantique cinématique (K1-K4), feuilles (C2-C3), pont C4, théorèmes S1/S2.
 
 ---
 

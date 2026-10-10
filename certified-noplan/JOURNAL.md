@@ -4483,3 +4483,168 @@ du code ») ; D81 (header CLAUDE.md v1.25).
 - **Remarque de transcription** : la revue annonce « quatre phrases du papier » et en énumère cinq
   (la cinquième, les nombres décimaux, relève de la SPEC et du prompt L1 plutôt que du papier) —
   transcrit tel quel.
+
+## 2026-10-10 — Session L2 (Claude Code, AUTONOME) — **VÉRIFICATEUR LEAN, étape 2 : 10 des 19 obligations PROUVÉES — T1-T7, B0, B1 (énoncé L1, chemin DIRECT, checker inchangé) et C1 ; 19 → 9 `sorry`. `soundness` reste ouvert : `cnp-verify` n'est toujours PAS un vérificateur prouvé** ; cœur exécutable Lean, `verify.py`, `src/`, `tests/` zéro diff
+
+**Ouverture [A33].** `git status` PROPRE (HEAD `56e1666`). `make test` d'ouverture : **240 passed, 1 deselected, 0 skipped,
+0 warnings** (363,5 s). `lake build` vert, **19** `declaration uses sorry`. Lus : `lean/PROOF-OBLIGATIONS.md`, `Spec/*.lean`,
+`Soundness.lean`, `Bernstein.lean`, `Tensor.lean`, `Check.lean`. Ouverture doc (circuit A16) : revue L1 transcrite, D79-D81
+appliqués, commit séparé `c637c87`.
+
+### Fait
+
+**Compteur de `sorry` : 19 → 12 (T1-T7) → 11 (C1) → 9 (B0, B1).** Commits `8b3be78` (à 11) et `f8a766b` (à 9). À chaque
+fermeture : `lake build` puis `#print axioms`, qui rend `propext, Classical.choice, Quot.sound` pour chacun des dix
+(`binom_eq_choose` : `propext` seul) ; sur les énoncés encore ouverts (`checkOutsideLeaf_sound`, `soundness`) la même
+commande affiche bien `sorryAx` — le contrôle sait échouer. Restent ouverts : K1-K4, C2, C3, C4, S1, S2.
+
+| | obligation | état | où |
+|---|---|---|---|
+| T1-T7 | `evalQ_cast`, `eval_const`, `eval_add`, `eval_scale`, `eval_mul`, `eval_padTo`, `eval_eq_of_beqPoly` | **prouvées** | `Spec/Tensor.lean` |
+| B0 | `binom_eq_choose` | **prouvée** | `Spec/Bernstein.lean` |
+| B1 | `bernstein_nonneg` | **prouvée, énoncé L1, chemin direct** | `Spec/Bernstein.lean` |
+| C1 | `verifyCover_covers` | **prouvée** (couverture seule) | `Soundness.lean` |
+| K1-K4, C2, C3, C4, S1, S2 | | ouvertes (`sorry`) | `Spec/Kinematics.lean`, `Soundness.lean` |
+
+**Aucun énoncé modifié.** Les 19 énoncés ont été comparés par script à ceux du commit `56e1666` : identiques au caractère
+près (espaces normalisés) ; les seules lignes retirées de la couche Spec sont des `sorry` et des commentaires d'en-tête ;
+aucune définition de référence touchée (`Tensor.eval`, `Box.toSet`, `Obstacle.toSet`, `CollisionFree`, `linkPose`…).
+**Aucun énoncé L1 ne s'est révélé faux** : les dix étaient prouvables tels qu'écrits.
+
+**Cœur exécutable : zéro diff.** `git diff 56e1666` vide sur `Tensor.lean`, `Bernstein.lean`, `Kinematics.lean`,
+`Certificate.lean`, `Check.lean`, `Main.lean`, `lakefile.toml`, `lake-manifest.json`, `lean-toolchain`, `check_all.sh`,
+`src/`, `tests/`, `scripts/`, `Makefile`, `SPEC.md`. Les preuves portent sur le code qui tourne, tel que L1 l'a livré et
+que la parité l'a mesuré.
+
+**Taille.** Couche de preuve : 283 → **1 665 lignes** (`Spec/Index.lean` 195, nouveau ; `Spec/Tensor.lean` 56 → 615 ;
+`Spec/Bernstein.lean` 31 → 520 ; `Soundness.lean` 98 → 237 ; `Spec/Kinematics.lean` 98, inchangé). 92 théorèmes
+prouvés, 9 en `sorry`. Cœur exécutable : 1 087 lignes, inchangé.
+
+**Comment (détail dans `lean/PROOF-OBLIGATIONS.md`, section « How the L2 lemmas were proved »).**
+- *Mise en page plate* (`Spec/Index.lean`) : `flatIndex (d+1) e = Σᵢ eᵢ (d+1)^(n-1-i)` ; bijection entre vecteurs
+  d'exposants de la boîte et indices `< (d+1)^n` par le `finFunctionFinEquiv` de Mathlib lu depuis la dernière variable ;
+  `encode = flatIndex` ; `decode` écrit les chiffres. Les boucles `for` des définitions exécutables sont ramenées à des
+  `foldl` (`forIn_list_id`, `forIn_array_id`) et traitées par invariant.
+- *T1-T7* : un tenseur dénote `toMv t : MvPolynomial (Fin n) ℚ` et `eval t x = aeval x (toMv t)`. `support` liste les
+  monômes de `t` ; `ofTerms` somme les monômes listés qui tiennent dans sa mise en page ; `varDegsOf`/`maxDeg` majorent
+  les exposants listés. `trim`, `padTo?`, `add`, `scale` en découlent ; `mul` est la double boucle d'accumulation
+  (l'indice plat est additif en les exposants).
+- *B1* : un tableau est lu contre des poids par axe (`arrSum`) — `xᵢ^k` donne la valeur du polynôme, `B_{k,d}(tᵢ)` celle
+  d'une forme de Bernstein. Appliquer une matrice le long d'un axe revient à la reporter sur les poids de cet axe
+  (`arrSum_applyAxis`). La matrice du checker est `B · S` : `S` = substitution `s = lo + (hi − lo) t` (`shift_sum`, binôme
+  de Newton), `B` = changement de base monômes → Bernstein, dont la correction est `t^k = Σ_j C(j,k)/C(d,k) · B_{j,d}(t)`
+  (`bern_inverse` : `C(d,j)·C(j,k) = C(d,k)·C(d−k,j−k)`, puis le binôme pour `(t + (1−t))^(d−k)`).
+- *C1* : induction sur la récursion de `verifyCover` (structurelle sur `fuel`, vérifié : `Nat.brecOn`). Une cellule
+  unique EST la boîte ; sinon les deux côtés de la coupe sont faits de cellules de l'entrée (`splitCells_subset`) et
+  couvrent chacun leur demi-boîte, et un point est d'un côté ou de l'autre. La disjonction (aucune cellule à cheval),
+  testée par le checker, n'entre pas dans la preuve — dit en commentaire du théorème.
+- *Hors des 19* : `bernNonneg_sound` (`Soundness.lean`) — le test de Bernstein tel que les contrôles de feuille
+  l'appellent (`padTo?` au degré déclaré puis test) : si `bernNonneg p d cell` répond `true`, `p ≥ 0` sur la cellule.
+  Corollaire de T6 + B1, la forme dont C2/C3 auront besoin.
+
+### Chemin retenu pour B1 — ÉCART AU PROMPT (à valider par la supervision)
+
+Le prompt demandait d'essayer **B1-bis d'abord** (redévelopper les coefficients de Bernstein à l'exécution et comparer,
+checker ≈ ×2 plus lent) et de ne tenter **B1** (la formule inverse) qu'en repli. **J'ai fait l'inverse, et B1 est fermé
+tel qu'énoncé en L1 ; B1-bis n'a pas été implémenté.** Raison : une fois T1-T7 fermés, le lemme d'axe
+(`arrSum_applyAxis`) est le MÊME pour les deux chemins — c'est l'obligation (i) du prompt, et le gros du travail. À
+partir de lui, B1-bis coûtait une routine exécutable nouvelle, une modification de `Check.lean`, la parité à rejouer et
+un surcoût permanent ; B1 direct coûtait deux identités univariées et laissait le checker intact. La « formule inverse
+avec dénominateurs », donnée pour la partie dure, tient en une quarantaine de lignes (`bern_inverse`). Le repli B1-bis
+restait disponible sans perte si elle avait coincé.
+Conséquences : **surcoût mesuré = aucun** (rien n'a changé dans ce qui s'exécute) ; **parité L1 toujours valide** ;
+aucun nouveau code de rejet (`bernstein_identity` n'existe pas). Si la supervision veut malgré tout le contrôle
+d'identité à l'exécution (ceinture et bretelles), c'est une décision à prendre — il serait prouvablement redondant.
+
+### Constats (RÉSULTATS, utiles au papier et à L3)
+
+1. **B1 vaut pour TOUTE boîte, dégénérée comprise** (`lo = hi` sur un axe : `t = 0` ; `lo > hi` : boîte vide). Aucune
+   hypothèse de non-dégénérescence n'est requise, donc aucune à transporter depuis le contrôle du pavage.
+2. **La preuve de C1 n'utilise pas la VALEUR de la coupe.** La couverture tient parce que les deux demi-boîtes partagent
+   la même borne, quelle qu'elle soit ; que cette borne soit le milieu (contrat A14) sert à ce que le vérificateur
+   RECONSTRUISE le pavage du moteur, pas à la soundness de la couverture.
+3. **Les deux endroits où le code tensoriel peut perdre un terme en silence sont prouvés inatteignables** par
+   `add`/`scale`/`mul`/`padTo?`/`trim` : `ofTerms` ABANDONNE un terme d'exposant supérieur au degré demandé (`fit_maxDeg` :
+   les appelants passent toujours un degré suffisant) ; dans `mul`, un `set!` hors bornes est un no-op
+   (`arrPoly_mulAcc` : `encode ea + encode eb` reste dans la mise en page parce que le degré de travail majore `ea + eb`
+   variable par variable).
+4. **T1-T7 valent pour toute valeur de type `Tensor n`**, y compris un tableau de coefficients trop court ou trop long
+   (lectures hors tableau = 0, entrées au-delà de `(deg+1)^n` ignorées, par `eval` comme par `support`) : pas
+   d'invariant de bonne formation à porter dans L3.
+5. Affirmations du prompt vérifiées contre le code (A48) : « `verifyCover` ni `partial` ni `unsafe`, donc totale » —
+   exact (récursion structurelle sur `fuel`) ; « surcoût attendu ≈ ×2 » — sans objet, le checker n'a pas changé.
+
+### Décisions (Code, dans le mandat)
+
+- **B1 direct plutôt que B1-bis** (ci-dessus).
+- **T1, T2, T7 et B0 fermés aussi**, alors que le prompt les laissait à L3 « si non utilisés » : T2 et T7 tombent de
+  l'infrastructure (quelques lignes chacun), T1 de `sum_support`, B0 est utilisé par B1.
+- **Les preuves vivent dans `Spec/` et `Soundness.lean`** (décision 1 de la revue L1) ; un fichier nouveau,
+  `Spec/Index.lean`. Les fonctions auxiliaires introduites pour raisonner (`toMv`, `arrPoly`, `arrSum`, `wt`, `bern`,
+  `raise`, `mulAcc`, `axisInner`, `axisOuter`, `boxEquiv`) sont dans la couche Spec, jamais exécutées.
+- **`SPEC.md` non touché** : aucune divergence d'implémentation (règle 12 sans objet).
+- **Je me suis arrêté au périmètre L2** (règle 8) : C2 serait à portée (`bernNonneg_sound` + T2-T4), il reste à L3.
+
+### Limites assumées
+
+- **`soundness` n'est pas prouvé.** Ce qui est mécanisé : l'arithmétique tensorielle du checker calcule les opérations
+  polynomiales annoncées, son test de Bernstein implique la positivité sur la boîte, son test de pavage implique la
+  couverture. Ce qui ne l'est pas : la cinématique (K1-K4), les deux contrôles de feuille (C2, C3), le pont C4, et
+  l'assemblage (S1, S2). Rien ne doit présenter `cnp-verify` comme un vérificateur prouvé.
+- Les définitions de référence de la partie ouverte (`linkPose`, `rodrigues`, `CollisionFree`…) ne sont toujours
+  validées que par relecture et typage. L2 a exercé `Tensor.eval`, `Tensor.coeff`, `flatIndex`, `Box.toSet`.
+- Les théorèmes parlent des DÉFINITIONS Lean ; le binaire est ce que le compilateur Lean en tire (compilateur et
+  arithmétique `Rat` du runtime hors preuve), et le parsing JSON → `Certificate` est hors énoncé.
+- Base de confiance des preuves : noyau Lean 4.34.1 et Mathlib `v4.34.1` (ℝ, `MvPolynomial`, `Finset`), axiomes
+  standard `propext`, `Classical.choice`, `Quot.sound`.
+
+### Blocages
+
+**Aucun blocage durable.** Les erreurs rencontrées ont toutes été levées dans la session (voir Pièges) ; aucun lemme
+n'a été abandonné, contourné ou affaibli.
+
+### Pièges
+
+- **Lean 4.34 : les boucles `for x in [a:b]` passent par `Std.Legacy.Range`** (`Std.Legacy.Range.forIn_eq_forIn_range'`),
+  pas `Std.Range`. Le `do` d'un `Id.run` s'ouvre par `unfold` + `simp only [...]` (qui réduit les `have`), puis un lemme
+  maison donnant le pas du `foldl` explicitement ; un corps à `if` se ferme par `split <;> rfl`, un corps à motif de
+  paire par `rintro ⟨_, _⟩`.
+- **`for h : ax in [0:n]`** (boucle avec preuve d'appartenance, dans `bernsteinCoeffs`) donne un `foldl` sur
+  `(List.range' 0 ((n - 0 + 1 - 1) / 1)).attach` : la borne ne se simplifie pas sous `attach` (type dépendant) ; passer
+  par un lemme `attach_range'_map … = List.finRange n` à borne `m` explicite avec `m = n` en hypothèse — un `_` à la
+  place de `m` s'unifie à `n` et le but ne se ferme plus.
+- **`simp` réécrit `a.getD i 0` en `a[i]?.getD 0`** : une hypothèse énoncée en `getD` ne s'applique plus ensuite ;
+  utiliser `simp only` avec la liste de lemmes quand une réécriture par hypothèse suit.
+- **`ring` ne prouve pas `((a − b)·t)^k = t^k·(−b + a)^k`** (exposant symbolique sur une somme) : `rw [mul_pow]` d'abord.
+- **`Unique (Fin n → Fin (0 + 1))` n'est pas synthétisé** (`0 + 1` n'est pas réduit par la recherche d'instances) :
+  `Fintype.sum_eq_single` avec l'élément explicite.
+- Renommages de cette version : `if_pos`/`if_neg` → `ite_eq_left`/`ite_eq_right`, `if_true`/`if_false` →
+  `ite_true`/`ite_false`, `MvPolynomial.monomial_mul` → `monomial_mul_monomial` ; `Nat.choose_mul` ne prend plus que
+  `s ≤ k`. Le linter de Mathlib refuse `show` quand il change le but (`change`).
+- `lake env lean <fichier>` vérifie un fichier contre les `.olean` déjà construits : après avoir créé un module importé,
+  `lake build <module>` d'abord.
+
+**Contrôles de clôture.** `lake build` : vert, **9** `declaration uses sorry`, aucun autre avertissement.
+`make lean-parity` relancé en CONTRÔLE (non archivé, `FUZZ` par défaut 1 000, arbre non propre — le checker n'ayant pas
+changé, le run de référence reste `20261009T214354Z`) : sortie 0 ; 13 certificats, corpus 43 rejets + 5 acceptations,
+0 divergence ; fuzz 1 000 cas : 498 PROOF des deux côtés, 487 REJECT des deux côtés, 15 où Python lève et Lean rejette,
+0 divergence de verdict (5 min 29 s). **Décompte exact** : `make test` = **240 passed, 1 deselected, 0 skipped, 0 warnings** à l'ouverture (363,5 s) ET à la clôture (761,3 s — deux fois plus long qu'à l'ouverture, cause non recherchée ; `make test` ne contient aucun test de chrono).
+`git diff 56e1666 -- src tests` : **vide**.
+
+**Diffs CLAUDE.md** (tous listés, règle 14) : à l'ouverture, D79 (puce « Décisions de la revue L1 » dans la section L1
+du plan), D80 (phrase ajoutée en règle 9), D81 (en-tête v1.25 + changelog) — instructions de la revue L1 ; à la
+clôture, section « L2 » ajoutée en fin de plan (entrée / sortie / ✅ actée / prochaine étape), au titre de l'état
+d'avancement (règle 14 b), marquée comme tenue par Code faute de diff de supervision. Aucune règle, aucun critère,
+aucune porte modifiés de ma propre initiative. **`SPEC.md` : aucun diff.**
+
+**Commits** : `c637c87` (ouverture doc), `8b3be78` (T1-T7, C1), `f8a766b` (B0, B1, documentation `lean/`), commit de
+clôture (journal, état). Dépôt PUBLIC : ce qui est poussé a été relu pour fuite (D77) — sources Lean et trois fichiers
+Markdown, aucun chemin personnel, aucune adresse, aucun secret.
+
+**Prochaine étape : L3** — sémantique cinématique (K1-K4), feuilles (C2-C3), pont C4, théorèmes S1/S2. Repères pour
+L3 : (a) C2 = `bernNonneg_sound` + T2/T3/T4 (`φ − δ ≥ 0` ou `−φ − δ ≥ 0` sur la cellule) ; (b) `Kinematics.lean`
+construit ses tenseurs avec `Tensor.monomial` et `Tensor.zero`, qui ne figurent pas parmi les 19 : `toMv_zero` existe
+déjà, un `toMv_monomial` est à ajouter (il sort de `toMv_ofTerms`) ; (c) S1 a C1, C2, C3 et le théorème des valeurs
+intermédiaires sur `φ ∘ γ` pour ingrédients, et n'a pas besoin de K2-K4 (décision 2 de la revue L1). **À trancher par
+la supervision** : (1) l'inversion de l'ordre B1-bis / B1 ; (2) faut-il, malgré B1 prouvé, un contrôle d'identité à
+l'exécution ; (3) le constat 2 (la valeur de la coupe n'entre pas dans la soundness de la couverture) va-t-il au papier.
