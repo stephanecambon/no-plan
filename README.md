@@ -80,6 +80,31 @@ NumPy, SciPy and HiGHS releases regenerated all twelve certificates byte for byt
 of the reference run are in `requirements-lock.txt` (`make setup LOCK=1`); each run records its own in
 `reproduce.json`.
 
+## A second, machine-checked verifier
+
+`certified-noplan/lean/` holds a second verifier, in Lean 4 (needs
+[elan](https://github.com/leanprover/elan)), with a machine-checked proof of its soundness; its
+gates run in [CI](https://github.com/stephanecambon/no-plan/actions/workflows/lean.yml).
+
+```bash
+cd certified-noplan/lean && lake exe cnp-verify ../scenes/S6_iiwa_real_shelf.cert.json
+```
+
+- **Proved.** `soundness_ref`: if the checker accepts a certificate, no continuous path inside the
+  joint box joins start to goal while the certified body stays out of every obstacle. No `sorry`;
+  only Lean's three standard axioms (`propext`, `Classical.choice`, `Quot.sound`).
+- **Defined, to be read.** The statement is written with short reference definitions (rigid
+  motions along the chain, obstacles, collision-freedom). A proof cannot show that they say what a
+  roboticist means: they have to be read. They are listed, with everything left outside the
+  statement, under [Trust base](certified-noplan/lean/README.md#trust-base).
+- **Compiled or kernel.** The theorem is about the function `check`. On every scene, a `PROOF`
+  printed by the compiled binary also trusts the Lean compiler and runtime and the JSON parser.
+  On one shipped scene, `scenes/wall/k3.cert.json`, `check c = true` is itself checked by the Lean
+  kernel alone, as a staged evaluation of 34 kernel-reduced equations: the disconnection of that
+  scene is a theorem under the same three axioms — no compiler, binary or parser to trust. The
+  two other scenes tried (S3, S6) are beyond the kernel's reach; their theorems, named `…_native`,
+  use `native_decide`, which puts the compiler back in the trust base (one more axiom).
+
 ## Repository map
 
 All paths below are under `certified-noplan/`.
@@ -98,6 +123,7 @@ All paths below are under `certified-noplan/`.
 | Interactive 3-D pages of the iiwa7 scenes | `benchmarks/figures/share/*.html` |
 | Paper source | `docs/paper/latex/` |
 | Tests, including adversarial certificate mutations | `tests/` |
+| Second verifier in Lean 4, its soundness proof and its trust base | `lean/`, `lean/README.md` |
 | Specification | `SPEC.md` |
 
 `scenes/S5_iiwa_shelf.cert.json` is an earlier iiwa-*like* benchmark kept for the record; it is
