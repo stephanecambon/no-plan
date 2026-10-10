@@ -4680,3 +4680,246 @@ Diffs : D82 (décisions 1-3 → section L2) ; D83 (A52 → règle 9) ; D84 (head
   avertissements `declaration uses sorry`, zéro autre. Charge machine à l'ouverture (`uptime`) :
   load averages 2,60 / 2,92 / 3,32 — machine NON au repos complet, à garder en tête pour tout chrono
   de cette session (le `make test` de clôture L2 avait pris 761 s contre 363 s).
+
+## 2026-10-10 — Session L3 (Claude Code, AUTONOME) — **VÉRIFICATEUR LEAN, étape 3 : les 19 obligations sont PROUVÉES — `soundness` (S1) et `soundness_ref` (S2) fermés, 9 → 0 `sorry` ; aucun énoncé modifié, aucun ne s'est révélé faux, aucune définition de référence corrigée** ; cœur exécutable Lean, `verify.py`, `src/`, `tests/` zéro diff
+
+**Ouverture [A33].** `git status` PROPRE (HEAD `01a1c80`). `uptime` : load averages 2,60 / 2,92 / 3,32 — machine pas
+au repos complet, noté. `lake build` vert, **9** `declaration uses sorry`, aucun autre avertissement. Lus :
+`lean/PROOF-OBLIGATIONS.md`, `Soundness.lean`, `Spec/Kinematics.lean`, `Kinematics.lean`, `Check.lean`, `Tensor.lean`,
+la partie structures de `Certificate.lean`. Ouverture doc (circuit A16) : revue L2 transcrite, D82-D84 appliqués, commit
+séparé `d0fd5ce`.
+
+### Fait
+
+**Compteur de `sorry` : 9 → 8 (K1) → 6 (C2, C3) → 5 (S1, le jalon) → 3 (K3, K4) → 2 (K2) → 0 (C4, S2).**
+
+| | obligation | état | où |
+|---|---|---|---|
+| K1 | `bodyDenominator_pos` | **prouvée** | `Spec/Kinematics.lean` |
+| C2 | `checkOutsideLeaf_sound` | **prouvée** | `Soundness.lean` |
+| C3 | `checkCollisionLeaf_sound` | **prouvée** | `Soundness.lean` |
+| **S1** | **`soundness`** | **prouvée — JALON** | `Soundness.lean` |
+| K2 | `body_position` | **prouvée, énoncé L1, définitions de référence inchangées** | `Spec/Kinematics.lean` |
+| K3 | `rotation_half_angle` | **prouvée** | `Spec/Kinematics.lean` |
+| K4 | `rodrigues_mem_specialOrthogonal` | **prouvée** | `Spec/Kinematics.lean` |
+| C4 | `collisionFree_iff_ref` | **prouvée** | `Soundness.lean` |
+| **S2** | **`soundness_ref`** | **prouvée** | `Soundness.lean` |
+
+**Heure du jalon S1** : `lake build` vert avec `soundness` sans `sorry` et `#print axioms soundness` =
+`[propext, Classical.choice, Quot.sound]` à **14 h 56 (CEST)**, commit `fbe131d` à 14:56:39 — ouverture de session à
+14 h 41, commit doc à 14:44:32. Les 19 fermées à 15 h 06 (commit `fce73f6`).
+
+**`#print axioms`** à chaque fermeture, et en fin de session sur les 19 : `propext, Classical.choice, Quot.sound` pour
+chacune (`binom_eq_choose` : `propext` seul). Au moment du jalon, la même commande affichait encore `sorryAx` sur
+`soundness_ref` et `body_position`, alors ouverts — le contrôle sait échouer. `lake build` final : **aucun `sorry`,
+aucun avertissement** ; ni `axiom`, ni `implemented_by`, ni `native_decide`, ni `unsafe` dans le projet.
+
+**Aucun énoncé modifié, aucun énoncé faux.** Les 19 énoncés ET les définitions de référence (`Tensor.eval`,
+`Box.toSet`, `Obstacle.toSet`, `Certificate.worldVertex`, `Certificate.bodyAt`, `CollisionFree`, `CollisionFreeRef`,
+`vecR`, `skewR`, `rodrigues`, `Joint.rotation`, `Rigid`, `Rigid.apply`, `Rigid.comp`, `RefState`, `refStep`,
+`linkPose`, `unlockedUpTo`) ont été comparés par script aux commits `01a1c80` (L2) et `56e1666` (L1) : identiques au
+caractère près (espaces normalisés), 37 objets sur 37.
+
+**Cœur exécutable : zéro diff.** `git diff 56e1666` vide sur `Tensor.lean`, `Bernstein.lean`, `Kinematics.lean`,
+`Certificate.lean`, `Check.lean`, `Main.lean`, `lakefile.toml`, `lake-manifest.json`, `lean-toolchain`,
+`check_all.sh`, `src/`, `tests/`, `Makefile`. Le binaire `cnp-verify` est celui de L1.
+
+**Taille.** Couche de preuve : 1 665 → **2 501 lignes** (`Soundness.lean` 237 → 683 ; `Spec/Kinematics.lean` 98 → 441 ;
+`Spec/Tensor.lean` 615 → 662 ; `Spec/Index.lean` 195 et `Spec/Bernstein.lean` 520 inchangés). **145 théorèmes, 0 en
+`sorry`** (92 prouvés + 9 ouverts à l'entrée). Cœur exécutable : 1 087 lignes, inchangé.
+
+**Comment (détail dans `lean/PROOF-OBLIGATIONS.md`, « How the L3 lemmas were proved »).**
+- *K1* : `Tensor.monomial e c` dénote `c · ∏ sᵢ^(e i)` (`toMv_monomial`, sorti de `toMv_ofTerms` comme annoncé en L2),
+  donc `onePlusSq` dénote `1 + s²` ; `D` est un produit de tels facteurs (invariant du pliage). **Sans hypothèse** : pour
+  un indice de variable hors bornes, le tableau d'exposants de `unitExp` est nul et le facteur vaut la constante 2.
+- *C2* : le contrôle ne réussit que si l'un de ses deux tests de Bernstein répond `true` ; `bernNonneg_sound` + T2/T3/T4.
+- *C3* : le bloc `do` est démonté test par test ; les deux boucles `for` passent par `range_forIn'_ok` (une boucle dans
+  `Except` qui réussit a exécuté son corps avec succès à chaque indice). Sur la cellule : `Σλ_k = 1` (T7), `λ_k ≥ 0`,
+  et pour chaque face `b·D − aᵀΣλ_k N_k − μ(δ² − φ²) ≥ 0` avec `μ ≥ 0` ; sur la dalle `δ² − φ² ≥ 0`, donc
+  `aᵀΣλ_k N_k ≤ b·D`, et en divisant par `D > 0` (K1) le point `Σλ_k(s)·N_k(s)/D(s)` satisfait chaque face ; c'est une
+  combinaison convexe des sommets monde (`Convex.sum_mem`).
+- *S1* : l'argument du papier §4. `φ∘γ` continue (`Tensor.continuous_eval` : `eval` est l'`aeval` de `toMv`, et le
+  lemme Mathlib est **`MvPolynomial.continuous_eval`**, `Mathlib/Topology/Algebra/MvPolynomial.lean`, atteint par
+  `MvPolynomial.aeval_def` et `MvPolynomial.eval₂_eq_eval_map`) ; négative en 0, positive en 1 ; TVI par
+  **`intermediate_value_univ`** (`Mathlib/Topology/Order/IntermediateValue.lean`) sur `unitInterval`, connexe ;
+  `γ t` est dans une feuille (C1) ; `outside` donnerait `δ ≤ |φ(γ t)| = 0` (C2) ; `collision` contredit l'hypothèse (C3).
+- *K2* : `Mat4.Represents M s d g` — la matrice de polynômes `M` évaluée en `s` vaut `d·[R t; 0 1]` pour le
+  déplacement `g = (R, t)`. Stable par produit (les scalaires se multiplient, les déplacements se composent), vraie
+  pour l'identité, `transHomog` (scalaire 1), `rotHomog` verrouillé (scalaire 1) et libre (scalaire `1 + s²`).
+  `fkFold_represents` la transporte le long de la chaîne, le pas polynomial `fkStep` contre le pas de référence
+  `refStep`, sous l'invariant « indice de la prochaine variable + nombre de joints libres restants ≤ n ».
+- *K3* : `Real.cos_eq_two_mul_tan_half_div_one_sub_tan_half_sq` (exige `cos q ≠ −1`, soit `|q| < π`) et
+  `Real.sin_eq_two_mul_tan_half_div_one_add_tan_half_sq` — deux lemmes Mathlib.
+- *K4* : deux identités polynomiales sans hypothèse, prouvées coefficient par coefficient —
+  `R·Rᵀ = 1 + ((1 − cos² − sin²) − (|a|² − 1)(1 − cos)²)·K²` et `det R = (1 − (1 − cos)|a|²)² + sin²|a|²` — puis les
+  deux hypothèses.
+- *C4* : par K2 les sommets `eval N_k / eval D` sont les positions de référence ; les deux corps sont le même ensemble.
+- *S2* : S1 et C4.
+
+### Verdict sur les définitions de référence
+
+**Elles tiennent : K2 et C4 sont prouvables TELS QU'ÉNONCÉS en L1, sans toucher à `linkPose`, `refStep`,
+`Joint.rotation`, `rodrigues`, `Rigid.comp`.** Le cas « K2 improuvable ⟹ définition de référence fausse » ne s'est pas
+présenté ; aucune correction n'a été proposée ni appliquée. Trois vérifications, de natures différentes :
+
+1. **Preuve** (K2) : la référence Lean = le `N/D` du checker Lean, pour toute chaîne, tout lien, tout point, tout `s`,
+   sous la seule hypothèse `unlockedUpTo chain link ≤ n`.
+2. **Lecture contre `verify.py`** (A48, fichier:ligne) : même table de signes `_skew` (`verify.py:171-174`) ; mêmes
+   numérateurs de rotation `(1+s²)I + 2sK + 2s²K²` libre et `I + sin·K + (1−cos)·K²` verrouillé, coin (3,3) = le
+   dénominateur (`verify.py:177-205`) ; même translation (`214-219`) ; même composition `T ← (T·Trans)·Rot`
+   (`verify.py:275`), même `D` (`274`), même ré-indexation des joints libres (`261`). Convention de composition, sens
+   de rotation et position du facteur `(1+s²)` : identiques.
+3. **Mesure** (nouveau, `scripts/lean_fk_parity.py` + `lean/FkDump.lean`) : le `N/D` du checker Lean et celui de
+   `verify._body_fk` / `_vertex_numerators` comparés **en rationnels exacts, valeur par valeur**, sur les 13
+   certificats livrés et 3 configurations rationnelles (toutes variables non nulles et distinctes) : **1 299 valeurs
+   (39 dénominateurs, 1 260 coordonnées), 0 différence**. Contrôle du contrôle (`--perturb` : signe de la première
+   variable inversé côté Python seul) : 810 valeurs diffèrent, sur les 13 certificats, sortie 1. Les deux côtés étant
+   exacts, l'égalité exacte est l'issue ATTENDUE (ce n'est pas le signal d'A46 : la référence est prise hors de l'objet
+   testé et tous les DOF sont échantillonnés). Avec (1), cela donne : référence Lean = FK Python en ces points.
+   La parité Python ↔ Drake (1,99e-6 m à la bride, S10-bis, `scripts/iiwa7_chain.json`) n'a PAS été rejouée dans
+   cette session ; elle est citée, pas re-mesurée.
+
+Un point à connaître, sans conséquence sous `check` : pour un joint libre dont l'indice de variable serait `≥ n`, les
+polynômes du checker lisent la constante 1 (`unitExp` rend un tableau d'exposants nul), la référence lit 0
+(`refStep`), et Python lèverait `IndexError` (`verify.py:208-211`). K2 exclut le cas par hypothèse, le checker par son
+test sur `n`, et Python par construction de `s_of`.
+
+### Constats (RÉSULTATS, utiles au papier et à L4)
+
+1. **S1 n'utilise PAS le contrôle cinématique (0'), pas du tout.** La décision 2 de la revue L1 disait « S1 n'utilise
+   pas K2-K4 » ; mécaniquement c'est plus fort : la preuve jette le résultat de `checkKinematics` (`obtain ⟨-, hL⟩`).
+   S1 parle du couple `(N, D)` recalculé depuis la chaîne, quelle que soit la chaîne.
+2. **S2 n'utilise de (0') qu'UN fait : `n` = nombre de joints débloqués** (l'hypothèse de K2). **Axes unitaires et
+   `cos² + sin² = 1` ne sont pas nécessaires pour que S2 soit vrai.** Ils servent à ce que `linkPose` soit une chaîne
+   de ROTATIONS : `linkPose_rot_mem_specialOrthogonal` (prouvé, hors des 19) déduit du contrôle cinématique et de K4
+   que la partie rotation de `linkPose c.chain c.bodyLink s` est dans SO(3). Sans eux, S2 resterait un énoncé vrai, sur
+   des applications qui ne seraient plus des déplacements. Conséquence pour le papier : la phrase « le vérificateur
+   exige des axes unitaires exacts » décrit une condition de SENS de l'énoncé (on parle bien de rotations), pas une
+   condition de soundness.
+3. **`q* = 0` est HORS de l'énoncé formel.** `Certificate` porte `qStar`, les énoncés ne le lisent jamais : ils sont
+   écrits en espace `s` avec `s = tan(q/2)`. Le test `q* = 0` garantit que cette lecture est la bonne pour le
+   certificat ; il relève de la correspondance certificat ↔ robot, pas de la preuve.
+4. **Tests du checker qu'AUCUNE preuve n'utilise** : non-dégénérescence de la boîte (0) ; disjonction des cellules et
+   valeur de la coupe (ii, déjà constaté en L2) ; test de degré des `λ_k` et **compte des `μ`** (iv — un `μ_j` manquant
+   est lu comme 0, ce qui revient à exiger `g_j ≥ 0` directement) ; `q* = 0` et « lien du corps dans la chaîne » (0').
+   Aucun n'est donc soundness-critique. Table complète dans `lean/PROOF-OBLIGATIONS.md`.
+5. **L'énoncé S2 ne mentionne ni φ, ni δ, ni feuille, ni tenseur** : il ne lit de `Certificate` que `n`, `chain`,
+   `bodyLink`, `hull`, `obstacles`, `box`, `sStart`, `sGoal`. Le reste du certificat est le MATÉRIAU de la preuve, pas
+   son contenu. C'est ce qui fait de S2 l'énoncé à citer.
+6. **`skew`, table de signes écrite à la main et partagée par le checker et la référence, est le produit vectoriel de
+   Mathlib** (`skewR_mulVec`), et `rodrigues` est la formule `v ↦ v + sin·a×v + (1−cos)·a×(a×v)` (`rodrigues_mulVec`) ;
+   l'axe est fixe (`rodrigues_mulVec_axis`). Une ligne de moins dans ce qui reste à relire.
+7. Affirmations du prompt vérifiées contre le code (A48) : « D = produit de (1+s_i²) » — exact pour les indices dans
+   les bornes (constante 2 au-delà, inatteignable sous `check`) ; « K1 nécessaire à C3 » — exact ; « wall/k3 :
+   2 feuilles » — exact (`cnp-verify scenes/wall/k3.cert.json` : 2 feuilles collision, 9 ms).
+
+### Écarts au prompt (à valider par la supervision)
+
+- **TVI** : le prompt nommait `intermediate_value_Icc` ; j'ai utilisé **`intermediate_value_univ`**. Le chemin est de
+  type `C(unitInterval, …)`, son domaine est le sous-type `unitInterval`, espace connexe ; `intermediate_value_Icc`
+  porte sur une fonction définie sur un ordre conditionnellement complet et aurait demandé de prolonger `γ`.
+- **Ordre** : C2, K1, C3, S1 comme demandé ; puis K3 et K4 (courts) avant K2. Sans conséquence.
+- **Ajouts hors des 19** (tous prouvés, signalés comme tels dans `PROOF-OBLIGATIONS.md`) : `Tensor.eval_zero`,
+  `Tensor.eval_monomial`, `Tensor.eval_foldl_add`, `Tensor.continuous_eval`, `check_eq_true_iff` (`check c = true` ssi
+  `checkE c` réussit — c'est `checkE` que `Main.lean` rapporte), les trois lemmes du constat 6,
+  `Joint.rotation_mem_specialOrthogonal`, `linkPose_rot_mem_specialOrthogonal`.
+- **Deux fichiers nouveaux hors `lean/CnpVerify/`** : `scripts/lean_fk_parity.py` et `lean/FkDump.lean` (script de
+  contrôle lancé par `lake env lean --run`, ni cible de build ni membre de la bibliothèque ; `lakefile.toml` et
+  `Makefile` non touchés). Non demandés ; ils rendent la mesure (3) rejouable (règle 7).
+- **`SPEC.md` v1.9 → v1.10** (règle 12, « amendé en L3 ») : le commentaire de §3 disait « énoncés à prouver » — faux
+  depuis aujourd'hui. Rien d'autre ; `verify.py` y reste « la spécification et l'arbitre du verdict PROOF ».
+- **Commentaires périmés laissés en place** : `CnpVerify/Bernstein.lean:7` et `CnpVerify/Kinematics.lean:10` disent
+  encore « sorry in L1 ». Ce sont des fichiers du cœur exécutable (zéro diff) : je n'y ai pas touché, même pour un
+  commentaire. À trancher.
+- **Papier non touché** (la section « verified checker » est en L4).
+
+### Décisions (Code, dans le mandat)
+
+- **Aucune définition de référence modifiée** (rien ne le demandait).
+- **Les noms `Tensor.*` sont qualifiés dans les preuves de `Soundness.lean`** plutôt qu'ouverts par `open Tensor` :
+  un `open` placé avant les énoncés C2-S2 n'en changerait pas le texte, mais pourrait en changer la résolution de noms.
+- **`normSqR`** (définition auxiliaire, `Spec/Kinematics.lean`) : voir Pièges, premier point.
+- **Arrêt au périmètre L3** (règle 8) : l'exécution dans le noyau, la CI et le papier restent à L4.
+
+### Base de confiance (résumé de `lean/README.md`, section « Trust base », en anglais)
+
+- **Prouvé** (noyau Lean) : S2, S1 et les 17 lemmes qui y mènent ; trois axiomes standard.
+- **Défini — à relire** : pour S2, `Certificate` / `Joint` / `Face` / `Obstacle` / `Vec3` / `Box` (les données),
+  `Box.toSet`, `vecR`, `Obstacle.toSet`, `CollisionFreeRef`, `Rigid` / `Rigid.apply` / `Rigid.comp`, `skew` / `skewR` /
+  `rodrigues`, `Joint.rotation`, `RefState` / `refStep` / `linkPose` — plus `convexHull`, `Disjoint`,
+  `C(unitInterval, ·)`, `Matrix`, `ℝ` de Mathlib. Une preuve montre que le checker est d'accord avec ces définitions,
+  pas qu'elles disent ce qu'un roboticien entend.
+- **Ce que l'énoncé dit et ne dit pas** : espace `s` (le passage d'un chemin en angles à un chemin en `s` n'est pas
+  formalisé) ; UN corps et les obstacles listés, polytopes exacts, statiques ; toucher = collision (obstacles fermés) ;
+  énoncé vide si start ou goal hors de la boîte ; soundness seule, rien sur la complétude ni sur le générateur.
+- **Hors énoncé, de confiance** : le parsing JSON → `Certificate` (`cnp-verify --dump` imprime l'objet réellement
+  vérifié) ; le compilateur Lean, la chaîne C et le runtime (`Nat` / `Int` / `Rat` sur GMP, `Array`, remplacements
+  `@[extern]` / `@[implemented_by]` de la bibliothèque de base) ; `Main.lean` (lecture, impression) ; le noyau
+  Lean 4.34.1 et Mathlib `v4.34.1`. L'accord avec `verify.py` est MESURÉ, pas prouvé.
+
+### Limites assumées
+
+- **Le binaire n'est pas l'objet du théorème.** Le théorème porte sur le terme Lean `check` ; `cnp-verify` est ce que
+  le compilateur en tire. C'est l'objet de L4 (évaluer `check` dans le noyau sur un petit certificat).
+- **Le parsing est hors preuve** : un défaut de `Certificate.ofJson` ferait vérifier un autre objet que le fichier.
+- **Les définitions de référence restent à RELIRE** par un humain (liste ci-dessus) : K2 les a mises à l'épreuve
+  contre le checker, la mesure (3) contre Python, rien ne les met à l'épreuve contre l'intention.
+- Rien n'est prouvé sur `verify.py` lui-même : il est relié au checker Lean par la parité mesurée (L1) et par la
+  mesure (3), pas par un théorème.
+
+### Blocages
+
+**Aucun.** Aucun lemme abandonné, contourné ou affaibli ; aucun énoncé retouché.
+
+### Pièges
+
+- **`binop%` et l'ascription `(a[0] : ℝ)`** : dans un énoncé mêlant `(a[0] : ℝ) ^ 2` et des numéraux, Lean 4.34 a
+  élaboré `1` en `↑1` (transtypage), y compris le `1` matriciel ; un `rw` par une hypothèse écrite avec `1` ne trouve
+  alors plus son motif. Contournement : nommer l'expression (`normSqR a`) pour sortir l'ascription de l'arbre
+  arithmétique. Sémantiquement neutre (`↑1 = 1`). K4, seul des 19 énoncés à mêler ascription et numéral, s'affiche
+  sans transtypage (`ha : ↑a[0] ^ 2 + ↑a[1] ^ 2 + ↑a[2] ^ 2 = 1`).
+- **`if c then reject …` dans un `do`** : la continuation est DUPLIQUÉE dans les deux branches (termes énormes) et
+  `split at h` choisit le `if` intérieur d'abord. Préférer `by_cases` + `rw [ite_eq_left h]` / `ite_eq_right`, ou
+  `checkM_seq_ok` / `bind_ok` pour couper une séquence.
+- **`simp` change la forme des hypothèses** : `Fin.last 3` devient `3`, `c.sStart[i]` devient `c.sStart[↑i]`,
+  `¬ a < b` devient `b ≤ a`. Réécrire par hypothèse AVANT tout `simp`, ou énoncer le fait dans la forme normale
+  (`castSucc_ne_three`).
+- **Un `match` réécrit dans une preuve n'est pas celui du checker** (matcher auxiliaire différent) : pour saisir le
+  booléen `arr.any (fun j => match …)` sans le recopier, `generalize hb : arr.any _ = b at h`.
+- **Boucles `for h : k in [0:N]` dans `Except`** : `Std.Legacy.Range.forIn'_eq_forIn'_range'`, puis récurrence sur la
+  liste avec `List.forIn'_cons`.
+- Noms Mathlib de cette version : produit vectoriel `⨯₃` (U+2A2F, pas `×₃`) ; `Matrix.mem_orthogonalGroup_iff` donne
+  déjà `A * Aᵀ = 1` (pas de `star`) ; `dif_pos` / `dif_neg` → `dite_eq_left` / `dite_eq_right`.
+- `lake build` après un `touch` REJOUE (traces par hachage) : les avertissements rejoués sont bien réaffichés, le
+  décompte « 0 avertissement » est donc fiable.
+
+**Contrôles de clôture.** `lake build` : vert, **0** `declaration uses sorry`, **0** avertissement.
+`make lean-parity` relancé en CONTRÔLE (non archivé, `FUZZ` par défaut 1 000 ; le binaire n'ayant pas changé, le run de
+référence reste `20261009T214354Z`) : sortie 0 ; 13 certificats, corpus 43 rejets + 5 acceptations, 0 divergence ;
+fuzz 1 000 cas : 498 PROOF des deux côtés, 487 REJECT des deux côtés, 15 où Python lève et Lean rejette, 0 divergence
+de verdict (1 min 50 s). `scripts/lean_fk_parity.py` : 1 299 valeurs, 0 différence. **Décompte exact** : `make test` =
+**240 passed, 1 deselected, 0 skipped, 0 warnings** (429,9 s ; lancé après la fermeture des 19, avant la documentation ;
+load average au lancement 3,42 / 2,85 / 2,81 ; `lake build` concurrent pendant une partie du run). `git diff 56e1666
+-- src tests` : **vide**.
+
+**Diffs CLAUDE.md** (tous listés, règle 14) : à l'ouverture, D82 (puce « Décisions de la revue L2 » dans la section L2
+du plan), D83 (A52 en règle 9), D84 (en-tête v1.26 + changelog) — instructions de la revue L2 ; à la clôture, section
+« L3 » ajoutée en fin de plan (entrée / sortie / ✅ actée / prochaine étape), au titre de l'état d'avancement
+(règle 14 b), marquée comme tenue par Code faute de diff de supervision. Aucune règle, aucun critère, aucune porte
+modifiés de ma propre initiative. **`SPEC.md` : v1.10**, commentaire de §3 seul (ci-dessus).
+
+**Commits** : `d0fd5ce` (ouverture doc), `fbe131d` (K1, C2, C3, **S1** — le jalon), `fce73f6` (K2, K3, K4, C4, **S2**),
+`20f4341` (hors des 19, documentation `lean/`, contrôle FK), commit de clôture (journal, état, SPEC).
+Dépôt PUBLIC : ce qui est poussé a été relu pour fuite (D77) — sources Lean, un script Python, quatre fichiers
+Markdown ; aucun chemin personnel, aucune adresse, aucun secret.
+
+**Prochaine étape : L4** — exécution dans le NOYAU (`decide` / `native_decide` comparés) sur `wall/k3` (2 feuilles),
+CI `lake build` + parité, section « verified checker » du papier. Repères pour L4 : (a) l'objet à évaluer est
+`check c` pour un `c : Certificate` — il faudra soit un `Certificate` écrit comme terme Lean, soit passer par le
+parseur, ce qui le ferait entrer dans ce qui est évalué par le noyau sans pour autant le prouver ; (b) `native_decide`
+ajoute l'axiome `Lean.ofReduceBool` et remet le compilateur dans la base de confiance : à comparer honnêtement à
+`decide` ; (c) le papier peut citer S2 avec la table « quels tests servent à quelle preuve ». **À trancher par la
+supervision** : (1) `intermediate_value_univ` au lieu d'`intermediate_value_Icc` ; (2) les ajouts hors des 19 et les
+deux fichiers de contrôle ; (3) SPEC v1.10 ; (4) les deux commentaires périmés du cœur exécutable ; (5) les constats
+1-5 vont-ils au papier, et sous quelle forme — en particulier le constat 2 (axes unitaires = condition de sens, pas de
+soundness).

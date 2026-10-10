@@ -1150,6 +1150,29 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   soundness-critique.
 - **Prochaine étape : L3** — sémantique cinématique (K1-K4), feuilles (C2-C3), pont C4, théorèmes S1/S2.
 
+### L3 — VÉRIFICATEUR LEAN, étape 3 : les neuf obligations restantes, jusqu'au théorème principal [prompt de supervision du 10/10/2026]
+- Entrée : L2 validée (revue L2, D82-D84). **`verify.py`, `src/`, `tests/` et le cœur exécutable Lean SACRÉS, zéro diff.**
+  Aucun énoncé modifié en silence ; un énoncé faux = un RÉSULTAT à journaliser. Ordre : C2, K1, C3, **S1 (jalon)**, puis
+  K2-K4, C4, S2. Section tenue par Code au titre de l'état d'avancement (règle 14 b) : le prompt L3 n'a pas été porté au
+  plan par un diff de supervision (circuit A16).
+- Sortie : 0 `sorry` (ou la liste exacte de ce qui reste) ; `#print axioms soundness` et `soundness_ref` =
+  {`propext`, `Classical.choice`, `Quot.sound`} ; `lean/PROOF-OBLIGATIONS.md` à jour ; section « Trust base » dans
+  `lean/README.md`.
+- ✅ **L3 ACTÉE (10/10/2026)** — **les 19 obligations sont PROUVÉES, 9 → 0 `sorry`** : jalon **S1 `soundness`** commité à
+  14 h 56 (`fbe131d`), puis K2-K4, C4, **S2 `soundness_ref`** (`fce73f6`) ; `lake build` sans `sorry` ni avertissement ;
+  axiomes = les trois standards sur les 19. **Les 19 énoncés et les définitions de référence sont identiques à L1/L2
+  (script) : aucun énoncé ne s'est révélé faux, K2 est prouvable TEL QU'ÉNONCÉ, aucune définition de référence
+  corrigée.** Cœur exécutable Lean, `verify.py`, `src/`, `tests/` zéro diff. Contrôle ajouté : FK Lean = FK `verify.py`
+  en rationnels exacts sur 1 299 valeurs (13 certificats, `scripts/lean_fk_parity.py`). `make test` = 240 passed,
+  1 deselected ; `make lean-parity` en contrôle : sortie 0. SPEC v1.10 (commentaire §3). Constats à valider par la
+  supervision : S1 n'utilise PAS le contrôle cinématique ; S2 n'en utilise que « n = nombre de joints débloqués » ; axes
+  unitaires et cos²+sin²=1 ne servent qu'à faire de `linkPose` une chaîne de ROTATIONS (corollaire prouvé, hors des 19) ;
+  la disjonction du pavage, la non-dégénérescence de la boîte, le test de degré des λ et le compte des μ ne servent à
+  aucune preuve. **Ce qui reste hors preuve** : parsing JSON, compilateur et runtime, lecture des définitions de
+  référence (`lean/README.md`, « Trust base »). (voir JOURNAL.md L3.)
+- **Prochaine étape : L4** — exécution dans le NOYAU (`decide` / `native_decide` comparés) sur `wall/k3` (2 feuilles),
+  CI `lake build` + parité, section « verified checker » du papier.
+
 ---
 
 ## Estimation honnête (inchangée sur le fond)

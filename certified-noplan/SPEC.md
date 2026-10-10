@@ -1,6 +1,10 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
-Version 1.9 — 9 octobre 2026 (amendée post-S7/S8/S9c/S12/P2/L1 ; v1.0..v1.8 dans git).
+Version 1.10 — 10 octobre 2026 (amendée post-S7/S8/S9c/S12/P2/L1/L3 ; v1.0..v1.9 dans git).
+Amendement v1.9→v1.10 (acté L3, règle 12 — aucun changement de code ni de format) : §3 — le
+commentaire du sous-projet `lean/` disait « énoncés à prouver » ; les 19 énoncés sont prouvés
+depuis L3 (`soundness`, `soundness_ref`). `verify.py` reste la spécification et l'arbitre du
+verdict PROOF : ce point n'est PAS modifié (toute bascule d'arbitre serait une décision de pilotage).
 Amendement v1.8→v1.9 (acté L1, règle 12 — constat du port Lean, aucun changement de code) : §4 —
 les nombres du certificat sont des chaînes que `fractions.Fraction` lit exactement, **« num/den »
 OU décimales** : les bornes de cellule des feuilles sont écrites en décimal (`"-0.8"`, `"0.0625"`)
@@ -165,8 +169,9 @@ certified-noplan/
 │   └── viz.py                 # Meshcat 3D + figures C-space/partition
 ├── lean/                      # [L1] projet Lake CnpVerify : vérificateur Lean 4 `cnp-verify`
 │                              # (port exécutable de verify.py, parité `make lean-parity`) +
-│                              # énoncés à prouver (lean/PROOF-OBLIGATIONS.md) ; verify.py reste
-│                              # la spécification et l'arbitre du verdict PROOF
+│                              # sa preuve de soundness [L3, amendé en L3] (19 énoncés prouvés,
+│                              # lean/PROOF-OBLIGATIONS.md ; base de confiance : lean/README.md) ;
+│                              # verify.py reste la spécification et l'arbitre du verdict PROOF
 ├── scenes/                    # *.yaml (voir §6)
 ├── benchmarks/                # harness + résultats datés (jamais écrasés)
 └── tests/                     # pytest ; inclut contrôles négatifs obligatoires
