@@ -7,7 +7,7 @@
 For each certificate written as a Lean term (``lean/Certs/*.lean``), four ways of proving
 ``check c = true`` are tried, each in its own ``lake env lean`` process, under a wall-clock
 limit and a memory limit (the process tree is killed when its resident memory passes
-``--mem-gb``):
+``--mem-gb``, in GiB = 2^30 bytes, the unit of every memory figure reported):
 
   decide          ``by decide`` — the elaborator reduces the ``Decidable`` instance first;
   kernel          ``by decide +kernel`` — ONE evaluation of ``check c`` by the kernel;
@@ -22,6 +22,10 @@ limit and a memory limit (the process tree is killed when its resident memory pa
 
 ``decide``, ``kernel`` and ``staged`` use the kernel only. ``native_decide`` trusts the
 compiler: its row is there to show the gap, and its axioms are printed.
+
+A last table gives what the kernel pays for the ``Array`` operations the checker is written
+with, on 125 and 625 entries (the number of coefficients of a degree-4 tensor in 3 and in 4
+variables): it is what explains the rows above.
 
 An "import only" process per certificate gives the fixed cost (loading the imports) included
 in every wall-clock figure. ``kernel s`` is the sum of the profiler's ``type checking took``
@@ -91,7 +95,7 @@ def run_lean(source: str, timeout: float, mem_gb: float) -> dict:
         r = tree_rss(proc.pid)
         peak = max(peak, r)
         if r > mem_gb * 2**30:
-            killed = f"memory > {mem_gb:g} GB"
+            killed = f"memory > {mem_gb:g} GiB"
         elif time.time() - t0 > timeout:
             killed = f"time > {timeout:g} s"
         if killed:
@@ -115,9 +119,9 @@ def run_lean(source: str, timeout: float, mem_gb: float) -> dict:
 def brief(r: dict) -> str:
     """One cell of the table."""
     if r["ok"]:
-        return f"{r['wall_s']:.1f} s (kernel {r['kernel_s']:.1f} s), {r['peak_rss_gb']:.2f} GB"
+        return f"{r['wall_s']:.1f} s (kernel {r['kernel_s']:.1f} s), {r['peak_rss_gb']:.2f} GiB"
     if r["killed"]:
-        return f"FAIL — killed, {r['killed']}, after {r['wall_s']:.0f} s (peak {r['peak_rss_gb']:.2f} GB)"
+        return f"FAIL — killed, {r['killed']}, after {r['wall_s']:.0f} s (peak {r['peak_rss_gb']:.2f} GiB)"
     return f"FAIL — {r.get('cause', 'error')} ({r['wall_s']:.1f} s)"
 
 
@@ -131,9 +135,9 @@ def stuck_cause(out: str) -> str:
 
 
 def split_staged(text: str):
-    """(preamble with every non-theorem item, [(theorem name, its source)]) of a generated
-    staged proof; the theorems that only ASSEMBLE stages (`…_ok`, `leaves_ok`, the final one) are
-    dropped: they evaluate nothing."""
+    """(blocks before the stages, [(theorem name, its source)]) of a generated staged proof. The
+    theorems that only ASSEMBLE stages (`…_ok`, `leaves_ok`, the final one) are dropped: they
+    evaluate nothing. The first block is the header (comment, imports, options)."""
     body = text.split("end CnpVerify.Certs.")[0]          # before the final namespace
     cut = body.index("abbrev c : Certificate")            # header: comment, imports, options
     blocks = re.split(r"\n(?=theorem |def |abbrev |/-!)", body[cut:])
@@ -144,7 +148,19 @@ def split_staged(text: str):
             pre.append(b)
         elif "decide +kernel" in b and not m.group(1).endswith("_ok"):
             stages.append((m.group(1), b))
-    return "\n".join(pre), stages
+    return pre, stages
+
+
+def preamble_for(pre, stage_src: str) -> str:
+    """What one stage needs to be compiled alone: the header, the abbreviations, and ONLY the
+    literal definitions (`def G`, `def T`, `def X…`) its statement mentions — so that a literal
+    too large to elaborate does not fail the stages that do not use it."""
+    keep = []
+    for b in pre:
+        m = re.match(r"def (\S+)", b)
+        if m is None or re.search(r"\b" + re.escape(m.group(1)) + r"\b", stage_src):
+            keep.append(b)
+    return "\n".join(keep).replace("set_option Elab.async false\n", PROFILE, 1)
 
 
 def bench(name: str, mod: str, cert: str, args) -> dict:
@@ -186,7 +202,6 @@ def bench(name: str, mod: str, cert: str, args) -> dict:
     if gen.returncode != 0:
         raise SystemExit(f"CertStages.lean {name} failed:\n{gen.stdout}{gen.stderr}")
     pre, stages = split_staged(gen.stdout)
-    pre = pre.replace("set_option Elab.async false\n", PROFILE, 1)
     staged = {"n_stages": len(stages), "stages": [], "first_failure": None, "probes": []}
     seen_kinds = set()
     for sname, src in stages:
@@ -195,10 +210,11 @@ def bench(name: str, mod: str, cert: str, args) -> dict:
         if staged["first_failure"] is not None and kind in seen_kinds:
             continue                                       # after a failure: one probe per NEW kind
         seen_kinds.add(kind)
-        r = run_lean(pre + "\n" + src + "\n", args.timeout, args.mem_gb)
+        r = run_lean(preamble_for(pre, src) + "\n" + src + "\n", args.timeout, args.mem_gb)
         err = re.search(r": error.*", r.pop("output"))
-        if err and not r["ok"]:
-            r["cause"] = err.group(0)[2:200]
+        if err and not r["ok"] and not r["killed"]:
+            # an error is raised by the ELABORATOR (e.g. on a literal), before any kernel work
+            r["cause"] = "elaboration " + err.group(0)[2:200]
         if staged["first_failure"] is None:
             staged["stages"].append({"stage": sname, **r})
             if not r["ok"]:
@@ -237,11 +253,57 @@ def bench(name: str, mod: str, cert: str, args) -> dict:
     return row
 
 
+# What the kernel pays for the `Array` operations the checker is written with, on arrays of
+# 125 and 625 entries (a tensor of degree 4 per variable has 5^n coefficients: 125 for n = 3,
+# 625 for n = 4). One process per line and per size; `@N@` is replaced by the size.
+PRIMITIVES = [
+    ("for i in [0:@N@] (sum)",
+     "(Id.run do\n  let mut s := 0\n  for i in [0:@N@] do\n    s := s + i\n  return s) = @N@ * (@N@ - 1) / 2"),
+    ("List.range @N@ |>.foldl", "(List.range @N@).foldl (· + ·) 0 = @N@ * (@N@ - 1) / 2"),
+    ("Array.set! then getD", "((Array.replicate @N@ (1 : Nat)).set! (@N@ - 1) 5).getD (@N@ - 1) 0 = 5"),
+    ("Array.foldl", "(Array.replicate @N@ (1 : Nat)).foldl (· + ·) 0 = @N@"),
+    ("Array.all", "(Array.replicate @N@ (1 : Nat)).all (· == 1) = true"),
+    ("Array.map", "((Array.replicate @N@ (1 : Nat)).map (· + 1)).size = @N@"),
+    ("Array.ofFn", "(Array.ofFn (n := @N@) fun i => i.val).size = @N@"),
+    ("Array ==", "((Array.replicate @N@ (1 : Nat)) == (Array.replicate @N@ (1 : Nat))) = true"),
+    ("Array ++", "((Array.replicate @N@ (1 : Nat)) ++ (Array.replicate @N@ (1 : Nat))).size = 2 * @N@"),
+]
+
+
+def primitives(args) -> list:
+    rows = []
+    for label, prop in PRIMITIVES:
+        label = label.replace("@N@", "N")
+        row = {"primitive": label}
+        for size in (125, 625):
+            src = PROFILE + "theorem t : " + prop.replace("@N@", str(size)) + " := by decide +kernel\n"
+            r = run_lean(src, args.timeout, args.mem_gb)
+            r.pop("output")
+            row[str(size)] = r
+            print(f"  {label:<24} N = {size}: "
+                  + (f"kernel {r['kernel_s']:.3f} s" if r["ok"] else brief(r)), flush=True)
+        rows.append(row)
+    return rows
+
+
+def primitives_markdown(rows) -> str:
+    lines = ["## What the kernel pays for the array operations of the checker", "",
+             "`by decide +kernel` on one operation over an array of N naturals; kernel seconds.",
+             "", "| operation | N = 125 | N = 625 | ratio |", "|---|---|---|---|"]
+    for r in rows:
+        a, b = r["125"], r["625"]
+        fa = f"{a['kernel_s']:.3f}" if a["ok"] else "FAIL"
+        fb = f"{b['kernel_s']:.3f}" if b["ok"] else "FAIL"
+        ratio = f"×{b['kernel_s'] / a['kernel_s']:.0f}" if a["ok"] and b["ok"] and a["kernel_s"] > 0 else ""
+        lines.append(f"| `{r['primitive']}` | {fa} | {fb} | {ratio} |")
+    return "\n".join(lines) + "\n"
+
+
 def markdown(rows, meta) -> str:
     def staged_cell(s):
         if s["first_failure"] is None:
             w = s["whole_file"]
-            return (f"{w['wall_s']:.0f} s (kernel {w['kernel_s']:.0f} s), {w['peak_rss_gb']:.1f} GB, "
+            return (f"{w['wall_s']:.0f} s (kernel {w['kernel_s']:.0f} s), {w['peak_rss_gb']:.1f} GiB, "
                     f"{s['n_stages']} stages")
         f = s["stages"][-1]
         why = (f"killed, {f['killed']}, after {f['wall_s']:.0f} s" if f["killed"]
@@ -252,7 +314,7 @@ def markdown(rows, meta) -> str:
     def cell(r):
         if r["ok"]:
             ev = f" (evaluation {r['evaluation_s']:g} s)" if r.get("evaluation_s") is not None else ""
-            return f"{r['wall_s']:.1f} s{ev}, {r['peak_rss_gb']:.1f} GB"
+            return f"{r['wall_s']:.1f} s{ev}, {r['peak_rss_gb']:.1f} GiB"
         if r["killed"]:
             return f"FAIL (killed, {r['killed']}, after {r['wall_s']:.0f} s)"
         return f"FAIL ({r.get('cause', 'error')})"
@@ -261,7 +323,7 @@ def markdown(rows, meta) -> str:
     lines += [f"- commit `{meta['commit']}` (tree dirty at start: {meta['git_dirty_at_start']})",
               f"- {meta['lean']}; Mathlib `{meta['mathlib']}`",
               f"- {meta['machine']}; load average at start {meta['load_at_start']}",
-              f"- limits per process: {meta['timeout_s']:g} s, {meta['mem_gb']:g} GB resident", "",
+              f"- limits per process: {meta['timeout_s']:g} s, {meta['mem_gb']:g} GiB resident (1 GiB = 2^30 bytes)", "",
               "| certificate | n | leaves (collision / outside) | body vertices | `decide` | "
               "`decide +kernel`, one evaluation | staged kernel proof | `native_decide` (adds an axiom) |",
               "|---|---|---|---|---|---|---|---|"]
@@ -275,7 +337,7 @@ def markdown(rows, meta) -> str:
     for r in rows:
         s = r["staged"]
         lines += [f"## Stages — `{r['certificate']}`", "",
-                  "| stage | result | wall s | kernel s | peak GB |", "|---|---|---|---|---|"]
+                  "| stage | result | wall s | kernel s | peak GiB |", "|---|---|---|---|---|"]
         for st in s["stages"]:
             res = "ok" if st["ok"] else ("killed: " + st["killed"] if st["killed"]
                                          else st.get("cause", "error"))
@@ -301,6 +363,8 @@ def main() -> int:
     ap.add_argument("--mem-gb", type=float, default=9.0)
     ap.add_argument("--timeout", type=float, default=1800.0)
     ap.add_argument("--no-archive", action="store_true")
+    ap.add_argument("--primitives-only", action="store_true",
+                    help="only the table of array operations (a few minutes)")
     args = ap.parse_args()
     only = {x for x in args.only.split(",") if x}
 
@@ -322,7 +386,7 @@ def main() -> int:
         return 2
     rows = []
     for name, mod, cert in TARGETS:
-        if only and name not in only:
+        if args.primitives_only or (only and name not in only):
             continue
         print(f"{cert}  ({name})", flush=True)
         rows.append(bench(name, mod, cert, args))
@@ -331,13 +395,19 @@ def main() -> int:
             r[k]["output"] = r[k]["output"][-1500:]
         if "whole_file" in r["staged"]:
             r["staged"]["whole_file"]["output"] = r["staged"]["whole_file"]["output"][-1500:]
-    md = markdown(rows, meta)
+    print("array operations in the kernel", flush=True)
+    prim = primitives(args)
+    md = (markdown(rows, meta) if rows else f"# Kernel evaluation — {meta['utc']}\n\n"
+          f"- commit `{meta['commit']}` (tree dirty at start: {meta['git_dirty_at_start']})\n"
+          f"- {meta['lean']}\n- {meta['machine']}; load average at start {meta['load_at_start']}\n")
+    md += "\n" + primitives_markdown(prim)
     print("\n" + md)
     if not args.no_archive:
         out = os.path.join(ROOT, "benchmarks", "results", meta["utc"])
         os.mkdir(out)
         with open(os.path.join(out, "lean_kernel.json"), "w", encoding="utf-8") as f:
-            json.dump({"meta": meta, "rows": rows}, f, indent=1, ensure_ascii=False)
+            json.dump({"meta": meta, "rows": rows, "primitives": prim}, f, indent=1,
+                      ensure_ascii=False)
         with open(os.path.join(out, "lean_kernel.md"), "w", encoding="utf-8") as f:
             f.write(md + "\n")
         print(f"archived: {out}/lean_kernel.{{json,md}}")

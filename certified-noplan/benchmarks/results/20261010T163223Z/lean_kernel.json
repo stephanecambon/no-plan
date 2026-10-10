@@ -1,0 +1,926 @@
+{
+ "meta": {
+  "utc": "20261010T163223Z",
+  "commit": "157c671a7880114bf43695859f0c9f6d394d392c",
+  "git_dirty_at_start": false,
+  "lean": "Lean (version 4.34.1, arm64-apple-darwin24.6.0, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+  "mathlib": "v4.34.1",
+  "machine": "Darwin 25.5.0 arm64, Apple M4",
+  "load_at_start": [
+   6.24,
+   5.39,
+   5.42
+  ],
+  "timeout_s": 1500.0,
+  "mem_gb": 9.0
+ },
+ "rows": [
+  {
+   "certificate": "scenes/wall/k3.cert.json",
+   "term": "CnpVerify.Certs.wallK3",
+   "n": 3,
+   "leaves": 2,
+   "collision_leaves": 2,
+   "outside_leaves": 0,
+   "hull_vertices": 2,
+   "import_only": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.1,
+    "kernel_s": 0,
+    "peak_rss_gb": 0.77,
+    "load1_at_start": 7.32,
+    "output": "cumulative profiling times:\n\telaboration 0.0601ms\n\tlinting 0.112ms\n\tmodule linting 0.006ms\n\tparsing 0.0271ms\n"
+   },
+   "decide": {
+    "ok": false,
+    "killed": null,
+    "exit": 1,
+    "wall_s": 2.4,
+    "kernel_s": 0,
+    "peak_rss_gb": 1.08,
+    "load1_at_start": 7.32,
+    "output": "/var/folders/l0/238jwvtx5g99_y1w0wtf68pm0000gp/T/tmpsa8ecnjs.lean:6:38: error: Tactic `decide` failed for proposition\n  check wallK3 = true\nbecause its `Decidable` instance\n  instDecidableEqBool (check wallK3) true\ndid not reduce to `isTrue` or `isFalse`.\n\nAfter unfolding the instances `decEq`, `instDecidableEqBool`, `instDecidableEqNat`, `Bool.decEq`, `Int.decEq`, `Int.decLt`, `Int.decNonneg`, `Int.instDecidableEq`, `Nat.decEq`, and `Rat.instDecidableLe`, reduction got stuck at the `Decidable` instance\n  match check wallK3, true with\n  | false, false => isTrue ⋯\n  | false, true => isFalse ⋯\n  | true, false => isFalse ⋯\n  | true, true => isTrue ⋯\ntactic execution of Lean.Parser.Tactic.decide took 1.93ms\nelaboration took 1.5ms\ncumulative profiling times:\n\tattribute application 0.0122ms\n\telaboration 1.56ms\n\tfix level params 0.0192ms\n\tinstantiate metavars 0.00996ms\n\tinterpretation 0.00654ms\n\tlet-to-have transformation 0.0107ms\n\tlinting 0.196ms\n\tmodule linting 0.00371ms\n\tparsing 0.23ms\n\tprocess pre-definitions 0.268ms\n\tshare common exprs 0.0484ms\n\ttactic execution 1.99ms\n\ttype checking 0.128ms\n\ttypeclass inference 0.362ms\n",
+    "cause": "reduction stuck at `match check wallK3, true with`; already on the first test `¬ (wallK3.delta ≤ 0)`: reduction stuck at `match Rat.blt 0 wallK3.delta, false with`",
+    "first_test": "already on the first test `¬ (wallK3.delta ≤ 0)`: reduction stuck at `match Rat.blt 0 wallK3.delta, false with`"
+   },
+   "kernel": {
+    "ok": false,
+    "killed": "memory > 9 GB",
+    "exit": -9,
+    "wall_s": 53.0,
+    "kernel_s": 0,
+    "peak_rss_gb": 9.03,
+    "load1_at_start": 6.97,
+    "output": ""
+   },
+   "staged": {
+    "n_stages": 34,
+    "stages": [
+     {
+      "stage": "assumptions",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.6,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 7.54
+     },
+     {
+      "stage": "conditionI",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.6,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 7.34
+     },
+     {
+      "stage": "partition",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.6,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 7.34
+     },
+     {
+      "stage": "kinematics",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.6,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 7.15
+     },
+     {
+      "stage": "geometry_eq",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 40.0,
+      "kernel_s": 37.4,
+      "peak_rss_gb": 5.6,
+      "load1_at_start": 7.15
+     },
+     {
+      "stage": "slab_eq",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 3.1,
+      "kernel_s": 0.4,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 6.33
+     },
+     {
+      "stage": "lamDeg_eq",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.8,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 6.78
+     },
+     {
+      "stage": "leaves_size",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.6,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 6.78
+     },
+     {
+      "stage": "L0_X",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 13.6,
+      "kernel_s": 10.9,
+      "peak_rss_gb": 2.57,
+      "load1_at_start": 6.64
+     },
+     {
+      "stage": "L0_count",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.8,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 6.29
+     },
+     {
+      "stage": "L0_sum",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 3.1,
+      "kernel_s": 0.2,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 6.29
+     },
+     {
+      "stage": "L0_lam",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 3.1,
+      "kernel_s": 0.3,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 6.27
+     },
+     {
+      "stage": "L0_obs",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.8,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 6.27
+     },
+     {
+      "stage": "L0_mu",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.8,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 6.25
+     },
+     {
+      "stage": "O0_faces",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.6,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 6.23
+     },
+     {
+      "stage": "L0_face0",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 27.8,
+      "kernel_s": 24.8,
+      "peak_rss_gb": 3.8,
+      "load1_at_start": 6.23
+     },
+     {
+      "stage": "L0_face1",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 25.1,
+      "kernel_s": 22.5,
+      "peak_rss_gb": 3.77,
+      "load1_at_start": 6.8
+     },
+     {
+      "stage": "L0_face2",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 21.6,
+      "kernel_s": 18.4,
+      "peak_rss_gb": 3.27,
+      "load1_at_start": 6.32
+     },
+     {
+      "stage": "L0_face3",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 27.0,
+      "kernel_s": 23.8,
+      "peak_rss_gb": 3.83,
+      "load1_at_start": 6.49
+     },
+     {
+      "stage": "L0_face4",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 26.5,
+      "kernel_s": 23.6,
+      "peak_rss_gb": 3.79,
+      "load1_at_start": 6.12
+     },
+     {
+      "stage": "L0_face5",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 22.1,
+      "kernel_s": 19.0,
+      "peak_rss_gb": 3.27,
+      "load1_at_start": 6.31
+     },
+     {
+      "stage": "L1_X",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 16.7,
+      "kernel_s": 13.4,
+      "peak_rss_gb": 2.57,
+      "load1_at_start": 6.17
+     },
+     {
+      "stage": "L1_count",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 3.1,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 7.1
+     },
+     {
+      "stage": "L1_sum",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 3.1,
+      "kernel_s": 0.2,
+      "peak_rss_gb": 1.12,
+      "load1_at_start": 7.57
+     },
+     {
+      "stage": "L1_lam",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 3.1,
+      "kernel_s": 0.3,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 7.61
+     },
+     {
+      "stage": "L1_obs",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.9,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 7.61
+     },
+     {
+      "stage": "L1_mu",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.9,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 7.88
+     },
+     {
+      "stage": "O1_faces",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 2.8,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.1,
+      "load1_at_start": 7.88
+     },
+     {
+      "stage": "L1_face0",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 27.5,
+      "kernel_s": 24.6,
+      "peak_rss_gb": 3.98,
+      "load1_at_start": 7.97
+     },
+     {
+      "stage": "L1_face1",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 26.4,
+      "kernel_s": 23.4,
+      "peak_rss_gb": 3.86,
+      "load1_at_start": 8.19
+     },
+     {
+      "stage": "L1_face2",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 21.0,
+      "kernel_s": 18.1,
+      "peak_rss_gb": 3.32,
+      "load1_at_start": 8.17
+     },
+     {
+      "stage": "L1_face3",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 31.2,
+      "kernel_s": 27.8,
+      "peak_rss_gb": 4.0,
+      "load1_at_start": 8.56
+     },
+     {
+      "stage": "L1_face4",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 28.7,
+      "kernel_s": 25.5,
+      "peak_rss_gb": 3.84,
+      "load1_at_start": 9.15
+     },
+     {
+      "stage": "L1_face5",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 23.1,
+      "kernel_s": 19.7,
+      "peak_rss_gb": 3.32,
+      "load1_at_start": 11.37
+     }
+    ],
+    "first_failure": null,
+    "probes": [],
+    "stages_passed": 34,
+    "sum_kernel_s": 334.3,
+    "max_stage_rss_gb": 5.6,
+    "whole_file": {
+     "ok": true,
+     "killed": null,
+     "exit": 0,
+     "wall_s": 358.8,
+     "kernel_s": 354.6,
+     "peak_rss_gb": 5.63,
+     "load1_at_start": 11.07,
+     "output": "er.Tactic.apply took 1.04ms\ntactic execution of Lean.Parser.Tactic.decide took 1.97ms\ntypeclass inference of Decidable took 1.34ms\ntype checking took 24.3s\ntype checking took 1.39ms\nelaboration took 5.44ms\ntactic execution of Lean.Parser.Tactic.simp took 2.51ms\ntactic execution of Lean.Parser.Tactic.decide took 1.25ms\ntype checking took 20.6s\ntype checking took 1.49ms\nelaboration took 4.25ms\ntactic execution of Lean.Parser.Tactic.simp took 2.34ms\ntactic execution of Lean.Parser.Tactic.decide took 1.33ms\ntype checking took 16.2s\ntype checking took 1.51ms\nelaboration took 4.9ms\ntype checking took 1.2ms\ntypeclass inference of Decidable took 1ms\ntactic execution of Lean.Parser.Tactic.omega took 1.58ms\ntype checking took 1.8ms\nelaboration took 17.9ms\ntypeclass inference of Decidable took 1.36ms\ntype checking took 5.8ms\ntactic execution of Lean.Parser.Tactic.omega took 1.96ms\nelaboration took 9.84ms\n'CnpVerify.Certs.wallK3_proof' depends on axioms: [propext, Classical.choice, Quot.sound]\ncumulative profiling times:\n\tattribute application 1.23ms\n\tcompilation (IR) 4.23ms\n\tcompilation (LCNF base) 48.4ms\n\tcompilation (LCNF impure) 22.8ms\n\tcompilation (LCNF mono) 33.9ms\n\tcongr simp thm 0.555ms\n\tdsimp 5.17ms\n\telaboration 512ms\n\tfix level params 0.803ms\n\tinstantiate metavars 1.58ms\n\tlet-to-have transformation 2.67ms\n\tlinting 25.5ms\n\tparsing 35.3ms\n\tprocess pre-definitions 51.6ms\n\tshare common exprs 5.03ms\n\tsimp 5.47ms\n\ttactic execution 349ms\n\ttype checking 355s\n\ttypeclass inference 271ms\n",
+     "axioms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+     ]
+    }
+   },
+   "native_decide": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.6,
+    "kernel_s": 0,
+    "peak_rss_gb": 1.08,
+    "load1_at_start": 11.9,
+    "output": "interpretation of t._native.native_decide.decl_1 took 138ms\ntactic execution of Lean.Parser.Tactic.nativeDecide took 1.12ms\nelaboration took 1.5ms\n't' depends on axioms: [propext, Classical.choice, Quot.sound, t._native.native_decide.ax_1]\ncumulative profiling times:\n\tattribute application 0.0126ms\n\tcompilation (IR) 0.0954ms\n\tcompilation (LCNF base) 0.911ms\n\tcompilation (LCNF impure) 0.292ms\n\tcompilation (LCNF mono) 0.489ms\n\telaboration 1.74ms\n\tfix level params 0.00954ms\n\tinstantiate metavars 0.0135ms\n\tinterpretation 138ms\n\tlet-to-have transformation 0.00746ms\n\tlinting 0.303ms\n\tmodule linting 0.00525ms\n\tparsing 0.223ms\n\tprocess pre-definitions 0.12ms\n\tshare common exprs 0.0229ms\n\ttactic execution 1.18ms\n\ttype checking 0.222ms\n\ttypeclass inference 0.434ms\n",
+    "axioms": [
+     "propext",
+     "Classical.choice",
+     "Quot.sound",
+     "t._native.native_decide.ax_1"
+    ],
+    "evaluation_s": 0.138
+   }
+  },
+  {
+   "certificate": "scenes/S3_shoulder_elbow.cert.json",
+   "term": "CnpVerify.Certs.s3ShoulderElbow",
+   "n": 4,
+   "leaves": 8,
+   "collision_leaves": 4,
+   "outside_leaves": 4,
+   "hull_vertices": 2,
+   "import_only": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.4,
+    "kernel_s": 0,
+    "peak_rss_gb": 0.77,
+    "load1_at_start": 11.43,
+    "output": "cumulative profiling times:\n\telaboration 0.0592ms\n\tlinting 0.0975ms\n\tmodule linting 0.00371ms\n\tparsing 0.0227ms\n"
+   },
+   "decide": {
+    "ok": false,
+    "killed": null,
+    "exit": 1,
+    "wall_s": 2.4,
+    "kernel_s": 0,
+    "peak_rss_gb": 1.07,
+    "load1_at_start": 11.43,
+    "output": "/var/folders/l0/238jwvtx5g99_y1w0wtf68pm0000gp/T/tmpez4xn0pz.lean:6:47: error: Tactic `decide` failed for proposition\n  check s3ShoulderElbow = true\nbecause its `Decidable` instance\n  instDecidableEqBool (check s3ShoulderElbow) true\ndid not reduce to `isTrue` or `isFalse`.\n\nAfter unfolding the instances `decEq`, `instDecidableEqBool`, `instDecidableEqNat`, `Bool.decEq`, `Int.decEq`, `Int.decLt`, `Int.decNonneg`, `Int.instDecidableEq`, `Nat.decEq`, and `Rat.instDecidableLe`, reduction got stuck at the `Decidable` instance\n  match check s3ShoulderElbow, true with\n  | false, false => isTrue ⋯\n  | false, true => isFalse ⋯\n  | true, false => isFalse ⋯\n  | true, true => isTrue ⋯\ntactic execution of Lean.Parser.Tactic.decide took 1.75ms\nelaboration took 1.6ms\ncumulative profiling times:\n\tattribute application 0.013ms\n\telaboration 1.69ms\n\tfix level params 0.0137ms\n\tinstantiate metavars 0.0114ms\n\tinterpretation 0.0117ms\n\tlet-to-have transformation 0.00812ms\n\tlinting 0.252ms\n\tmodule linting 0.00608ms\n\tparsing 0.214ms\n\tprocess pre-definitions 0.208ms\n\tshare common exprs 0.0425ms\n\ttactic execution 1.82ms\n\ttype checking 0.116ms\n\ttypeclass inference 0.358ms\n",
+    "cause": "reduction stuck at `match check s3ShoulderElbow, true with`; already on the first test `¬ (s3ShoulderElbow.delta ≤ 0)`: reduction stuck at `match Rat.blt 0 s3ShoulderElbow.delta, false with`",
+    "first_test": "already on the first test `¬ (s3ShoulderElbow.delta ≤ 0)`: reduction stuck at `match Rat.blt 0 s3ShoulderElbow.delta, false with`"
+   },
+   "kernel": {
+    "ok": false,
+    "killed": "memory > 9 GB",
+    "exit": -9,
+    "wall_s": 51.1,
+    "kernel_s": 0,
+    "peak_rss_gb": 9.02,
+    "load1_at_start": 11.47,
+    "output": ""
+   },
+   "staged": {
+    "n_stages": 64,
+    "stages": [
+     {
+      "stage": "assumptions",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 4.7,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 9.23
+     },
+     {
+      "stage": "conditionI",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 4.7,
+      "kernel_s": 0.1,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 8.89
+     },
+     {
+      "stage": "partition",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 4.7,
+      "kernel_s": 0.1,
+      "peak_rss_gb": 1.15,
+      "load1_at_start": 8.74
+     },
+     {
+      "stage": "kinematics",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 4.7,
+      "kernel_s": 0.1,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 8.6
+     },
+     {
+      "stage": "geometry_eq",
+      "ok": false,
+      "killed": "memory > 9 GB",
+      "exit": -9,
+      "wall_s": 49.9,
+      "kernel_s": 0,
+      "peak_rss_gb": 9.04,
+      "load1_at_start": 8.39
+     }
+    ],
+    "first_failure": "geometry_eq",
+    "probes": [
+     {
+      "stage": "slab_eq",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 7.3,
+      "kernel_s": 2.3,
+      "peak_rss_gb": 1.49,
+      "load1_at_start": 7.12
+     },
+     {
+      "stage": "lamDeg_eq",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 4.7,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 7.11
+     },
+     {
+      "stage": "leaves_size",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 5.2,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 7.18
+     },
+     {
+      "stage": "L0_outside",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 13.8,
+      "kernel_s": 9.0,
+      "peak_rss_gb": 2.19,
+      "load1_at_start": 7.41
+     },
+     {
+      "stage": "L2_X",
+      "ok": false,
+      "killed": "memory > 9 GB",
+      "exit": -9,
+      "wall_s": 53.2,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 9.03,
+      "load1_at_start": 7.15
+     },
+     {
+      "stage": "L2_count",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 5.2,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 7.22
+     },
+     {
+      "stage": "L2_sum",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 6.2,
+      "kernel_s": 0.5,
+      "peak_rss_gb": 1.18,
+      "load1_at_start": 8.81
+     },
+     {
+      "stage": "L2_lam",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 6.7,
+      "kernel_s": 1.1,
+      "peak_rss_gb": 1.24,
+      "load1_at_start": 8.98
+     },
+     {
+      "stage": "L2_obs",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 5.0,
+      "kernel_s": 0.1,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 8.66
+     },
+     {
+      "stage": "L2_mu",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 6.0,
+      "kernel_s": 0.1,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 8.37
+     },
+     {
+      "stage": "O2_faces",
+      "ok": true,
+      "killed": null,
+      "exit": 0,
+      "wall_s": 5.3,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 1.14,
+      "load1_at_start": 8.66
+     },
+     {
+      "stage": "L2_face0",
+      "ok": false,
+      "killed": "memory > 9 GB",
+      "exit": -9,
+      "wall_s": 41.2,
+      "kernel_s": 0,
+      "peak_rss_gb": 9.02,
+      "load1_at_start": 8.37
+     }
+    ],
+    "stages_passed": 4,
+    "sum_kernel_s": 0.3,
+    "max_stage_rss_gb": 9.04
+   },
+   "native_decide": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 1.1,
+    "kernel_s": 0,
+    "peak_rss_gb": 1.08,
+    "load1_at_start": 7.21,
+    "output": "interpretation of t._native.native_decide.decl_1 took 190ms\n't' depends on axioms: [propext, Classical.choice, Quot.sound, t._native.native_decide.ax_1]\ncumulative profiling times:\n\tattribute application 0.00637ms\n\tcompilation (IR) 0.0315ms\n\tcompilation (LCNF base) 0.278ms\n\tcompilation (LCNF impure) 0.105ms\n\tcompilation (LCNF mono) 0.127ms\n\telaboration 0.783ms\n\tfix level params 0.00538ms\n\tinstantiate metavars 0.00646ms\n\tinterpretation 190ms\n\tlet-to-have transformation 0.00417ms\n\tlinting 0.148ms\n\tmodule linting 0.00192ms\n\tparsing 0.118ms\n\tprocess pre-definitions 0.0666ms\n\tshare common exprs 0.0137ms\n\ttactic execution 0.401ms\n\ttype checking 0.105ms\n\ttypeclass inference 0.181ms\n",
+    "axioms": [
+     "propext",
+     "Classical.choice",
+     "Quot.sound",
+     "t._native.native_decide.ax_1"
+    ],
+    "evaluation_s": 0.19
+   }
+  },
+  {
+   "certificate": "scenes/S6_iiwa_real_shelf.cert.json",
+   "term": "CnpVerify.Certs.s6IiwaRealShelf",
+   "n": 7,
+   "leaves": 2,
+   "collision_leaves": 2,
+   "outside_leaves": 0,
+   "hull_vertices": 40,
+   "import_only": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 0.9,
+    "kernel_s": 0,
+    "peak_rss_gb": 0.71,
+    "load1_at_start": 7.21,
+    "output": "cumulative profiling times:\n\telaboration 0.0196ms\n\tlinting 0.0431ms\n\tmodule linting 0.00142ms\n\tparsing 0.0125ms\n"
+   },
+   "decide": {
+    "ok": false,
+    "killed": null,
+    "exit": 1,
+    "wall_s": 0.9,
+    "kernel_s": 0,
+    "peak_rss_gb": 0.71,
+    "load1_at_start": 7.21,
+    "output": "/var/folders/l0/238jwvtx5g99_y1w0wtf68pm0000gp/T/tmpxnivqnmk.lean:6:47: error: Tactic `decide` failed for proposition\n  check s6IiwaRealShelf = true\nbecause its `Decidable` instance\n  instDecidableEqBool (check s6IiwaRealShelf) true\ndid not reduce to `isTrue` or `isFalse`.\n\nAfter unfolding the instances `decEq`, `instDecidableEqBool`, `instDecidableEqNat`, `Bool.decEq`, `Int.decEq`, `Int.decLt`, `Int.decNonneg`, `Int.instDecidableEq`, `Nat.decEq`, and `Rat.instDecidableLe`, reduction got stuck at the `Decidable` instance\n  match check s6IiwaRealShelf, true with\n  | false, false => isTrue ⋯\n  | false, true => isFalse ⋯\n  | true, false => isFalse ⋯\n  | true, true => isTrue ⋯\ncumulative profiling times:\n\tattribute application 0.00554ms\n\telaboration 0.827ms\n\tfix level params 0.0129ms\n\tinstantiate metavars 0.00392ms\n\tinterpretation 0.00429ms\n\tlet-to-have transformation 0.00746ms\n\tlinting 0.0893ms\n\tmodule linting 0.00183ms\n\tparsing 0.0907ms\n\tprocess pre-definitions 0.148ms\n\tshare common exprs 0.0231ms\n\ttactic execution 0.929ms\n\ttype checking 0.0632ms\n\ttypeclass inference 0.195ms\n",
+    "cause": "reduction stuck at `match check s6IiwaRealShelf, true with`; already on the first test `¬ (s6IiwaRealShelf.delta ≤ 0)`: reduction stuck at `match Rat.blt 0 s6IiwaRealShelf.delta, false with`",
+    "first_test": "already on the first test `¬ (s6IiwaRealShelf.delta ≤ 0)`: reduction stuck at `match Rat.blt 0 s6IiwaRealShelf.delta, false with`"
+   },
+   "kernel": {
+    "ok": false,
+    "killed": "memory > 9 GB",
+    "exit": -9,
+    "wall_s": 20.2,
+    "kernel_s": 0,
+    "peak_rss_gb": 9.01,
+    "load1_at_start": 7.21,
+    "output": ""
+   },
+   "staged": {
+    "n_stages": 34,
+    "stages": [
+     {
+      "stage": "assumptions",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 49.4,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 5.78,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     }
+    ],
+    "first_failure": "assumptions",
+    "probes": [
+     {
+      "stage": "conditionI",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 49.5,
+      "kernel_s": 1.3,
+      "peak_rss_gb": 2.79,
+      "load1_at_start": 4.51,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "partition",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 83.2,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 4.29,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "kinematics",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 83.4,
+      "kernel_s": 0.3,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 4.88,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "geometry_eq",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 83.5,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 5.86,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "slab_eq",
+      "ok": false,
+      "killed": "memory > 9 GB",
+      "exit": -9,
+      "wall_s": 120.1,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 9.03,
+      "load1_at_start": 5.9,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "lamDeg_eq",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 86.3,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 5.18,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "leaves_size",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 85.1,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 5.22,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "L0_X",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 84.3,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 4.84,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "L0_count",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 82.9,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 5.19,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "L0_sum",
+      "ok": false,
+      "killed": "memory > 9 GB",
+      "exit": -9,
+      "wall_s": 122.2,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 9.02,
+      "load1_at_start": 5.61,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "L0_lam",
+      "ok": false,
+      "killed": "memory > 9 GB",
+      "exit": -9,
+      "wall_s": 117.6,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 9.02,
+      "load1_at_start": 5.19,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "L0_obs",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 78.2,
+      "kernel_s": 0.1,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 5.33,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "L0_mu",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 81.4,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 5.61,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "O0_faces",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 76.6,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 5.25,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     },
+     {
+      "stage": "L0_face0",
+      "ok": false,
+      "killed": null,
+      "exit": 1,
+      "wall_s": 78.1,
+      "kernel_s": 0.0,
+      "peak_rss_gb": 2.7,
+      "load1_at_start": 5.88,
+      "cause": "error: (deterministic) timeout at `isDefEq`, maximum number of heartbeats (200000) has been reached"
+     }
+    ],
+    "stages_passed": 0,
+    "sum_kernel_s": 0,
+    "max_stage_rss_gb": 2.7
+   },
+   "native_decide": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 24.8,
+    "kernel_s": 0,
+    "peak_rss_gb": 1.13,
+    "load1_at_start": 6.28,
+    "output": "interpretation of t._native.native_decide.decl_1 took 22.4s\ntactic execution of Lean.Parser.Tactic.nativeDecide took 1.16ms\nelaboration took 1.51ms\n't' depends on axioms: [propext, Classical.choice, Quot.sound, t._native.native_decide.ax_1]\ncumulative profiling times:\n\tattribute application 0.0165ms\n\tcompilation (IR) 0.0656ms\n\tcompilation (LCNF base) 0.868ms\n\tcompilation (LCNF impure) 0.213ms\n\tcompilation (LCNF mono) 0.235ms\n\telaboration 1.8ms\n\tfix level params 0.00975ms\n\tinstantiate metavars 0.0121ms\n\tinterpretation 22.4s\n\tlet-to-have transformation 0.007ms\n\tlinting 0.403ms\n\tmodule linting 0.0045ms\n\tparsing 0.236ms\n\tprocess pre-definitions 0.145ms\n\tshare common exprs 0.021ms\n\ttactic execution 1.23ms\n\ttype checking 0.228ms\n\ttypeclass inference 0.44ms\n",
+    "axioms": [
+     "propext",
+     "Classical.choice",
+     "Quot.sound",
+     "t._native.native_decide.ax_1"
+    ],
+    "evaluation_s": 22.4
+   }
+  }
+ ]
+}

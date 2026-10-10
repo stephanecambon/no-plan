@@ -1,12 +1,22 @@
-# Proof obligations — CnpVerify (state after L3)
+# Proof obligations — CnpVerify (state after L3; L4 note below)
 
 L1 delivered an **executable** checker and the **statements** of what it is meant to satisfy:
 19 theorems stated in Lean, each with `sorry` for a proof. L2 proved 10 of them. **L3 proved
 the remaining 9, among them the main statements `soundness` (S1) and `soundness_ref` (S2).**
 `lake build` reports no `declaration uses sorry` warning and no other warning; there is no
-`sorry`, `axiom`, `implemented_by`, `native_decide` or `unsafe` in the project. `#print axioms`
-on each of the 19 theorems lists `propext`, `Classical.choice`, `Quot.sound` only
-(`binom_eq_choose`: `propext` only).
+`sorry`, `axiom`, `implemented_by`, `native_decide` or `unsafe` in the `CnpVerify` library.
+`#print axioms` on each of the 19 theorems lists `propext`, `Classical.choice`, `Quot.sound`
+only (`binom_eq_choose`: `propext` only) — asserted by `scripts/lean_axioms.py` since L4.
+
+**L4 note.** L4 added no obligation and changed no statement, no reference definition and no
+proof; in the executable core it corrected two stale comments (`Bernstein.lean:7`,
+`Kinematics.lean:10`, "sorry in L1"). It added a second library, `Certs/`: shipped certificates
+as Lean terms, and for `scenes/wall/k3.cert.json` a proof of the HYPOTHESIS `check c = true` by
+evaluation in the kernel, hence `wallK3_disconnected_ref` — the disconnection of that scene as
+a theorem with the three standard axioms (`README.md`, "Certificates as Lean terms"). `Certs/`
+also contains, in `Certs/Native.lean` and `Certs/DisconnectedNative.lean` ONLY, proofs by
+`native_decide`, kept for comparison: each depends on one more axiom, and the audit checks that
+no other statement does.
 
 **What is machine-checked**: if the Lean function `check` returns `true` on a `Certificate`,
 then no continuous path inside the box joins the start to the goal while keeping the certified

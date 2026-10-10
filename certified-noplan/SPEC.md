@@ -1,6 +1,9 @@
 # SPEC.md — Démonstrateur d'infaisabilité certifiée en motion planning 3D
 
-Version 1.10 — 10 octobre 2026 (amendée post-S7/S8/S9c/S12/P2/L1/L3 ; v1.0..v1.9 dans git).
+Version 1.11 — 10 octobre 2026 (amendée post-S7/S8/S9c/S12/P2/L1/L3/L4 ; v1.0..v1.10 dans git).
+Amendement v1.10→v1.11 (acté L4, règle 12 — aucun changement de code ni de format) : §3 — le
+commentaire du sous-projet `lean/` mentionne la bibliothèque `lean/Certs/` (certificats écrits
+comme termes Lean ; `check` évalué dans le noyau sur `scenes/wall/k3.cert.json`) et `make lean-certs`.
 Amendement v1.9→v1.10 (acté L3, règle 12 — aucun changement de code ni de format) : §3 — le
 commentaire du sous-projet `lean/` disait « énoncés à prouver » ; les 19 énoncés sont prouvés
 depuis L3 (`soundness`, `soundness_ref`). `verify.py` reste la spécification et l'arbitre du
@@ -171,6 +174,8 @@ certified-noplan/
 │                              # (port exécutable de verify.py, parité `make lean-parity`) +
 │                              # sa preuve de soundness [L3, amendé en L3] (19 énoncés prouvés,
 │                              # lean/PROOF-OBLIGATIONS.md ; base de confiance : lean/README.md) ;
+│                              # [L4, amendé en L4] lean/Certs/ : certificats écrits comme termes
+│                              # Lean, `check` évalué dans le NOYAU sur wall/k3 (`make lean-certs`) ;
 │                              # verify.py reste la spécification et l'arbitre du verdict PROOF
 ├── scenes/                    # *.yaml (voir §6)
 ├── benchmarks/                # harness + résultats datés (jamais écrasés)
