@@ -5399,3 +5399,154 @@ endossée (staged) ; définitions de référence validées ; benchs à rejouer q
   machine virtuelle Docker ~60 %) ; Stéphane a fermé les deux ; charge 1 min échantillonnée toutes les 20 s,
   **1,48 à 22 h 15 min 31 s**, seuil de 1,5 franchi 2 min 40 s après la relance. `make test` lancé ensuite, EN PREMIER,
   avant tout bench.
+
+## 2026-10-10 — Session L4-bis (Claude Code, AUTONOME, courte) — **BENCHS LEAN SUR MACHINE QUIÈTE : preuve noyau de k3 en 102,8 s et 5,63 Gio de pic (358,8 s sous charge en L4, ×0,29) ; parité 0 divergence, Lean/Python ×0,55 à ×1,09 ; `LEAN-NOTES.md` (d) régénérée par script ; README public** ; `verify.py`, `src/`, `tests/`, `scripts/`, `Makefile`, cœur Lean, énoncés et preuves zéro diff
+
+**Ouverture [A33].** `git status` PROPRE, HEAD `cd27cd1` = `origin/main`. Le prompt a été collé deux fois : la première
+copie s'arrêtait à « FIN REVUE L4 » (second bloc et étapes 3-5 absents) — rien n'a été écrit sur cette base ; la seconde
+était complète. Ouverture doc (circuit A16) : revue L4 et relecture transcrites, D88-D90 appliqués, commit séparé `d6ee9ff`.
+**Machine quiète VÉRIFIÉE, pas supposée** : charge 3,58 / 4,10 / 4,24 à 22 h 10 (Spotify ~120 % de CPU, machine virtuelle
+Docker ~60 %) ; premiers échantillons entre 3,1 et 3,9 sur 1 min 40 s ; Stéphane ferme les deux applications ; fenêtre
+relancée : 1,48 à 22 h 15 min 31 s. `make test` EN PREMIER, seul : **240 passed, 1 deselected, 0 skipped, 0 warnings**
+(360,05 s ; charge 1,33 au lancement — 363 s en L2 sur machine quiète, 958,5 s en L4 sous charge).
+
+### Fait
+
+**Banc noyau sur machine quiète** — run `benchmarks/results/20261010T202543Z/lean_kernel_bench.{json,md}`, commit
+`1d9fa5e`, arbre propre, Lean 4.34.1, Mathlib `v4.34.1`, Apple M4 10 cœurs 24 Gio. `uptime` avant :
+`22:29 … load averages: 1.43 2.17 2.78` (le pilote a attendu 230 s que la charge passe sous 1,5) ; après :
+`22:34 … load averages: 2.72 2.43 2.71`.
+
+- **`check wallK3 = true`, preuve par étapes, fichier entier en un processus (la preuve telle que construite) : 102,8 s,
+  dont 101,6 s dans le noyau ; pic de mémoire résidente 5,63 Gio — sous les 8 Gio.** 34 étapes `decide +kernel`. Axiomes :
+  `propext`, `Classical.choice`, `Quot.sound`. La sortie du générateur est identique au fichier livré
+  `lean/Certs/WallK3Kernel.lean` (comparé par le pilote, consigné dans le JSON).
+- Les 34 mêmes étapes, un processus chacune : 34/34, 99,8 s de noyau au total ; la plus lourde reste `geometry_eq`
+  (12,5 s, 5,61 Gio), les 12 faces 5,3 à 7,5 s et 3,3 à 4,0 Gio chacune. **Deux passes indépendantes sur les mêmes
+  évaluations, à quelques minutes d'écart : 99,8 s et 101,6 s** — c'est la mesure de stabilité du run.
+- `native_decide` (un axiome de plus, `t._native.native_decide.ax_1`, sur les trois) : k3 0,9 s (évaluation 0,045 s) ;
+  S3 0,9 s (0,139 s) ; S6 8,2 s (7,37 s). Chargement des imports : 0,9 s, inclus dans tous les temps de mur.
+- **Non rejoués**, dit dans le JSON (`not_rerun`, `l4_failure_runs`) : `by decide` et `by decide +kernel` en une
+  évaluation sur les trois certificats, preuve par étapes de S3 et S6 — échecs établis par les runs `20261010T163223Z`
+  et `20261010T171636Z`.
+- Opérations de tableau dans le noyau, de 125 à 625 entrées : boucles ×4 à ×5 (`for`, `List.foldl`, `set!`),
+  combinateurs `Array` **×29 à ×34** (`foldl` 0,228 → 6,78 s ; `==` 0,465 → 14,1 s ; `++` 0,410 → 13,0 s).
+
+**Parité sur machine quiète** — run `benchmarks/results/20261010T203932Z/lean_parity.{log,json}`, commit `e5c04d3`, arbre
+propre ; `uptime` avant : `22:39 … 1.43 2.04 2.46` ; après : `22:41 … 2.20 2.13 2.44` ; 105 s. 13 certificats livrés :
+PROOF des deux côtés ; corpus adversarial : 43 rejetés + 5 acceptés, même verdict et même raison sur 48 lignes ; fuzz
+différentiel (graine 20261009), 1 000 cas : 498 PROOF des deux côtés, 487 REJECT des deux côtés, 15 où Python lève et
+Lean rejette, 0 où Lean est plus strict au parsing, 6 raisons différentes, **0 divergence de verdict** — mêmes décomptes
+qu'en L4. Temps sur les 13 certificats : `verify.py` 16,7 s, `cnp-verify` 13,9 s, soit ×0,83 sur les totaux ; par
+certificat **×0,55 (`S5_iiwa_shelf`) à ×1,09 (`S1_relais`)**, moyenne géométrique ×0,83.
+
+**Écart vs L4** — table imprimée par `docs/paper/lean_notes_numbers.py`, insérée telle quelle (chiffres lus dans les
+JSON des deux sessions, charge 1 min lue au départ de chaque sonde) :
+
+| measurement | L4-bis, quiet | load (1 min) at start | L4, under load | load (1 min) at start | quiet / L4 |
+|---|---|---|---|---|---|
+| k3, staged proof, whole file — wall-clock | 102.8 s | 1.79 | 358.8 s | 11.07 | ×0.29 |
+| k3, staged proof, whole file — kernel time | 101.6 s | 1.79 | 354.6 s | 11.07 | ×0.29 |
+| k3, staged proof, whole file — peak memory | 5.63 GiB | 1.79 | 5.63 GiB | 11.07 | ×1.00 |
+| k3, 34 stages alone — sum of kernel time | 99.8 s | 1.43 | 334.3 s | 7.54 | ×0.30 |
+| `native_decide`, `scenes/wall/k3.cert.json` — wall-clock (evaluation) | 0.9 s (0.04 s) | 2.28 | 2.6 s (0.14 s) | 11.9 | ×0.35 |
+| `native_decide`, `scenes/S3_shoulder_elbow.cert.json` — wall-clock (evaluation) | 0.9 s (0.14 s) | 2.33 | 1.1 s (0.19 s) | 7.21 | ×0.82 |
+| `native_decide`, `scenes/S6_iiwa_real_shelf.cert.json` — wall-clock (evaluation) | 8.2 s (7.37 s) | 2.33 | 26.3 s (24.00 s) | 5.01 | ×0.31 |
+| parity, 13 certificates — `verify.py`, total | 16.7 s | 1.43 | 53.0 s | 6.61 | ×0.31 |
+| parity, 13 certificates — `cnp-verify` (Lean), total | 13.9 s | 1.43 | 41.2 s | 6.61 | ×0.34 |
+
+Lecture : sous la charge de L4 tout était environ trois fois plus lent, de façon homogène (×0,29 à ×0,35 — sauf le
+`native_decide` de S3, dominé par le chargement des imports) ; **le pic mémoire, lui, ne bouge pas** (5,63 Gio dans les
+deux sessions) : c'est une propriété de la preuve, pas de la machine. Le rapport Lean/Python est stable d'une charge à
+l'autre (×0,78 en L4, ×0,84 en L1, ×0,83 ici, sur les totaux) alors que les temps absolus varient d'un facteur trois.
+En CI (Linux x86_64, 4 cœurs) la même preuve prend 197 à 200 s : le Mac au repos est environ deux fois plus rapide.
+
+**`docs/paper/LEAN-NOTES.md`, section (d) RÉGÉNÉRÉE** par `docs/paper/lean_notes_numbers.py <lean_kernel_bench.json>
+<lean_parity.json>` : tous les chiffres lus dans des fichiers archivés (les deux JSON quiets ; les runs L4 et les logs de
+parité L4 et L1 pour la comparaison). L'ancienne (d) est conservée mot pour mot en annexe « section (d) as written in L4,
+on a machine under load (superseded) » ; les paragraphes qui ne sont pas des mesures de cette machine (Size, Axioms, CI)
+et les cellules d'échec du tableau (marquées †) sont recopiés par le script depuis l'annexe. Idempotent (rejoué deux
+fois : une seule annexe). En-tête du fichier mis à jour à la main (statut des chronos, sommaire) — prose, aucun chiffre.
+
+**README public** (racine, anglais) : section « A second, machine-checked verifier », 22 lignes, sans chrono — ce qui
+est prouvé (`soundness_ref`, trois axiomes, pas de `sorry`) ; ce qui est défini et à lire (lien vers « Trust base » de
+`lean/README.md`) ; compilé ou noyau (binaire : compilateur, runtime et parseur dans la base de confiance, pour toutes
+les scènes ; `wall/k3` : « checked by the Lean kernel alone, as a staged evaluation of 34 kernel-reduced equations » ;
+`…_native` : le compilateur revient dans la base de confiance) ; la commande ; le lien CI. Une ligne ajoutée au plan du
+dépôt. `lean/README.md` : quatre lignes de renvoi vers le run quiet au-dessus de sa table L4 (dont les chronos restent
+ceux de la machine chargée, dits tels).
+
+**S13** : « test `start_s`, `goal_s` ∈ boîte (condition de sens, une ligne, `verify.py` ET checker Lean, parité à
+rejouer) » ajouté à la puce D69 (fait à l'ouverture, D89).
+
+### Constats utiles au papier
+
+1. **Le chiffre à citer pour k3 : 102,8 s (101,6 s de noyau), pic 5,63 Gio**, Apple M4, machine quiète, un run ;
+   recoupé par la passe « une étape par processus » (99,8 s) et par la CI sur une autre architecture (197-200 s).
+2. **« ×25-30 » devient ×29 à ×34** pour les combinateurs `Array` de 125 à 625 entrées sur machine quiète (boucles :
+   ×4 à ×5). La phrase de la revue L4 (« ×25-30 … contre ×5 ») porte les chiffres de la machine chargée.
+3. **Lean n'est pas plus rapide que Python sur tous les certificats** : ×1,09 sur `S1_relais` et ×1,05 sur `wall/k5`.
+   `S1_relais` est la première invocation du binaire de la série (0,264 s de mur pour 0,095 s déclarés, contre
+   ~0,02 s d'écart ailleurs) : effet de premier lancement probable, non isolé. Phrase sûre : « comparable, ×0,55 à
+   ×1,09 selon le certificat, ×0,83 sur le total ».
+4. Les temps du tableau de parité sont UNE mesure par certificat, sans répétition ; ceux sous 0,1 s (k3 : 0,011 s
+   Python, 0,009 s Lean) ne portent pas un rapport au centième.
+
+### Écarts au prompt (à valider par la supervision)
+
+1. **`make lean-kernel-bench` n'a pas été lancé tel quel.** La cible rejoue les échecs (ce que le prompt interdit),
+   écrit `lean_kernel.json` et ne note pas l'`uptime` de fin ; le garde-fou interdit tout diff hors `docs/`, README,
+   `benchmarks/`. D'où un pilote `benchmarks/lean_quiet_bench.py` qui IMPORTE les sondes de
+   `scripts/lean_kernel_bench.py` (`run_lean`, `split_staged`, `preamble_for`, `primitives` — même code, mêmes limites)
+   et n'en garde que ce qui réussit. `scripts/` et `Makefile` : zéro diff. Pas de cible `make` pour ce pilote.
+2. **Ajouts au périmètre du run** : la passe « une étape par processus » (table des étapes, recoupement) et la table
+   des opérations de tableau (des chronos, pas des échecs — et la revue les cite).
+3. **`make lean-parity` archive un `.log`, pas un JSON** : `lean_parity.json` est écrit à côté par le pilote, par
+   lecture du log (analyseur testé sur le log L4 : mêmes 13 / 43 + 5 / 1 000 que le journal L4).
+4. **Le générateur de (d) vit dans `docs/paper/`**, pas dans `scripts/` (garde-fou).
+5. **`lean/README.md` modifié** (quatre lignes de renvoi, hors section « Trust base » — la partie (a) de LEAN-NOTES
+   reste mot pour mot) : j'ai lu « README » dans le garde-fou comme couvrant ce fichier ; sinon, à retirer.
+6. **`JOURNAL.md` et `CLAUDE.md` modifiés**, hors de la liste du garde-fou mais exigés par le prompt lui-même.
+7. **Charge PENDANT les runs au-dessus de 1,5** : la porte est appliquée AVANT chaque run (1,43 les deux fois). Pendant
+   le banc noyau la charge 1 min lue au départ de chaque sonde va de 1,43 à 3,21 — le banc est lui-même un processus
+   `lean` à 100 % qui alloue puis rend jusqu'à 5,6 Gio, plus un sondage mémoire à 5 Hz, sur dix cœurs. Je n'ai rien
+   lancé d'autre et je n'ai pas agi pendant les mesures, mais je ne peux pas prouver qu'aucun processus du système
+   n'y a contribué ; l'accord des deux passes (99,8 s / 101,6 s) est l'indice que non.
+8. **Un commit entre les deux benchs** (`e5c04d3`) : sans lui le répertoire d'archive du premier salit l'arbre et le
+   second ne peut pas écrire `git_dirty=false`.
+9. **Renvoi de ligne de la relecture** : `s_of` est l. 261 de `verify.py`, pas l. 254 (consigné à la transcription).
+10. `make test` rejoué à la clôture (non demandé) : voir ci-dessous.
+
+### Pièges
+
+- **L'agent est lui-même une charge** : l'application de bureau et WindowServer prennent 0,5 à 1 cœur pendant que
+  j'écris ; la charge 1 min met près de 4 minutes à repasser sous 1,5 après mon dernier appel. Tout préparer avant
+  (pilote, générateur, README), commiter, lancer en arrière-plan, se taire.
+- **Deux runs archivés à `git_dirty=false` exigent un commit entre eux.**
+- `lean/check_all.sh` lit sa « load average at start » APRÈS sa vérification du build et l'export du corpus (1,56 dans
+  le log, 1,43 à la porte) : ce n'est pas la charge d'avant le run.
+- Un pilote qui importe le code de mesure au lieu de le recopier garde les chiffres comparables d'une session à
+  l'autre ; `sys.dont_write_bytecode` pour ne pas salir l'arbre.
+- Une table Markdown dont une cellule contient `|>` : découper les lignes sur `|` exige de ne lire que les lignes
+  attendues (ici celles qui commencent par `` | `scenes/ ``).
+
+**Contrôles de clôture.** `git diff cd27cd1 --stat -- src tests scripts Makefile SPEC.md lean` hors `lean/README.md` :
+**vide** — `verify.py`, `src/`, `tests/`, cœur exécutable Lean, `Soundness.lean`, `Spec/`, `Certs/` : zéro diff ; aucune
+preuve touchée. `lake build Certs` : à jour (8 942 jobs, 2 s). **Décompte exact de clôture** : `make test` = **240 passed, 1 deselected, 0 skipped, 0 warnings** (349,95 s ; lancé à 22 h 42 après les
+benchs et après le dernier changement de code — le pilote et le générateur —, charge 2,40 au lancement).
+`make lean-certs` non rejoué (rien n'a changé sous `lean/` hors README) ; la CI le rejoue au push.
+Audit de fuite (D77) sur ce qui est poussé : ni nom, ni chemin personnel, ni chemin temporaire dans les deux
+répertoires d'archive (recherche par motif) ; `uptime` ne porte que l'heure, la durée et le nombre de sessions.
+
+**Diffs CLAUDE.md** (tous listés, règle 14) : à l'ouverture, D88 (puce « Décisions de la revue L4 », section L4), D89
+(puce « Relecture des définitions de référence », section L4 ; A54 en règle 9 ; « start/goal ∈ boîte » dans la puce D69
+de S13), D90 (en-tête v1.28 + changelog) — instructions de la supervision ; à la clôture, puce « Prochaine étape » de
+la section L4 mise à jour et section « L4-bis » ajoutée en fin de plan, au titre de l'état d'avancement (règle 14 b).
+Aucune règle, aucun critère, aucune porte modifiés de ma propre initiative. `SPEC.md` : inchangée (v1.11).
+
+**Commits** : `d6ee9ff` (ouverture doc), `1d9fa5e` (pilote, générateur, README public), `e5c04d3` (archive du banc
+noyau), `8fc4d47` (archive de la parité), commit de clôture (journal, état, LEAN-NOTES (d), renvoi dans
+`lean/README.md`).
+
+**Prochaine étape** (prompt) : v2 du papier par la supervision — section « A machine-checked verifier », cinq points
+de la relecture, théorème 1 au singulier, bibliographie des précédents corrigée ; preprint.

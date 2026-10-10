@@ -126,6 +126,16 @@ def main() -> int:
             f"`{km['after']['uptime']}` |",
             f"| parity `{run_of(parity_path)}` | `{pm['commit'][:7]}` | `{pm['before']['uptime']}` | "
             f"`{pm['after']['uptime']}` |", ""]
+    loads = [s["load1_at_start"] for s in st["stages"]] + [whole["load1_at_start"]] \
+        + [r["native_decide"]["load1_at_start"] for r in kb["rows"]]
+    out += [f"The gate is on the load BEFORE each run. During the kernel run the 1-minute load, read at "
+            f"the start of each probe, lies between {min(loads)} and {max(loads)}: the bench is itself one "
+            f"`lean` process at full speed (up to {kb['k3_staged_peak_rss_gb']:.2f} GiB allocated, then "
+            "released, per probe) and a memory probe at 5 Hz, on ten cores; the session started nothing "
+            f"else. The two passes over the same {st['n_stages']} kernel evaluations, minutes apart, agree: "
+            f"{st['sum_kernel_s']} s of kernel time for the stages alone, {whole['kernel_s']:.1f} s for the "
+            f"whole file. The parity log's own `load average at start` ({load1(par['log_header'])}) is read "
+            "later than the gate, after `lean/check_all.sh` has checked the build and exported the corpus.", ""]
     out += [carried(pars, "**Size**", 2), "", carried(pars, "**Axioms**"), ""]
 
     out += [f"**Kernel evaluation, quiet machine** — `benchmarks/lean_quiet_bench.py kernel`, run "

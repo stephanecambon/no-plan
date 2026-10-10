@@ -105,7 +105,10 @@ the JSON parser is involved. What remains to be read is in [Trust base](#trust-b
 `benchmarks/results/`: `20261010T163223Z` (k3 and S3), `20261010T171636Z` (S6),
 `20261010T172639Z` (array operations). Machine: Apple M4, 24 GB, **not quiet** (load average 4
 to 11 — a game was running on two of the ten cores): orders of magnitude are safe, the last
-digit is not; `make lean-kernel-bench` replays everything.
+digit is not; `make lean-kernel-bench` replays everything. **What succeeds — the staged proof of
+k3, `native_decide`, the array operations — was replayed on a quiet machine (L4-bis):
+`benchmarks/results/20261010T202543Z/lean_kernel_bench.md` holds the timings to quote; those of
+the table and of the list below are the loaded machine's. The failures were not replayed.**
 
 | certificate | n | leaves (collision / outside) | body vertices | `by decide` | `by decide +kernel`, one evaluation | staged kernel proof | `by native_decide` (one axiom more) |
 |---|---|---|---|---|---|---|---|

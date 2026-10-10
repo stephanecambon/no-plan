@@ -1279,9 +1279,31 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   condition de SENS (famille de q* = 0 et « lien dans la chaîne ») : une phrase au papier + un test d'une ligne en S13
   (groupé D69) ; (5) les hypothèses du théorème 1 sont de trois natures (soundness / sens / accord avec le générateur) —
   tri de L3 confirmé, point 4 ajouté. (voir JOURNAL.md, « Relecture des définitions de référence Lean par la supervision ».)
-- **Prochaine étape** : relecture des définitions de référence par la supervision (`docs/paper/LEAN-NOTES.md`, partie b) ;
-  v2 du papier (section « A machine-checked verifier ») ; preprint. Piste ouverte, non décidée : un jumeau du checker écrit
-  pour le noyau et prouvé égal à `check`, seul chemin vu pour porter S6 au statut de k3.
+- **Prochaine étape : L4-bis** — benchs Lean sur machine quiète (décision 7), README public (décision 8). La relecture des
+  définitions de référence est faite (D89) ; le jumeau « noyau » du checker est tranché : pas maintenant (décision 5).
+
+### L4-bis — BENCHS LEAN SUR MACHINE QUIÈTE, transcriptions (revue L4, relecture), README public [prompt de supervision du 10/10/2026]
+- Entrée : L4 validée (revue L4, D88-D90). **`verify.py`, `src/`, `tests/`, cœur exécutable Lean, énoncés et preuves : ZÉRO
+  diff ; aucune preuve touchée ; on mesure, on documente.** Machine quiète VÉRIFIÉE (charge 1 min < 1,5 avant chaque run,
+  sinon rien n'est mesuré), `uptime` avant et après dans chaque JSON. Section tenue par Code au titre de l'état d'avancement
+  (règle 14 b) : le prompt L4-bis n'a pas été porté au plan par un diff de supervision (circuit A16).
+- Sortie : un run archivé du banc noyau (k3 : preuve par étapes et `native_decide` ; S3, S6 : `native_decide` seul ; échecs
+  de L4 non rejoués, dit dans le JSON) ; parité archivée (13 certificats, corpus, fuzz 1 000) ; `docs/paper/LEAN-NOTES.md`
+  (d) régénérée par script, l'ancienne en annexe ; section « A second, machine-checked verifier » du README public.
+- ✅ **L4-bis ACTÉE (10/10/2026)** — **preuve noyau de `check wallK3 = true` : 102,8 s (101,6 s de noyau), pic 5,63 Gio**
+  (sous 8 Gio), 34 étapes, trois axiomes standard — contre 358,8 s sous charge en L4 (×0,29) ; pic mémoire inchangé. Recoupé
+  par la passe « une étape par processus » (99,8 s de noyau). `native_decide` : k3 0,9 s, S3 0,9 s, S6 8,2 s. Opérations de
+  tableau dans le noyau, de 125 à 625 entrées : boucles ×4 à ×5, combinateurs `Array` ×29 à ×34. Run
+  `benchmarks/results/20261010T202543Z` (`uptime` avant 1,43, après 2,72 — le banc lui-même). **Parité** : run
+  `benchmarks/results/20261010T203932Z`, 13 certificats PROOF des deux côtés, corpus 43 + 5 même verdict et même raison,
+  fuzz 1 000 : 0 divergence de verdict ; Lean/Python ×0,55 à ×1,09 selon le certificat, ×0,83 sur le total (Lean n'est pas
+  plus rapide partout). `LEAN-NOTES.md` (d) régénérée par `docs/paper/lean_notes_numbers.py` ; README public : section de
+  22 lignes, sans chrono. `make test` = 240 passed, 1 deselected. Écarts à valider par la supervision : pilote
+  `benchmarks/lean_quiet_bench.py` (importe les sondes du script L4, `scripts/` et `Makefile` zéro diff) au lieu de
+  `make lean-kernel-bench` tel quel ; table des opérations de tableau et passe par étape rejouées en plus ; quatre lignes
+  de renvoi dans `lean/README.md` ; charge pendant les runs au-dessus de 1,5 (porte appliquée avant). (voir JOURNAL.md L4-bis.)
+- **Prochaine étape** : v2 du papier par la supervision (section « A machine-checked verifier », cinq points de la
+  relecture, théorème 1 au singulier, bibliographie des précédents corrigée) ; preprint.
 
 ---
 
