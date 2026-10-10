@@ -4923,3 +4923,40 @@ supervision** : (1) `intermediate_value_univ` au lieu d'`intermediate_value_Icc`
 deux fichiers de contrôle ; (3) SPEC v1.10 ; (4) les deux commentaires périmés du cœur exécutable ; (5) les constats
 1-5 vont-ils au papier, et sous quelle forme — en particulier le constat 2 (axes unitaires = condition de sens, pas de
 soundness).
+
+## 2026-10-10 — Revue de supervision L3 (claude.ai) — 19/19 prouvées, jalon soundness, A53
+
+*(transcrite par Code en ouverture L4, 10/10/2026, circuit A16 — texte de la revue verbatim)*
+
+Verdict : L3 validée — les 19 obligations fermées (S1 à 14 h 56, les 19 à 15 h 06), 0 sorry,
+axiomes {propext, Classical.choice, Quot.sound} sur chacune ; AUCUN énoncé ni définition de
+référence modifiés (37/37 identiques aux commits L1/L2 par script) ; K2 prouvable TEL
+QU'ÉNONCÉ ⟹ les définitions de référence de L1 sont validées par la preuve elle-même ;
+FK Lean = FK verify.py en rationnels exacts sur 1 299 valeurs, contrôle négatif concluant ;
+cœur exécutable, verify.py, src, tests zéro diff ; parité de contrôle 0 divergence.
+Constats 1-6 retenus pour le papier (sous-section « What soundness depends on » du §5) :
+la soundness n'utilise pas le contrôle cinématique ; axes unitaires et cos²+sin²=1 sont des
+conditions de SENS (l'énoncé parle de rotations), pas de soundness ; q*=0 hors énoncé ;
+disjonction du pavage, valeur de la coupe, degré des λ, compte des μ, lien dans la chaîne =
+cohérence avec le moteur, pas soundness ; S2 ne lit que n, chain, bodyLink, hull, obstacles,
+box, sStart, sGoal.
+DÉCISIONS : (1) intermediate_value_univ : indifférent ; (2) lemmes et contrôles ajoutés :
+bienvenus ; (3) SPEC v1.10 validée ; (4) commentaires périmés du cœur : corrigés en L4, parité
+rejouée ; (5) constats 1-6 au papier.
+[A53] Une preuve formelle dit DE QUOI dépend un résultat ; la liste des hypothèses qu'elle
+n'utilise pas est un résultat à part entière (conditions de sens vs conditions de soundness
+vs cohérence avec le générateur). À extraire systématiquement de toute preuve mécanisée.
+Base de confiance restante, à dire telle quelle : parsing JSON ; compilateur/runtime (le
+théorème porte sur le terme `check`) ; relecture humaine des définitions de référence (faite
+par la supervision après L4) ; accord avec verify.py mesuré, pas prouvé.
+Diffs : D85 (décisions 1-5 → section L3) ; D86 (A53 → règle 9) ; D87 (header v1.27).
+
+**Application (ouverture L4, Code — circuit A16, commit doc séparé)** :
+- **[D85]** `CLAUDE.md` section L3 du plan : puce « Décisions de la revue L3 » (décisions 1-5).
+- **[D86]** `CLAUDE.md` règle 9 : A53 ajoutée après le bloc A52.
+- **[D87]** en-tête `CLAUDE.md` **v1.27** (10/10/2026) + paragraphe de changelog v1.26 → v1.27.
+- **Constat d'ouverture (A33)** : `git status` PROPRE (HEAD `1e36456`) ; `lake build` vert (8 943 jobs
+  rejoués), **0** `declaration uses sorry`, **0** avertissement. **Machine NON quiète à l'ouverture** :
+  redémarrée 3 minutes plus tôt (`uptime` : load averages 70,92 / 27,01 / 10,57 à 17 h 26, indexation
+  Spotlight en cours) ; aucun chrono n'est pris avant que la charge soit retombée, et la charge au
+  lancement est notée à côté de chaque mesure de cette session.

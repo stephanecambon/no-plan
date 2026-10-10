@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.26 — 10 octobre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/S12/P1/P2/S14/L1/L2 ; v1.0..v1.25 dans git).
+Version 1.27 — 10 octobre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/S12/P1/P2/S14/L1/L2/L3 ; v1.0..v1.26 dans git).
 **[Numérotation]** — **v1.21 = D66, appliqué a posteriori le 29/09/2026** (ouverture S15) : la
 revue S12 (09/09) avait été livrée sans être remise dans un prompt, faute de circuit supervision ;
 elle est transcrite au journal en ouverture S15 avec D64/D65. Le lot P1 (D67-D70) avait pris
@@ -242,6 +242,18 @@ fiable ; l'effort mesuré par celui qui formalise prime, la supervision propose 
 **[D82]** décisions 1-3 → section L2 du plan ; **[D83]** A52 → règle 9 ; **[D84]** ce header+changelog.
 Détail : entrée « Revue de supervision L2 » de JOURNAL.md.
 
+Changements v1.26 → v1.27 (revue L3, **[A53]**, D85-D87) : **L3 validée** — les 19 obligations prouvées
+(S1 `soundness` à 14 h 56, les 19 à 15 h 06), 0 `sorry`, axiomes {`propext`, `Classical.choice`, `Quot.sound`}
+sur chacune ; aucun énoncé ni définition de référence modifiés (37/37 par script) ; K2 prouvable tel
+qu'énoncé ⟹ les définitions de référence de L1 sont validées par la preuve elle-même ; FK Lean = FK
+`verify.py` en rationnels exacts sur 1 299 valeurs ; cœur exécutable / `verify.py` / `src` / `tests` zéro
+diff. Décisions 1-5 : **(1)** `intermediate_value_univ` : indifférent ; **(2)** lemmes et contrôles
+ajoutés : bienvenus ; **(3)** SPEC v1.10 validée ; **(4)** commentaires périmés du cœur : corrigés en L4,
+parité rejouée ; **(5)** constats 1-6 au papier (sous-section « What soundness depends on » du §5).
+**[A53]** une preuve formelle dit DE QUOI dépend un résultat ; la liste des hypothèses qu'elle n'utilise pas
+est un résultat à part entière. **[D85]** décisions 1-5 → section L3 du plan ; **[D86]** A53 → règle 9 ;
+**[D87]** ce header+changelog. Détail : entrée « Revue de supervision L3 » de JOURNAL.md.
+
 ---
 
 ## Règles non négociables
@@ -370,6 +382,11 @@ Détail : entrée « Revue de supervision L2 » de JOURNAL.md.
    fiable.** Leçon L2 : la « formule inverse avec dénominateurs », annoncée comme le point dur de B1, a
    pris 40 lignes une fois la plomberie faite. L'effort mesuré par celui qui formalise prime ; la
    supervision propose un ordre, ne l'impose pas.
+   **[A53, revue L3, D86] Une preuve formelle dit DE QUOI dépend un résultat ; la liste des
+   hypothèses qu'elle n'utilise pas est un résultat à part entière** (conditions de SENS vs conditions
+   de SOUNDNESS vs cohérence avec le générateur). À extraire systématiquement de toute preuve
+   mécanisée. Leçon L3 : la preuve de S1 jette le contrôle cinématique ; axes unitaires et
+   cos²+sin²=1 sont des conditions de sens (l'énoncé parle de rotations), pas de soundness.
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
@@ -1170,6 +1187,16 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   la disjonction du pavage, la non-dégénérescence de la boîte, le test de degré des λ et le compte des μ ne servent à
   aucune preuve. **Ce qui reste hors preuve** : parsing JSON, compilateur et runtime, lecture des définitions de
   référence (`lean/README.md`, « Trust base »). (voir JOURNAL.md L3.)
+- **Décisions de la revue L3 [D85, 10/10/2026]** : **(1)** `intermediate_value_univ` au lieu
+  d'`intermediate_value_Icc` : indifférent ; **(2)** lemmes et contrôles ajoutés hors des 19 (dont
+  `scripts/lean_fk_parity.py` + `lean/FkDump.lean`) : bienvenus ; **(3)** SPEC v1.10 validée ; **(4)** les deux
+  commentaires périmés du cœur exécutable (« sorry in L1 ») : corrigés en L4, parité rejouée ; **(5)** constats 1-6
+  au papier, sous-section « What soundness depends on » du §5 (la soundness n'utilise pas le contrôle cinématique ;
+  axes unitaires et cos²+sin²=1 = conditions de SENS ; q*=0 hors énoncé ; disjonction du pavage, valeur de la coupe,
+  degré des λ, compte des μ, lien dans la chaîne = cohérence avec le moteur ; S2 ne lit que `n`, `chain`, `bodyLink`,
+  `hull`, `obstacles`, `box`, `sStart`, `sGoal`). Base de confiance restante, à dire telle quelle : parsing JSON ;
+  compilateur/runtime (le théorème porte sur le terme `check`) ; relecture humaine des définitions de référence (par
+  la supervision après L4) ; accord avec `verify.py` mesuré, pas prouvé.
 - **Prochaine étape : L4** — exécution dans le NOYAU (`decide` / `native_decide` comparés) sur `wall/k3` (2 feuilles),
   CI `lake build` + parité, section « verified checker » du papier.
 
