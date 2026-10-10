@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.24 — 29 septembre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/S12/P1/P2/S14 ; v1.0..v1.23 dans git).
+Version 1.25 — 10 octobre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/S12/P1/P2/S14/L1 ; v1.0..v1.24 dans git).
 **[Numérotation]** — **v1.21 = D66, appliqué a posteriori le 29/09/2026** (ouverture S15) : la
 revue S12 (09/09) avait été livrée sans être remise dans un prompt, faute de circuit supervision ;
 elle est transcrite au journal en ouverture S15 avec D64/D65. Le lot P1 (D67-D70) avait pris
@@ -221,6 +221,17 @@ son historique + archivage Zenodo. **[D76]** section S15 au plan ; **[D77]** rè
 tout ce qui devient public ; **[D78]** ce header+changelog. Détail : entrée « Revue de supervision S14 »
 de JOURNAL.md.
 
+Changements v1.24 → v1.25 (revue L1, D79-D81) : **L1 validée — port Lean endossé** (parité de verdict ET
+de raison sur 13 certificats + 48 adversariaux ; fuzz différentiel 5 000 cas, zéro cas où Lean accepte ce
+que Python rejette ; `verify.py`/`src`/`tests` zéro diff). Décisions 1-5 : **(1)** architecture séparée
+(énoncés dans `Spec/`, binaire sans Mathlib) : OUI ; **(2)** théorème cité par le papier : S2
+`soundness_ref` en vitrine, S1 le cœur technique — et le constat « la preuve de S1 n'utilise pas les
+hypothèses cinématiques, qui servent à ce que N/D SOIT la chaîne déclarée » va au papier ; **(3)** §5 du
+papier corrigé par la supervision ; **(4)** SPEC v1.9 validée ; **(5)** les trois observations `verify.py`
+→ chantier D69/S13, groupées. **[D79]** décisions 1-5 → section L1 du plan ; **[D80]** règle 9 : un second
+vérificateur écrit depuis la spécification est un test de la spécification autant que du code ; **[D81]**
+ce header+changelog. Détail : entrée « Revue de supervision L1 » de JOURNAL.md.
+
 ---
 
 ## Règles non négociables
@@ -343,6 +354,8 @@ de JOURNAL.md.
    secrets sur TOUT l'historique git (toutes branches), données personnelles, placeholders visibles.
    Un vrai secret trouvé est RÉVOQUÉ (côté Stéphane) AVANT toute purge ; une purge d'historique
    (force-push) ne se fait que sur accord exprès de Stéphane, jamais par Code seul.
+   **[D80, revue L1] Un second vérificateur écrit depuis la spécification, pas depuis le code, est un
+   test de la spécification autant que du code.**
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
@@ -1093,6 +1106,12 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   de Python ; **19 obligations de preuve, AUCUNE déchargée** (`lean/PROOF-OBLIGATIONS.md`) ; SPEC v1.9 (§4 nombres
   décimaux). `make test` = 240 passed, 1 deselected. Écarts au prompt à valider par la supervision : énoncés dans
   `Spec/` (binaire sans Mathlib) ; ordre réel des contrôles de `verify.py` ; parsing typé plus strict. (voir JOURNAL.md L1.)
+- **Décisions de la revue L1 [D79, 10/10/2026]** : **(1)** architecture séparée (énoncés dans `Spec/`, binaire sans
+  Mathlib) : OUI ; **(2)** théorème cité par le papier : S2 `soundness_ref` en vitrine (il parle de rotations et de
+  positions), S1 le cœur technique — et le constat « la preuve de S1 n'utilise pas les hypothèses cinématiques, qui
+  servent à ce que N/D SOIT la chaîne déclarée » va au papier ; **(3)** §5 du papier corrigé par la supervision ;
+  **(4)** SPEC v1.9 validée ; **(5)** observations `verify.py` (IndexError hors except ; `body.link` négatif accepté ;
+  longueurs non contrôlées) → D69/S13, groupées, `verify.py` non touché.
 - **Prochaine étape : L2** — preuve de `bernstein_nonneg` (B1, avec B0 et T1-T7 selon besoin) et de la couverture du
   pavage (C1).
 

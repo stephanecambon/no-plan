@@ -4446,3 +4446,40 @@ lemmes T1-T7 dont B1 a besoin) et de la couverture du pavage (C1 `verifyCover_co
 avant L2** : (1) l'écart d'architecture (énoncés dans `Spec/`, binaire sans Mathlib) ; (2) S1 ou S2 comme énoncé cité ;
 (3) la phrase du papier §5 sur l'ordre et le contenu du contrôle (0) ; (4) l'amendement SPEC v1.9 ; (5) le versement des
 trois observations `verify.py` au chantier D69.
+
+## 2026-10-10 — Revue de supervision L1 (claude.ai) — port Lean endossé, décisions 1-5
+
+*(transcrite par Code en ouverture L2, 10/10/2026, circuit A16 — texte de la revue verbatim)*
+
+Verdict : L1 validée. Parité de verdict ET de raison sur 13 certificats + 48 adversariaux ;
+fuzz différentiel 5 000 cas, zéro cas où Lean accepte ce que Python rejette ; Lean ×0,57-0,99
+du temps Python ; verify.py/src/tests zéro diff ; `#print axioms check` sans sorryAx. Au-dessus
+de l'attendu : le fuzz différentiel, le contrôle du contrôle (faux binaires attrapés), la
+grammaire des nombres comparée, et la phrase d'honnêteté « pas une preuve mécanisée tant que
+les 19 obligations ne sont pas déchargées ».
+Trois observations sur verify.py (IndexError hors except ; body.link négatif accepté ;
+longueurs non contrôlées) — AUCUNE n'affecte la soundness ; versées au chantier D69/S13,
+groupées, verify.py non touché.
+Quatre phrases du papier contredites par le code (A48) : ordre et contenu du contrôle (0) ;
+aucun test « no-wrap-around » (ni requis : propriété de la paramétrisation) ; cos²+sin²=1
+seulement pour les verrous de la chaîne du corps (correct) ; « every certified body » → un
+corps par certificat ; nombres JSON décimaux acceptés (SPEC v1.9). §5 du papier corrigé par
+la supervision.
+DÉCISIONS : (1) architecture séparée (énoncés dans Spec/, binaire sans Mathlib) : OUI ;
+(2) théorème cité par le papier : S2 `soundness_ref` en vitrine (il parle de rotations et de
+positions), S1 le cœur technique — et le constat « la preuve de S1 n'utilise pas les
+hypothèses cinématiques, qui servent à ce que N/D SOIT la chaîne déclarée » va au papier ;
+(3) §5 corrigé ; (4) SPEC v1.9 validée ; (5) observations verify.py → D69/S13.
+Diffs : D79 (décisions 1-5 → section L1 du plan) ; D80 (règle 9 : « un second vérificateur
+écrit depuis la spécification, pas depuis le code, est un test de la spécification autant que
+du code ») ; D81 (header CLAUDE.md v1.25).
+
+**Application (ouverture L2, Code — circuit A16, commit doc séparé)** :
+- **[D79]** `CLAUDE.md` section L1 du plan : puce « Décisions de la revue L1 » (décisions 1-5).
+- **[D80]** `CLAUDE.md` règle 9 : phrase ajoutée telle quelle après le bloc D77.
+- **[D81]** en-tête `CLAUDE.md` **v1.25** (10/10/2026) + paragraphe de changelog v1.24 → v1.25.
+- **Constat d'ouverture (A33)** : `git status` PROPRE (HEAD `56e1666`) ; `lake build` vert, **19**
+  avertissements `declaration uses sorry`, zéro autre.
+- **Remarque de transcription** : la revue annonce « quatre phrases du papier » et en énumère cinq
+  (la cinquième, les nombres décimaux, relève de la SPEC et du prompt L1 plutôt que du papier) —
+  transcrit tel quel.
