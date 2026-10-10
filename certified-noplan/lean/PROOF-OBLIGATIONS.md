@@ -1,65 +1,166 @@
-# Proof obligations — CnpVerify (state after L2)
+# Proof obligations — CnpVerify (state after L3)
 
 L1 delivered an **executable** checker and the **statements** of what it is meant to satisfy:
-19 theorems stated in Lean, each with `sorry` for a proof. **L2 proved 10 of them; 9 are still
-`sorry`, among them the main statement `soundness`.** `lake build` reports exactly those 9
-`declaration uses sorry` warnings, and there is no other `sorry`, `axiom` or `implemented_by` in
-the project. `#print axioms` on each closed theorem lists `propext`, `Classical.choice`,
-`Quot.sound` only (no `sorryAx`).
+19 theorems stated in Lean, each with `sorry` for a proof. L2 proved 10 of them. **L3 proved
+the remaining 9, among them the main statements `soundness` (S1) and `soundness_ref` (S2).**
+`lake build` reports no `declaration uses sorry` warning and no other warning; there is no
+`sorry`, `axiom`, `implemented_by`, `native_decide` or `unsafe` in the project. `#print axioms`
+on each of the 19 theorems lists `propext`, `Classical.choice`, `Quot.sound` only
+(`binom_eq_choose`: `propext` only).
 
-Until S1 is discharged, the guarantee offered by `cnp-verify` is the same *kind* of guarantee
-as `verify.py`: a short program one can read, plus measured agreement with `verify.py`
-(`make lean-parity`). **It is not a machine-checked proof of soundness.** What IS machine-checked
-after L2: the tensor arithmetic of the checker computes the polynomial operations it claims
-(T1–T7), its Bernstein test implies non-negativity on the box (B1), and its tiling test implies
-that the leaves cover the box (C1).
+**What is machine-checked**: if the Lean function `check` returns `true` on a `Certificate`,
+then no continuous path inside the box joins the start to the goal while keeping the certified
+body out of every obstacle — the body being moved by real rigid motions along the declared
+chain (S2). What the theorem does NOT cover — the JSON parser, the compiled binary, the reading
+of the reference definitions — is listed in the section "Trust base" of `README.md`.
 
 | | obligation | file | state |
 |---|---|---|---|
-| T1 | `Tensor.evalQ_cast` | `Spec/Tensor.lean` | **proved (L2)** |
-| T2 | `Tensor.eval_const` | `Spec/Tensor.lean` | **proved (L2)** |
-| T3 | `Tensor.eval_add` | `Spec/Tensor.lean` | **proved (L2)** |
-| T4 | `Tensor.eval_scale` | `Spec/Tensor.lean` | **proved (L2)** |
-| T5 | `Tensor.eval_mul` | `Spec/Tensor.lean` | **proved (L2)** |
-| T6 | `Tensor.eval_padTo` | `Spec/Tensor.lean` | **proved (L2)** |
-| T7 | `Tensor.eval_eq_of_beqPoly` | `Spec/Tensor.lean` | **proved (L2)** |
-| B0 | `binom_eq_choose` | `Spec/Bernstein.lean` | **proved (L2)** |
-| B1 | `bernstein_nonneg` | `Spec/Bernstein.lean` | **proved (L2)** — as stated in L1, on the unchanged checker |
-| C1 | `verifyCover_covers` | `Soundness.lean` | **proved (L2)** |
-| K1 | `bodyDenominator_pos` | `Spec/Kinematics.lean` | open (`sorry`) |
-| K2 | `body_position` | `Spec/Kinematics.lean` | open (`sorry`) |
-| K3 | `rotation_half_angle` | `Spec/Kinematics.lean` | open (`sorry`) |
-| K4 | `rodrigues_mem_specialOrthogonal` | `Spec/Kinematics.lean` | open (`sorry`) |
-| C2 | `checkOutsideLeaf_sound` | `Soundness.lean` | open (`sorry`) |
-| C3 | `checkCollisionLeaf_sound` | `Soundness.lean` | open (`sorry`) |
-| C4 | `collisionFree_iff_ref` | `Soundness.lean` | open (`sorry`) |
-| S1 | `soundness` | `Soundness.lean` | open (`sorry`) |
-| S2 | `soundness_ref` | `Soundness.lean` | open (`sorry`) |
+| T1 | `Tensor.evalQ_cast` | `Spec/Tensor.lean` | proved (L2) |
+| T2 | `Tensor.eval_const` | `Spec/Tensor.lean` | proved (L2) |
+| T3 | `Tensor.eval_add` | `Spec/Tensor.lean` | proved (L2) |
+| T4 | `Tensor.eval_scale` | `Spec/Tensor.lean` | proved (L2) |
+| T5 | `Tensor.eval_mul` | `Spec/Tensor.lean` | proved (L2) |
+| T6 | `Tensor.eval_padTo` | `Spec/Tensor.lean` | proved (L2) |
+| T7 | `Tensor.eval_eq_of_beqPoly` | `Spec/Tensor.lean` | proved (L2) |
+| B0 | `binom_eq_choose` | `Spec/Bernstein.lean` | proved (L2) |
+| B1 | `bernstein_nonneg` | `Spec/Bernstein.lean` | proved (L2) — as stated in L1, on the unchanged checker |
+| C1 | `verifyCover_covers` | `Soundness.lean` | proved (L2) |
+| K1 | `bodyDenominator_pos` | `Spec/Kinematics.lean` | **proved (L3)** |
+| K2 | `body_position` | `Spec/Kinematics.lean` | **proved (L3)** — as stated in L1, reference definitions unchanged |
+| K3 | `rotation_half_angle` | `Spec/Kinematics.lean` | **proved (L3)** |
+| K4 | `rodrigues_mem_specialOrthogonal` | `Spec/Kinematics.lean` | **proved (L3)** |
+| C2 | `checkOutsideLeaf_sound` | `Soundness.lean` | **proved (L3)** |
+| C3 | `checkCollisionLeaf_sound` | `Soundness.lean` | **proved (L3)** |
+| C4 | `collisionFree_iff_ref` | `Soundness.lean` | **proved (L3)** |
+| S1 | `soundness` | `Soundness.lean` | **proved (L3)** |
+| S2 | `soundness_ref` | `Soundness.lean` | **proved (L3)** |
 
-**No statement was modified.** The 19 statements are character-for-character those of L1
-(compared against commit `56e1666`), and no reference definition (`Tensor.eval`, `Box.toSet`,
-`Obstacle.toSet`, `CollisionFree`, `linkPose`, …) was touched. The executable core
+**No statement was modified, and none turned out to be false.** The 19 statements are
+character-for-character those of L1 (compared by script against the L1 commit `56e1666` and the
+L2 commit `01a1c80`), and so are the reference definitions (`Tensor.eval`, `Box.toSet`,
+`Obstacle.toSet`, `Certificate.worldVertex`, `Certificate.bodyAt`, `CollisionFree`,
+`CollisionFreeRef`, `vecR`, `skewR`, `rodrigues`, `Joint.rotation`, `Rigid`, `Rigid.apply`,
+`Rigid.comp`, `RefState`, `refStep`, `linkPose`, `unlockedUpTo`). The executable core
 (`Tensor.lean`, `Bernstein.lean`, `Kinematics.lean`, `Certificate.lean`, `Check.lean`,
 `Main.lean`) has zero diff since L1: the proofs are about the code that runs, as it was.
 
 ## Dependency sketch
 
 ```
-T1..T7 (tensor algebra) ✔ ─┬─►  B1 bernstein_nonneg ✔ ─┬─►  C2 outside leaf
-                           │                           └─►  C3 collision leaf  ◄─ K1 (D > 0)
-                           │                C1 coverage of the tiling ✔ ──┐
-                           │                                              ▼
-                           │                         S1 soundness  (IVT on φ ∘ γ)
-                           └─►  K2 body_position ─► C4 ─► S2 soundness_ref
-                                K3, K4: the rational parametrisation is a rotation
+T1..T7 (tensor algebra) ─┬─►  B1 bernstein_nonneg ─┬─►  C2 outside leaf ───────────┐
+                         │                         └─►  C3 collision leaf ◄─ K1    │
+                         │              C1 coverage of the tiling ──────────────┐  │
+                         │                                                      ▼  ▼
+                         │                                 S1 soundness  (IVT on φ ∘ γ)
+                         └─►  K2 body_position ─► C4 ─────────────────────────► S2 soundness_ref
+                              K3, K4: the rational parametrisation is a rotation
+                                      └─► linkPose_rot_mem_specialOrthogonal (not one of the 19)
 ```
 
-* **L2** (done): T1–T7, B0, B1, C1. Also `bernNonneg_sound` (`Soundness.lean`), not one of the
-  19: the Bernstein test in the form the leaf checks call it (pad to the declared degree, then
-  test), a corollary of T6 and B1.
-* **L3**: C2, C3, S1; K1–K4, C4, S2.
-* K1–K4, C4, S2 make the statement speak about real rigid motions instead of the polynomial
-  pair `(N, D)`; S1 does not depend on them (see the remark below).
+* **L2**: T1–T7, B0, B1, C1, and `bernNonneg_sound` (not one of the 19).
+* **L3**: K1, C2, C3, S1 first (the main statement, on the polynomial kinematics); then K2, K3,
+  K4, C4, S2 (the same statement on real rigid motions).
+
+## Which tests of the checker the proofs use
+
+This is a by-product of the mechanisation: a test of the checker that no proof uses is not
+needed for soundness.
+
+| check | used by S1 | used by S2 only | not used by any proof |
+|---|---|---|---|
+| (0) hypotheses | `δ > 0` | | non-degenerate box |
+| (i) start / goal | `φ(s_start) < -δ`, `φ(s_goal) > δ` | | |
+| (ii) tiling | coverage of the box by the cells | | disjointness of the cells; the VALUE of the cut (midpoint) |
+| (0') kinematics | nothing | `n` = number of unlocked joints | `q* = 0`; unit axes and `cos² + sin² = 1` (see below); body link in range |
+| (iii) outside leaf | one of the two Bernstein tests | | |
+| (iv) collision leaf | `λ` count, `Σλ ≡ 1`, `λ_k ≥ 0`, `μ_j ≥ 0`, `g_j - μ_j T ≥ 0` | | the degree test on `λ_k`; the `μ` count (a missing `μ_j` is read as `0`) |
+
+* **S1 does not use the kinematic check at all**: it is a statement about the pair `(N, D)`
+  recomputed from the chain, whatever the chain is.
+* **S2 uses one kinematic fact**: `n` is the number of unlocked joints, so that every unlocked
+  joint of the body's chain reads an actual variable (hypothesis of K2).
+* **Unit axes and `cos² + sin² = 1` are not needed for S2 to hold.** They are what makes the
+  reference motions `linkPose` proper ROTATIONS: `linkPose_rot_mem_specialOrthogonal` (proved,
+  not one of the 19) derives, from the kinematic check and K4, that the rotation part of
+  `linkPose c.chain c.bodyLink s` is in `SO(3)`. Without them S2 would still be a true statement,
+  about maps that are no longer rigid motions.
+* **`q* = 0` is outside the formal statement.** `Certificate` carries `qStar`, the statements
+  never read it: they are written in `s`-space with `s = tan (q/2)`. The test `q* = 0` is what
+  makes that reading the right one for the certificate at hand.
+
+## How the L3 lemmas were proved
+
+* **K1** (`Spec/Kinematics.lean`). `Tensor.monomial e c` denotes `c · ∏ᵢ sᵢ^(e i)`
+  (`toMv_monomial`, from `toMv_ofTerms`), so `onePlusSq` denotes `1 + s²`; `D` is a product of
+  such factors along the chain (invariant of the fold). No hypothesis: for a variable index out
+  of range the exponent array of `unitExp` is all zeros and the factor is the constant `2`.
+* **C2** (`Soundness.lean`). The check succeeds only if one of its two Bernstein tests answers
+  `true`; `bernNonneg_sound` with T2, T3, T4 gives `φ - δ ≥ 0` or `-φ - δ ≥ 0` on the cell.
+* **C3** (`Soundness.lean`). The do-block is taken apart test by test; the two `for` loops are
+  handled by `range_forIn'_ok` (a loop in `Except` that succeeds has run its body successfully
+  at every index). On the cell: `Σ_k λ_k = 1` (T7), `λ_k ≥ 0`, and for each face
+  `b D - aᵀ Σ_k λ_k N_k - μ (δ² - φ²) ≥ 0` with `μ ≥ 0`. On the slab `δ² - φ² ≥ 0`, hence
+  `aᵀ Σ_k λ_k N_k ≤ b D`; dividing by `D > 0` (K1), the point `Σ_k λ_k(s) · N_k(s)/D(s)`
+  satisfies every face of the obstacle, and it is a convex combination of the world vertices
+  (`Convex.sum_mem`).
+* **S1** (`Soundness.lean`), the argument of the paper §4. `φ ∘ γ` is continuous
+  (`Tensor.continuous_eval`: `eval` is `MvPolynomial.aeval` of `toMv`, Mathlib's
+  `MvPolynomial.continuous_eval`), negative at `0` and positive at `1`; `[0,1]` is connected, so
+  it vanishes at some `t` (`intermediate_value_univ`). `γ t` is in the box, hence in the cell of
+  a leaf (C1). An `outside` leaf would give `δ ≤ |φ(γ t)| = 0` (C2); a `collision` leaf says
+  `γ t` is in collision (C3, since `|φ(γ t)| = 0 ≤ δ`).
+* **K2** (`Spec/Kinematics.lean`). `Mat4.Represents M s d g`: the polynomial matrix `M`
+  evaluated at `s` is `d · [R t; 0 1]` for the rigid motion `g = (R, t)`. It is stable by product
+  (`Represents.mul`: scalars multiply, motions compose), holds for the identity, for
+  `transHomog` (scalar `1`), for a locked `rotHomog` (scalar `1`) and for an unlocked one
+  (scalar `1 + s²`, by `field_simp`). `fkFold_represents` carries it along the chain, the
+  polynomial step `fkStep` against the reference step `refStep`, under the invariant "the next
+  variable index plus the number of unlocked joints still to come is `≤ n`". Reading the first
+  three columns against a vertex and the last one gives `N/D`.
+* **K3**. Mathlib's `Real.cos_eq_two_mul_tan_half_div_one_sub_tan_half_sq` (needs `cos q ≠ -1`,
+  which is `|q| < π` here) and `Real.sin_eq_two_mul_tan_half_div_one_add_tan_half_sq`.
+* **K4**. Two polynomial identities, valid without any hypothesis and proved entry by entry:
+  `R Rᵀ = 1 + ((1 - cos² - sin²) - (|a|² - 1)(1 - cos)²) · K²` and
+  `det R = (1 - (1 - cos)|a|²)² + sin² |a|²`; then the two hypotheses.
+* **C4**. By K2 the world vertices `eval N_k / eval D` are the reference positions, so the two
+  bodies are the same set.
+* **S2**. S1 and C4.
+
+Also proved in L3, **not among the 19**: `Tensor.continuous_eval`, `Tensor.eval_monomial`,
+`check_eq_true_iff` (`check c = true` iff the sequence `checkE c` succeeds, which is what the
+executable reports), `skewR_mulVec` and `rodrigues_mulVec` (the sign table `skew` is Mathlib's
+cross product; `rodrigues` is `v ↦ v + sin · a × v + (1 - cos) · a × (a × v)`),
+`rodrigues_mulVec_axis` (the axis is fixed), `Joint.rotation_mem_specialOrthogonal` and
+`linkPose_rot_mem_specialOrthogonal`.
+
+## Remarks on the statements
+
+* **S1 is stated on the polynomial kinematics**: `CollisionFree` reads the world vertices as
+  `eval N_k / eval D`. **S2 is stated on real rigid motions** and mentions no polynomial and no
+  tensor: `CollisionFreeRef` is built from `linkPose`, `vecR`, `Obstacle.toSet` and Mathlib's
+  `convexHull` only. Decision of the supervision (L1 review): the paper cites S2; S1 is the
+  technical core.
+* **The path lives in `s`-space** (`s = tan (q/2)`), like the certificate. Translating a path in
+  joint angles into a path in `s` (continuity of `tan (·/2)` on `(-π, π)`) is not stated here;
+  K3 says that the joint rotation at `s = tan (q/2)` is the rotation of angle `q`.
+* **Start and goal are not required to lie in the box** (neither by `verify.py` nor here): if
+  one of them is outside, no path "inside the box from start to goal" exists and the statement
+  is vacuously true.
+* **One body per certificate** (the schema has a single `body`); "every certified body" in the
+  paper is that body. The statement is about that body and the listed obstacles: a path that is
+  collision-free for the whole robot is in particular collision-free for that body.
+* **Collision means intersection with a CLOSED obstacle** (`aᵀ y ≤ b` for every face): touching
+  counts as a collision.
+* **Out-of-range variable indices.** For an unlocked joint whose variable index is `≥ n`, the
+  checker's polynomials read the constant `1` (`varAt`) and the reference reads `0`
+  (`refStep`). K2 excludes the case by hypothesis, and the checker by its test on `n`.
+* **B1 is stated at the tensor's own degree.** The checker pads to the working degree with
+  `padTo?` first (T6); `bernNonneg_sound` puts the two together.
+* **The reference definitions were put to the test by K2 and C4** and found right: both were
+  provable as stated, with `linkPose`, `refStep`, `Joint.rotation`, `rodrigues`, `Rigid.comp`
+  unchanged. They still have to be READ (list in `README.md`, "Trust base"): a proof shows that
+  the checker agrees with them, not that they say what a roboticist means.
 
 ## How the L2 lemmas were proved
 
@@ -92,28 +193,6 @@ T1..T7 (tensor algebra) ✔ ─┬─►  B1 bernstein_nonneg ✔ ─┬─►  
   input (`splitCells_subset`) and cover their half-box, and a point of the box is on one side
   of the cut. **Coverage only**: that no cell straddles the cut (disjointness) is tested by the
   checker and is not used.
-
-## Remarks on the statements
-
-* **S1 is stated on the polynomial kinematics**, as required for L1: `CollisionFree` reads the
-  world vertices as `eval N_k / eval D`. Its proof does not need the kinematic hypotheses tested
-  by the checker (`q* = 0`, unit axes, `cos² + sin² = 1`): those hypotheses are what makes
-  `(N, D)` *the forward kinematics of the declared chain* (K2–K4), and they enter through C4 / S2.
-  Decision of the supervision (L1 review): the paper cites S2 `soundness_ref`; S1 is the
-  technical core.
-* **The path lives in `s`-space** (`s = tan (q/2)`), like the certificate. Translating a path in
-  joint angles into a path in `s` (continuity of `tan (·/2)` on `(-π, π)`) is not stated here.
-* **Start and goal are not required to lie in the box** (neither by `verify.py` nor here): if
-  one of them is outside, no path "inside the box from start to goal" exists and the statement
-  is vacuously true.
-* **One body per certificate** (the schema has a single `body`); "every certified body" in the
-  paper is that body.
-* **B1 is stated at the tensor's own degree.** The checker pads to the working degree with
-  `padTo?` first (T6); `bernNonneg_sound` puts the two together.
-* **The reference definitions of the open part are still validated by reading and typing only**
-  (`linkPose`, `rodrigues`, `CollisionFree`, …). L2 exercised `Tensor.eval`, `Tensor.coeff`,
-  `flatIndex` and `Box.toSet`, and found them right: the statements T1–T7, B0, B1, C1 were
-  provable as written.
 
 ## Tensors — reference semantics — `CnpVerify/Spec/Tensor.lean`
 
@@ -202,9 +281,9 @@ theorem bernstein_nonneg (b : Box n) (p : Tensor n) :
 
 ## Kinematics — `CnpVerify/Spec/Kinematics.lean`
 
-`linkPose` is the reference kinematics: a composition of real rigid motions `translate(offset) ∘ rotate(axis, angle)`, defined without any polynomial (`rodrigues`, `Joint.rotation`, `Rigid`, `refStep`, `linkPose`, `unlockedUpTo` in the file). K1–K2 tie the polynomial numerators / denominator of the checker to it; K3–K4 tie the rational parametrisation to actual rotations. **All four are open (L3).**
+`linkPose` is the reference kinematics: a composition of real rigid motions `translate(offset) ∘ rotate(axis, angle)`, defined without any polynomial (`rodrigues`, `Joint.rotation`, `Rigid`, `refStep`, `linkPose`, `unlockedUpTo` in the file). K1–K2 tie the polynomial numerators / denominator of the checker to it; K3–K4 tie the rational parametrisation to actual rotations. **All four are proved (L3).**
 
-### K1 — `bodyDenominator_pos` — open
+### K1 — `bodyDenominator_pos` — proved (L3)
 
 The common denominator is positive everywhere.
 
@@ -213,7 +292,7 @@ theorem bodyDenominator_pos (n : ℕ) (chain : Array Joint) (link : ℕ) (s : Fi
     0 < (bodyDenominator n chain link).eval s
 ```
 
-### K2 — `body_position` — open
+### K2 — `body_position` — proved (L3)
 
 The polynomial kinematics is the reference kinematics: the world position of the body-frame point `p` of link `link` is `eval (N·p) / eval D`.
 
@@ -224,7 +303,7 @@ theorem body_position (n : ℕ) (chain : Array Joint) (link : ℕ) (p : Vec3) (s
       = ((bodyNumerators n chain link p)[i]).eval s / (bodyDenominator n chain link).eval s
 ```
 
-### K3 — `rotation_half_angle` — open
+### K3 — `rotation_half_angle` — proved (L3)
 
 The half-angle parametrisation is the rotation of angle `q`: with `s = tan (q/2)` and `|q| < π`, the rational expressions in `s` are `cos q` and `sin q`.
 
@@ -235,7 +314,7 @@ theorem rotation_half_angle (a : Vec3) (q : ℝ) (hq : |q| < Real.pi) :
       = rodrigues a (Real.cos q) (Real.sin q)
 ```
 
-### K4 — `rodrigues_mem_specialOrthogonal` — open
+### K4 — `rodrigues_mem_specialOrthogonal` — proved (L3)
 
 For a unit axis and `cos² + sin² = 1`, Rodrigues' matrix is a rotation (orthogonal, determinant `1`). This is where the hypotheses "exact unit axis" and "`cos² + sin² = 1`" of the checker are used.
 
@@ -247,7 +326,7 @@ theorem rodrigues_mem_specialOrthogonal (a : Vec3) (co si : ℝ)
 
 ## Checks and main statement — `CnpVerify/Soundness.lean`
 
-`CollisionFree c s` is defined from `bodyNumerators` / `bodyDenominator` and the H-representations only (no reference to the checker), through `Obstacle.toSet`, `Certificate.worldVertex` and `Certificate.bodyAt` (convex hull of the world vertices); `CollisionFreeRef` is the same notion on the reference kinematics. **C1 is proved (L2); C2, C3, C4, S1, S2 are open (L3).**
+`CollisionFree c s` is defined from `bodyNumerators` / `bodyDenominator` and the H-representations only (no reference to the checker), through `Obstacle.toSet`, `Certificate.worldVertex` and `Certificate.bodyAt` (convex hull of the world vertices); `CollisionFreeRef` is the same notion on the reference kinematics. **C1 is proved (L2); C2, C3, C4, S1, S2 are proved (L3).**
 
 ### C1 — `verifyCover_covers` — proved (L2)
 
@@ -259,7 +338,7 @@ theorem verifyCover_covers {n : ℕ} (fuel : ℕ) (box : Box n) (cells : Array (
     ∀ x ∈ box.toSet, ∃ cell ∈ cells, x ∈ cell.toSet
 ```
 
-### C2 — `checkOutsideLeaf_sound` — open
+### C2 — `checkOutsideLeaf_sound` — proved (L3)
 
 An accepted outside leaf is disjoint from the OPEN slab: `|φ| ≥ δ` on its cell.
 
@@ -269,7 +348,7 @@ theorem checkOutsideLeaf_sound (c : Certificate) (i : ℕ) (cell : Box c.n)
     ∀ s ∈ cell.toSet, (c.delta : ℝ) ≤ |c.phi.eval s|
 ```
 
-### C3 — `checkCollisionLeaf_sound` — open
+### C3 — `checkCollisionLeaf_sound` — proved (L3)
 
 An accepted collision leaf is in collision on the slab: at every point of its cell where `|φ| ≤ δ`, the certified body meets the named obstacle.
 
@@ -280,7 +359,7 @@ theorem checkCollisionLeaf_sound (c : Certificate) (i : ℕ) (cell : Box c.n) (o
     ∀ s ∈ cell.toSet, |c.phi.eval s| ≤ (c.delta : ℝ) → ¬ CollisionFree c s
 ```
 
-### C4 — `collisionFree_iff_ref` — open
+### C4 — `collisionFree_iff_ref` — proved (L3)
 
 Under the kinematic hypotheses tested by the checker, collision-freeness on the polynomial kinematics IS collision-freeness on the reference kinematics.
 
@@ -289,7 +368,7 @@ theorem collisionFree_iff_ref (c : Certificate) (h : checkKinematics c = .ok ())
     (s : Fin c.n → ℝ) : CollisionFree c s ↔ CollisionFreeRef c s
 ```
 
-### S1 — `soundness` — open
+### S1 — `soundness` — proved (L3)
 
 **Soundness of the checker.** If `check c = true`, there is no continuous path `γ : [0,1] → ℝⁿ` that stays in the box, starts at `s_start`, ends at `s_goal`, and is collision-free at every time.
 
@@ -301,9 +380,9 @@ theorem soundness (c : Certificate) :
             ∧ ∀ t, CollisionFree c (γ t)
 ```
 
-### S2 — `soundness_ref` — open
+### S2 — `soundness_ref` — proved (L3)
 
-The same statement on the reference kinematics (corollary of S1 and C4).
+The same statement on the reference kinematics (corollary of S1 and C4): the certified body is moved by the real rigid motions `linkPose` of the declared chain.
 
 ```lean
 theorem soundness_ref (c : Certificate) :

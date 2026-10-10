@@ -1,5 +1,5 @@
 /-
-CnpVerify.Spec.Kinematics — reference kinematics over `ℝ` (L1: statements only).
+CnpVerify.Spec.Kinematics — reference kinematics over `ℝ` (definitions: L1; K1–K4 proved in L3).
 
 The checker manipulates polynomial numerators `N` and a denominator `D`. This file states what
 they mean: the world position of a body-frame point `p` of a link is `eval (N·p) / eval D`,
@@ -399,5 +399,43 @@ theorem rodrigues_mem_specialOrthogonal (a : Vec3) (co si : ℝ)
     rw [rodrigues_mul_transpose, h0, zero_smul, add_zero]
   · rw [rodrigues_det, ha']
     linear_combination hcs
+
+/-! ### Reading aids for the reference definitions (not among the 19 obligations)
+
+`skew` is a hand-written sign table shared by the checker and by `skewR`. The lemmas below tie
+it to Mathlib's cross product, so that `rodrigues` is Rodrigues' formula as usually written. -/
+
+section CrossProduct
+
+open Matrix
+
+/-- The matrix `skewR a` is the cross product by `a` (Mathlib's `crossProduct`). -/
+theorem skewR_mulVec (a : Vec3) (v : Fin 3 → ℝ) : (skewR a).mulVec v = vecR a ⨯₃ v := by
+  ext i
+  fin_cases i <;>
+    simp [skewR, skew, Matrix.mulVec, dotProduct, Fin.sum_univ_three, cross_apply, vecR] <;> ring
+
+/-- Rodrigues' formula in vector form: `R v = v + sin · (a × v) + (1 - cos) · a × (a × v)`. -/
+theorem rodrigues_mulVec (a : Vec3) (co si : ℝ) (v : Fin 3 → ℝ) :
+    (rodrigues a co si).mulVec v
+      = v + si • (vecR a ⨯₃ v) + (1 - co) • (vecR a ⨯₃ (vecR a ⨯₃ v)) := by
+  unfold rodrigues
+  rw [Matrix.add_mulVec, Matrix.add_mulVec, Matrix.one_mulVec, Matrix.smul_mulVec,
+    Matrix.smul_mulVec, ← Matrix.mulVec_mulVec, skewR_mulVec, skewR_mulVec]
+
+/-- A Rodrigues matrix fixes its axis. -/
+theorem rodrigues_mulVec_axis (a : Vec3) (co si : ℝ) :
+    (rodrigues a co si).mulVec (vecR a) = vecR a := by
+  rw [rodrigues_mulVec, cross_self]
+  simp
+
+end CrossProduct
+
+/-- The rotation part of the reference pose after one more joint. -/
+theorem refStep_pose_rot {n : ℕ} (s : Fin n → ℝ) (rs : RefState) (j : Joint) :
+    (refStep s rs j).pose.rot
+      = rs.pose.rot * j.rotation (if h : rs.nextVar < n then s ⟨rs.nextVar, h⟩ else 0) := by
+  unfold refStep
+  cases j.locked <;> rfl
 
 end CnpVerify

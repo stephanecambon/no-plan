@@ -1,14 +1,16 @@
 /-
-CnpVerify.Soundness — the theorem the checker is meant to satisfy (STATEMENT; proof open).
+CnpVerify.Soundness — the theorem the checker satisfies (proved in L3).
 
-`soundness`: if `check c = true`, no continuous path inside the box joins the start to the goal
-while keeping the certified body out of every obstacle.
+`soundness` (S1): if `check c = true`, no continuous path inside the box joins the start to the
+goal while keeping the certified body out of every obstacle. `soundness_ref` (S2): the same on
+the reference kinematics (`linkPose`: real rigid motions, no polynomial).
 
-The notions used in the statement (`Box.toSet`, `Obstacle.toSet`, `Certificate.bodyAt`,
+The notions used in the statement of S1 (`Box.toSet`, `Obstacle.toSet`, `Certificate.bodyAt`,
 `CollisionFree`) are defined below from the kinematic numerators/denominator and the
-H-representations only — none of them mentions the checker.
+H-representations only; those of S2 (`CollisionFreeRef`) from `linkPose` and the
+H-representations only. None of them mentions the checker.
 
-State: see `lean/PROOF-OBLIGATIONS.md`.
+State and trust base: `lean/PROOF-OBLIGATIONS.md`, `lean/README.md`.
 -/
 import Mathlib
 import CnpVerify.Check
@@ -427,10 +429,14 @@ theorem unlockedUpTo_le (chain : Array Joint) (link : ℕ) :
   rw [Array.toList_extract]
   simpa using List.take_sublist _ _
 
-/-- (0') gives: the number of unlocked joints of the chain is `n`. (The other tests — `q* = 0`,
-unit axes, `cos² + sin² = 1`, body link in range — are not needed for C4.) -/
+/-- (0') gives: every axis is an exact unit vector; the number of unlocked joints of the chain
+is `n`; every locked joint of the body's chain has `cos² + sin² = 1`. (`q* = 0` and "the body
+link exists" are tested too and are not used by the proofs.) -/
 theorem checkKinematics_ok (c : Certificate) (h : checkKinematics c = .ok ()) :
-    (c.chain.filter (·.locked.isNone)).size = c.n := by
+    (∀ j ∈ c.chain, normSq j.axis = 1)
+      ∧ (c.chain.filter (·.locked.isNone)).size = c.n
+      ∧ ∀ j ∈ c.chain.extract 0 (c.bodyLink + 1), ∀ co si,
+          j.locked = some (co, si) → co * co + si * si = 1 := by
   unfold checkKinematics at h
   by_cases h1 : (c.qStar.any (· != 0)) = true
   · rw [ite_eq_left h1] at h
@@ -440,10 +446,28 @@ theorem checkKinematics_ok (c : Certificate) (h : checkKinematics c = .ok ()) :
   · rw [ite_eq_left h2] at h
     exact absurd h (by simp [reject, throw, throwThe, MonadExceptOf.throw, bind, Except.bind])
   rw [ite_eq_right h2] at h
-  by_contra h3
-  have h3' : ((c.chain.filter (·.locked.isNone)).size != c.n) = true := by simpa using h3
-  rw [ite_eq_left h3'] at h
-  exact absurd h (by simp [reject, throw, throwThe, MonadExceptOf.throw, bind, Except.bind])
+  by_cases h3 : ((c.chain.filter (·.locked.isNone)).size != c.n) = true
+  · rw [ite_eq_left h3] at h
+    exact absurd h (by simp [reject, throw, throwThe, MonadExceptOf.throw, bind, Except.bind])
+  rw [ite_eq_right h3] at h
+  simp only [] at h
+  generalize hb : (c.chain.extract 0 (c.bodyLink + 1)).any _ = b at h
+  cases b with
+  | true =>
+    exact absurd h (by simp [reject, throw, throwThe, MonadExceptOf.throw, bind, Except.bind])
+  | false =>
+    have h2' : ∀ (i : ℕ) (hi : i < c.chain.size), normSq c.chain[i].axis = 1 := by
+      simpa using h2
+    have hb' := Array.any_eq_false.1 hb
+    refine ⟨?_, by simpa using h3, ?_⟩
+    · intro j hj
+      obtain ⟨i, hi, rfl⟩ := Array.mem_iff_getElem.1 hj
+      exact h2' i hi
+    · intro j hj co si hjl
+      obtain ⟨i, hi, rfl⟩ := Array.mem_iff_getElem.1 hj
+      have h4 := hb' i hi
+      rw [hjl] at h4
+      simpa using h4
 
 /-- [C4] Under the kinematic hypotheses tested by the checker, collision-freeness on the
 polynomial kinematics IS collision-freeness on the reference kinematics.
@@ -455,7 +479,7 @@ what makes the reference motions ROTATIONS (K4), not what makes the two kinemati
 theorem collisionFree_iff_ref (c : Certificate) (h : checkKinematics c = .ok ())
     (s : Fin c.n → ℝ) : CollisionFree c s ↔ CollisionFreeRef c s := by
   have hn : unlockedUpTo c.chain c.bodyLink ≤ c.n :=
-    (checkKinematics_ok c h) ▸ unlockedUpTo_le c.chain c.bodyLink
+    (checkKinematics_ok c h).2.1 ▸ unlockedUpTo_le c.chain c.bodyLink
   have hv : (fun k : Fin c.hull.size => c.worldVertex k s)
       = fun k : Fin c.hull.size => (linkPose c.chain c.bodyLink s).apply (vecR c.hull[k]) := by
     funext k i
@@ -521,12 +545,16 @@ theorem checkLeaves_ok (c : Certificate) (h : checkLeaves c = .ok ()) :
   have hr' : ForInStep.yield PUnit.unit = r := by simpa [pure, Except.pure] using hr
   exact ⟨hr'.symm, fun _ => hu⟩
 
-/-- `check c = true` means that the sequence of checks succeeded. -/
-theorem checkE_of_check (c : Certificate) (h : check c = true) : checkE c = .ok () := by
-  unfold check at h
-  cases hce : checkE c with
-  | ok u => rfl
-  | error e => rw [hce] at h; simp at h
+/-- `check c = true` exactly when the sequence of checks succeeds — which is when the
+executable prints `PROOF` (`Main.lean` reports the value of `checkE c`). -/
+theorem check_eq_true_iff (c : Certificate) : check c = true ↔ checkE c = .ok () := by
+  unfold check
+  cases checkE c with
+  | ok u => simp
+  | error e => simp
+
+theorem checkE_of_check (c : Certificate) (h : check c = true) : checkE c = .ok () :=
+  (check_eq_true_iff c).1 h
 
 /-! ### Main statement -/
 
@@ -594,5 +622,62 @@ theorem soundness_ref (c : Certificate) :
     exact (checkM_seq_ok _ _ hE).1
   exact soundness c hc
     ⟨γ, hbox, h0, h1, fun t => (collisionFree_iff_ref c hK (γ t)).2 (hfree t)⟩
+
+/-! ### The reference motions are rigid (not among the 19 obligations)
+
+`soundness_ref` holds whatever the declared axes and locked `(cos, sin)` are: its proof only
+uses, from the kinematic check, that `n` is the number of unlocked joints. The other two tests
+of that check — exact unit axes, `cos² + sin² = 1` for the locked joints of the body's chain —
+are what makes `linkPose` a chain of ROTATIONS, through K4. The statement below says so. -/
+
+/-- The rotation of a joint is a rotation, for a unit axis and, if the joint is locked,
+`cos² + sin² = 1`. For an unlocked joint this holds for every value of `s`. -/
+theorem Joint.rotation_mem_specialOrthogonal (j : Joint) (s : ℝ) (ha : normSq j.axis = 1)
+    (hl : ∀ co si, j.locked = some (co, si) → co * co + si * si = 1) :
+    j.rotation s ∈ Matrix.specialOrthogonalGroup (Fin 3) ℝ := by
+  have ha' : ((j.axis[0] : ℚ) : ℝ) ^ 2 + (j.axis[1] : ℝ) ^ 2 + (j.axis[2] : ℝ) ^ 2 = 1 := by
+    have h := congrArg (fun q : ℚ => (q : ℝ)) ha
+    simp only [normSq] at h
+    push_cast at h
+    linear_combination h
+  unfold Joint.rotation
+  rcases hj : j.locked with _ | ⟨co, si⟩
+  · have hpos : (1 + s ^ 2) ≠ 0 := by positivity
+    exact rodrigues_mem_specialOrthogonal _ _ _ ha' (by field_simp; ring)
+  · have h := congrArg (fun q : ℚ => (q : ℝ)) (hl co si hj)
+    push_cast at h
+    exact rodrigues_mem_specialOrthogonal _ _ _ ha' (by linear_combination h)
+
+/-- Along a list of joints with unit axes and unit locks, the rotation part stays a rotation. -/
+theorem refFold_rot_mem {n : ℕ} (s : Fin n → ℝ) (l : List Joint) (rs : RefState)
+    (h0 : rs.pose.rot ∈ Matrix.specialOrthogonalGroup (Fin 3) ℝ)
+    (hl : ∀ j ∈ l, normSq j.axis = 1
+      ∧ ∀ co si, j.locked = some (co, si) → co * co + si * si = 1) :
+    (l.foldl (refStep s) rs).pose.rot ∈ Matrix.specialOrthogonalGroup (Fin 3) ℝ := by
+  induction l generalizing rs with
+  | nil => exact h0
+  | cons j l ih =>
+    simp only [List.foldl_cons]
+    refine ih _ ?_ (fun j' hj' => hl j' (by simp [hj']))
+    have hj := hl j (by simp)
+    rw [refStep_pose_rot]
+    exact mul_mem h0 (j.rotation_mem_specialOrthogonal _ hj.1 hj.2)
+
+/-- Under the kinematic check, the rotation part of the reference pose of the body's link is a
+rotation: `linkPose` is a proper rigid motion. This is where "exact unit axes" and
+"`cos² + sin² = 1`" of the checker are used (through K4). -/
+theorem linkPose_rot_mem_specialOrthogonal (c : Certificate) (h : checkKinematics c = .ok ())
+    (s : Fin c.n → ℝ) :
+    (linkPose c.chain c.bodyLink s).rot ∈ Matrix.specialOrthogonalGroup (Fin 3) ℝ := by
+  obtain ⟨hax, -, hlock⟩ := checkKinematics_ok c h
+  unfold linkPose
+  rw [← Array.foldl_toList]
+  refine refFold_rot_mem s _ _ (one_mem _) ?_
+  intro j hj
+  have hj' : j ∈ c.chain.extract 0 (c.bodyLink + 1) := Array.mem_toList_iff.1 hj
+  refine ⟨hax j ?_, hlock j hj'⟩
+  obtain ⟨i, hi, rfl⟩ := Array.mem_iff_getElem.1 hj'
+  rw [Array.getElem_extract]
+  exact Array.getElem_mem _
 
 end CnpVerify
