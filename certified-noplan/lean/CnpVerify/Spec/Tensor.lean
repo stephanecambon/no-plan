@@ -610,6 +610,44 @@ theorem eval_eq_of_beqPoly (a b : Tensor n) (h : a.beqPoly b = true) (x : Fin n 
     rw [h.1, h.2]
   rw [eval_eq_aeval, eval_eq_aeval, ← toMv_trim a, ← toMv_trim b, htrim]
 
+/-! ### `zero` and `monomial` (used by the kinematics; not among the 19 obligations) -/
+
+theorem eval_zero (x : Fin n → ℝ) : (zero : Tensor n).eval x = 0 := by
+  rw [eval_eq_aeval, toMv_zero, map_zero]
+
+/-- `monomial e c` denotes `c · ∏ᵢ sᵢ^(e i)` (entries of `e` beyond `n` are ignored, missing
+ones read `0`): the storage degree `maxDeg (e.extract 0 n)` fits the term, so nothing is
+dropped. -/
+theorem toMv_monomial (e : Array ℕ) (c : ℚ) :
+    toMv (monomial e c : Tensor n) = mono (fun i : Fin n => e.getD i.val 0) c := by
+  unfold monomial
+  rw [toMv_ofTerms_of_fit]
+  · simp [termMono]
+  · intro p hp i hi
+    have hp' : p = (e, c) := by simpa using hp
+    subst hp'
+    have h := getD_le_maxDeg (e.extract 0 n) i
+    have h2 : (e.extract 0 n).getD i 0 = e.getD i 0 := by
+      by_cases hie : i < e.size <;> simp [Array.getD_eq_getD_getElem?, hi, hie]
+    rw [h2] at h
+    exact h
+
+theorem eval_monomial (e : Array ℕ) (c : ℚ) (x : Fin n → ℝ) :
+    (monomial e c : Tensor n).eval x = (c : ℝ) * ∏ i : Fin n, x i ^ e.getD i.val 0 := by
+  rw [eval_eq_aeval, toMv_monomial, aeval_mono]
+
+/-! ### Continuity (used by the intermediate value theorem in `soundness`) -/
+
+/-- A tensor denotes a continuous function `ℝⁿ → ℝ`: it is the evaluation of the polynomial
+`toMv` (Mathlib: `MvPolynomial.continuous_eval`). -/
+theorem continuous_eval (t : Tensor n) : Continuous fun x : Fin n → ℝ => t.eval x := by
+  have h : (fun x : Fin n → ℝ => t.eval x)
+      = fun x => MvPolynomial.eval x (MvPolynomial.map (algebraMap ℚ ℝ) (toMv t)) := by
+    funext x
+    rw [eval_eq_aeval, MvPolynomial.aeval_def, MvPolynomial.eval₂_eq_eval_map]
+  rw [h]
+  exact MvPolynomial.continuous_eval _
+
 end Tensor
 
 end CnpVerify

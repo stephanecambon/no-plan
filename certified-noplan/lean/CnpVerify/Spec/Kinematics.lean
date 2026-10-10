@@ -66,10 +66,58 @@ noncomputable def linkPose {n : ℕ} (chain : Array Joint) (link : ℕ) (s : Fin
 def unlockedUpTo (chain : Array Joint) (link : ℕ) : ℕ :=
   ((chain.extract 0 (link + 1)).filter (·.locked.isNone)).size
 
-/-- [K1] The common denominator is positive everywhere. -/
+/-! ### The polynomials `2 s`, `2 s²`, `1 + s²` of a joint -/
+
+/-- The value the checker's polynomials read for the variable of index `idx`: `s_idx`, and `1`
+when the index is out of range (the exponent array of `unitExp` is then all zeros, so the
+"monomial" is a constant). The reference kinematics reads `0` there (`refStep`); the two agree
+on every index the chain actually uses as soon as `unlockedUpTo chain link ≤ n`. -/
+noncomputable def varAt {n : ℕ} (s : Fin n → ℝ) (idx : ℕ) : ℝ :=
+  if h : idx < n then s ⟨idx, h⟩ else 1
+
+theorem eval_unit (n idx p : ℕ) (c : ℚ) (s : Fin n → ℝ) :
+    (Tensor.monomial (unitExp n idx p) c : Tensor n).eval s = (c : ℝ) * varAt s idx ^ p := by
+  rw [Tensor.eval_monomial]
+  congr 1
+  unfold varAt unitExp
+  by_cases h : idx < n
+  · rw [dite_eq_left h, Finset.prod_eq_single (⟨idx, h⟩ : Fin n)]
+    · simp [Array.getD_eq_getD_getElem?, h]
+    · intro b _ hb
+      have : ¬ idx = b.val := fun hh => hb (Fin.ext hh.symm)
+      simp [Array.getD_eq_getD_getElem?, this]
+    · simp
+  · rw [dite_eq_right h]
+    simp only [one_pow]
+    apply Finset.prod_eq_one
+    intro b _
+    have : ¬ idx = b.val := fun hh => h (hh ▸ b.isLt)
+    simp [Array.getD_eq_getD_getElem?, this]
+
+theorem eval_onePlusSq (n idx : ℕ) (s : Fin n → ℝ) :
+    (onePlusSq n idx).eval s = 1 + varAt s idx ^ 2 := by
+  unfold onePlusSq
+  rw [Tensor.eval_add, Tensor.eval_const, eval_unit]
+  simp
+
+/-- [K1] The common denominator is positive everywhere.
+
+Proof (L3): `D` is a product of factors `1 + s²` along the chain (invariant of the fold). No
+hypothesis is needed: for a variable index out of range the factor is the constant `2`. -/
 theorem bodyDenominator_pos (n : ℕ) (chain : Array Joint) (link : ℕ) (s : Fin n → ℝ) :
     0 < (bodyDenominator n chain link).eval s := by
-  sorry
+  unfold bodyDenominator bodyFK
+  rw [← Array.foldl_toList]
+  refine foldl_list_induction _ _ _ (fun st : FKState n => 0 < st.den.eval s) ?_ ?_
+  · simp [Tensor.eval_const]
+  · intro j _ st hst
+    unfold fkStep
+    cases j.locked with
+    | none =>
+      simp only
+      rw [Tensor.eval_mul, eval_onePlusSq]
+      positivity
+    | some _ => exact hst
 
 /-- [K2] The polynomial kinematics is the reference kinematics: the world position of the
 body-frame point `p` of link `link` is `eval (N·p) / eval D`. -/
