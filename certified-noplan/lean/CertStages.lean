@@ -131,8 +131,10 @@ theorem leaves_size : c.leaves.size = {c.leaves.size} := by decide +kernel
 
 abbrev L{i} : Leaf c.n := c.leaves[{i}]
 
+theorem L{i}_outside : checkOutsideLeaf c {i} L{i}.cell = .ok () := by decide +kernel
+
 theorem L{i}_ok : checkLeaf c G {i} L{i} = .ok () :=
-  checkLeaf_outside_of c G {i} L{i} (by decide +kernel) (by decide +kernel)
+  checkLeaf_outside_of c G {i} L{i} (by decide +kernel) L{i}_outside
 "
       leafProofs := leafProofs ++ [s!"L{i}_ok"]
     | .collision obstacle lam mu =>

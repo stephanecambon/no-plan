@@ -13,7 +13,7 @@ STAMP   := $(VENV)/.installed
 # `make setup LOCK=1` installs the exact versions of the reference run (requirements-lock.txt).
 CONSTRAINTS := $(if $(LOCK),-c requirements-lock.txt,)
 
-.PHONY: setup test test-fast test-slow bench-parallel figures benchmark reproduce paper-figures lean-parity clean
+.PHONY: setup test test-fast test-slow bench-parallel figures benchmark reproduce paper-figures lean-parity lean-certs lean-kernel-bench clean
 
 # Idempotent: re-running `make setup` does nothing unless pyproject.toml changed.
 setup: $(STAMP)
@@ -76,6 +76,19 @@ paper-figures: setup
 # certificate and every mutation. NOT part of `make test` (needs elan + the Mathlib cache).
 lean-parity: setup
 	bash lean/check_all.sh
+
+# L4 — certificates written as Lean terms (lean/Certs/). Checks that the generated files are up
+# to date, re-checks IN THE LEAN KERNEL the staged proof of `check wallK3 = true` (several
+# minutes, ~6 GB) and the per-scene theorems, checks that the parser's object equals each term,
+# and audits the axioms. Needs elan + the Mathlib cache and python3 (stdlib only): no venv.
+lean-certs:
+	bash lean/check_certs.sh
+
+# L4 — how far the kernel goes on each certificate (decide / decide +kernel / staged /
+# native_decide), one process per attempt, under a time and a memory limit; archived in
+# benchmarks/results/<UTC>/lean_kernel.{json,md} (rule 7). Quiet machine; about one hour.
+lean-kernel-bench:
+	python3 scripts/lean_kernel_bench.py
 
 clean:
 	rm -rf $(VENV) .pytest_cache

@@ -1,0 +1,91 @@
+# Lean verifier of certified-noplan (certified-noplan/lean): build, proofs, axioms, parity.
+#
+#   1. `lake build`            — the checker binary and the library with the proofs (Mathlib
+#                                build cache fetched by `lake exe cache get`); no `sorry` allowed;
+#   2. axiom audit             — `#print axioms` on the 19 obligations and the cited lemmas:
+#                                nothing but propext / Classical.choice / Quot.sound;
+#   3. `lean/check_certs.sh`   — certificates as Lean terms: generated files up to date, the
+#                                staged proof of `check wallK3 = true` re-checked BY THE KERNEL
+#                                (`lake build Certs`), parser's object = term, full axiom audit
+#                                (kernel statements vs `native_decide` statements);
+#   4. `lean/check_all.sh`     — parity of the Lean checker with `verify.py` on the 13 shipped
+#                                certificates, the adversarial corpus and a seeded fuzz (200).
+#
+# The Python side of step 4 needs the engine (to rebuild the corpus) but neither Drake nor Mosek.
+name: lean
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "certified-noplan/lean/**"
+      - "certified-noplan/scripts/lean_*.py"
+      - "certified-noplan/scripts/cert_to_lean.py"
+      - "certified-noplan/scripts/export_mutations.py"
+      - "certified-noplan/src/cnp/**"
+      - "certified-noplan/tests/**"
+      - "certified-noplan/scenes/**"
+      - "certified-noplan/pyproject.toml"
+      - "certified-noplan/requirements-lock.txt"
+      - ".github/workflows/lean.yml"
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: lean-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+        working-directory: certified-noplan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install elan (the toolchain is pinned by lean/lean-toolchain)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Versions
+        working-directory: certified-noplan/lean
+        run: |
+          lean --version
+          lake --version
+          nproc; free -g | sed -n 2p; df -h . | sed -n 2p
+
+      - name: Mathlib build cache (lake exe cache get)
+        working-directory: certified-noplan/lean
+        run: time lake exe cache get
+
+      - name: lake build (checker binary + proofs), no sorry
+        working-directory: certified-noplan/lean
+        run: |
+          set -o pipefail
+          time lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
+          if grep -n "sorry" "$RUNNER_TEMP/build.log"; then
+            echo "::error::the build reports a sorry"; exit 1
+          fi
+
+      - name: Axiom audit of the 19 obligations and of the cited lemmas
+        run: time python3 scripts/lean_axioms.py --no-certs
+
+      - name: Certificates as Lean terms — kernel evaluation, term check, full axiom audit
+        run: time bash lean/check_certs.sh
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python environment for the parity gate (no Drake, no Mosek)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -c requirements-lock.txt -e ".[dev]"
+
+      - name: Parity Lean checker / verify.py (13 certificates, corpus, fuzz 200)
+        run: time env PYTHON="$(which python)" FUZZ=200 bash lean/check_all.sh
