@@ -1,0 +1,209 @@
+{
+ "meta": {
+  "utc": "20261010T172639Z",
+  "commit": "278428007805c60b39c15dcf7ea4b47963c5b4c4",
+  "git_dirty_at_start": false,
+  "lean": "Lean (version 4.34.1, arm64-apple-darwin24.6.0, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+  "mathlib": "v4.34.1",
+  "machine": "Darwin 25.5.0 arm64, Apple M4",
+  "load_at_start": [
+   5.31,
+   5.38,
+   5.48
+  ],
+  "timeout_s": 1800.0,
+  "mem_gb": 9.0
+ },
+ "rows": [],
+ "primitives": [
+  {
+   "primitive": "for i in [0:N] (sum)",
+   "125": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.4,
+    "kernel_s": 0.026,
+    "peak_rss_gb": 1.04,
+    "load1_at_start": 5.43
+   },
+   "625": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.4,
+    "kernel_s": 0.157,
+    "peak_rss_gb": 1.04,
+    "load1_at_start": 5.43
+   }
+  },
+  {
+   "primitive": "List.range N |>.foldl",
+   "125": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.2,
+    "kernel_s": 0.011,
+    "peak_rss_gb": 1.0,
+    "load1_at_start": 5.31
+   },
+   "625": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.1,
+    "kernel_s": 0.055,
+    "peak_rss_gb": 1.0,
+    "load1_at_start": 5.31
+   }
+  },
+  {
+   "primitive": "Array.set! then getD",
+   "125": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.1,
+    "kernel_s": 0.046,
+    "peak_rss_gb": 1.0,
+    "load1_at_start": 5.13
+   },
+   "625": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.4,
+    "kernel_s": 0.228,
+    "peak_rss_gb": 1.04,
+    "load1_at_start": 5.13
+   }
+  },
+  {
+   "primitive": "Array.foldl",
+   "125": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.9,
+    "kernel_s": 0.793,
+    "peak_rss_gb": 1.16,
+    "load1_at_start": 5.04
+   },
+   "625": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 24.0,
+    "kernel_s": 21.8,
+    "peak_rss_gb": 4.08,
+    "load1_at_start": 5.04
+   }
+  },
+  {
+   "primitive": "Array.all",
+   "125": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 3.1,
+    "kernel_s": 0.843,
+    "peak_rss_gb": 1.16,
+    "load1_at_start": 5.47
+   },
+   "625": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 23.2,
+    "kernel_s": 21.2,
+    "peak_rss_gb": 4.08,
+    "load1_at_start": 6.08
+   }
+  },
+  {
+   "primitive": "Array.map",
+   "125": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.6,
+    "kernel_s": 0.478,
+    "peak_rss_gb": 1.09,
+    "load1_at_start": 5.43
+   },
+   "625": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 15.0,
+    "kernel_s": 12.8,
+    "peak_rss_gb": 2.62,
+    "load1_at_start": 5.32
+   }
+  },
+  {
+   "primitive": "Array.ofFn",
+   "125": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 2.8,
+    "kernel_s": 0.482,
+    "peak_rss_gb": 1.08,
+    "load1_at_start": 5.75
+   },
+   "625": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 14.4,
+    "kernel_s": 12.2,
+    "peak_rss_gb": 2.6,
+    "load1_at_start": 5.75
+   }
+  },
+  {
+   "primitive": "Array ==",
+   "125": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 3.8,
+    "kernel_s": 1.56,
+    "peak_rss_gb": 1.28,
+    "load1_at_start": 5.15
+   },
+   "625": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 46.8,
+    "kernel_s": 44.6,
+    "peak_rss_gb": 7.12,
+    "load1_at_start": 5.05
+   }
+  },
+  {
+   "primitive": "Array ++",
+   "125": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 3.3,
+    "kernel_s": 1.3,
+    "peak_rss_gb": 1.23,
+    "load1_at_start": 5.25
+   },
+   "625": {
+    "ok": true,
+    "killed": null,
+    "exit": 0,
+    "wall_s": 40.7,
+    "kernel_s": 38.5,
+    "peak_rss_gb": 5.71,
+    "load1_at_start": 5.23
+   }
+  }
+ ]
+}
