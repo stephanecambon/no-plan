@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.25 — 10 octobre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/S12/P1/P2/S14/L1 ; v1.0..v1.24 dans git).
+Version 1.26 — 10 octobre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/S12/P1/P2/S14/L1/L2 ; v1.0..v1.25 dans git).
 **[Numérotation]** — **v1.21 = D66, appliqué a posteriori le 29/09/2026** (ouverture S15) : la
 revue S12 (09/09) avait été livrée sans être remise dans un prompt, faute de circuit supervision ;
 elle est transcrite au journal en ouverture S15 avec D64/D65. Le lot P1 (D67-D70) avait pris
@@ -232,6 +232,16 @@ papier corrigé par la supervision ; **(4)** SPEC v1.9 validée ; **(5)** les tr
 vérificateur écrit depuis la spécification est un test de la spécification autant que du code ; **[D81]**
 ce header+changelog. Détail : entrée « Revue de supervision L1 » de JOURNAL.md.
 
+Changements v1.25 → v1.26 (revue L2, **[A52]**, D82-D84) : **L2 validée** — 10 des 19 obligations prouvées
+(T1-T7, B0, B1, C1), 19 → 9 `sorry`, aucun énoncé modifié, cœur exécutable / `verify.py` / `src` / `tests`
+zéro diff. Décisions 1-3 : **(1)** inversion B1-bis/B1 endossée ; **(2)** PAS de contrôle d'identité à
+l'exécution (prouvablement redondant, surface de confiance en plus) ; **(3)** le constat « la valeur de la
+coupe n'entre pas dans la soundness de la couverture » va au papier §5 — le contrat A14 est pratique, pas
+soundness-critique. **[A52]** l'estimation par la supervision de ce qui est dur à FORMALISER n'est pas
+fiable ; l'effort mesuré par celui qui formalise prime, la supervision propose un ordre, ne l'impose pas.
+**[D82]** décisions 1-3 → section L2 du plan ; **[D83]** A52 → règle 9 ; **[D84]** ce header+changelog.
+Détail : entrée « Revue de supervision L2 » de JOURNAL.md.
+
 ---
 
 ## Règles non négociables
@@ -356,6 +366,10 @@ ce header+changelog. Détail : entrée « Revue de supervision L1 » de JOURNAL.
    (force-push) ne se fait que sur accord exprès de Stéphane, jamais par Code seul.
    **[D80, revue L1] Un second vérificateur écrit depuis la spécification, pas depuis le code, est un
    test de la spécification autant que du code.**
+   **[A52, revue L2, D83] L'estimation par la supervision de ce qui est dur À FORMALISER n'est pas
+   fiable.** Leçon L2 : la « formule inverse avec dénominateurs », annoncée comme le point dur de B1, a
+   pris 40 lignes une fois la plomberie faite. L'effort mesuré par celui qui formalise prime ; la
+   supervision propose un ordre, ne l'impose pas.
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
@@ -1128,6 +1142,12 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   283 → 1 665 l. `make test` = 240 passed, 1 deselected. **`soundness` (S1) reste en `sorry` : `cnp-verify` n'est PAS
   un vérificateur prouvé.** Écart au prompt à valider par la supervision : l'ordre « B1-bis d'abord, B1 en repli » a
   été inversé (le lemme d'axe est commun aux deux chemins ; B1 direct ne touche pas au checker). (voir JOURNAL.md L2.)
+- **Décisions de la revue L2 [D82, 10/10/2026]** : **(1)** inversion B1-bis/B1 endossée — le lemme d'axe est
+  commun aux deux chemins, la formule inverse tient en ~40 lignes, le checker reste intact, surcoût nul ;
+  **(2)** PAS de contrôle d'identité à l'exécution : prouvablement redondant, surface de confiance en plus ;
+  **(3)** le constat 2 (la valeur de la coupe n'entre pas dans la soundness de la couverture ; le milieu sert à
+  RECONSTRUIRE le pavage du moteur, pas à la preuve) va au papier §5 — le contrat A14 est pratique, pas
+  soundness-critique.
 - **Prochaine étape : L3** — sémantique cinématique (K1-K4), feuilles (C2-C3), pont C4, théorèmes S1/S2.
 
 ---

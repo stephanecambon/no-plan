@@ -4648,3 +4648,35 @@ déjà, un `toMv_monomial` est à ajouter (il sort de `toMv_ofTerms`) ; (c) S1 a
 intermédiaires sur `φ ∘ γ` pour ingrédients, et n'a pas besoin de K2-K4 (décision 2 de la revue L1). **À trancher par
 la supervision** : (1) l'inversion de l'ordre B1-bis / B1 ; (2) faut-il, malgré B1 prouvé, un contrôle d'identité à
 l'exécution ; (3) le constat 2 (la valeur de la coupe n'entre pas dans la soundness de la couverture) va-t-il au papier.
+
+## 2026-10-10 — Revue de supervision L2 (claude.ai) — 10/19 prouvées, B1 direct endossé, A52
+
+*(transcrite par Code en ouverture L3, 10/10/2026, circuit A16 — texte de la revue verbatim)*
+
+Verdict : L2 validée. T1-T7, B0, B1, C1 prouvées ; 19 → 9 sorry ; `#print axioms` propre sur
+chaque lemme fermé et `sorryAx` visible sur les ouverts (le contrôle sait échouer) ; AUCUN
+énoncé modifié (comparés par script au commit L1) ; cœur exécutable, verify.py, src, tests
+zéro diff ; parité de contrôle rejouée (0 divergence). 92 théorèmes, 1 665 lignes.
+DÉCISIONS : (1) inversion B1-bis/B1 endossée — le lemme d'axe est commun aux deux chemins,
+la formule inverse tient en ~40 lignes, le checker reste intact, surcoût nul ; (2) PAS de
+contrôle d'identité à l'exécution : prouvablement redondant, surface de confiance en plus ;
+(3) constat 2 (la valeur de la coupe n'entre pas dans la soundness de la couverture ; le
+milieu sert à RECONSTRUIRE le pavage du moteur, pas à la preuve) va au papier §5 — le
+contrat A14 est pratique, pas soundness-critique.
+[A52] L'estimation par la supervision de ce qui est dur À FORMALISER n'est pas fiable : la
+« formule inverse avec dénominateurs » annoncée comme le point dur a pris 40 lignes une fois
+la plomberie faite. L'effort mesuré par celui qui formalise prime ; la supervision propose un
+ordre, ne l'impose pas.
+Constats retenus pour L3 : B1 vaut pour toute boîte, dégénérée comprise (aucune hypothèse à
+transporter) ; T1-T7 valent pour tout `Tensor n` (pas d'invariant de bonne formation) ; les
+pertes silencieuses de termes sont prouvées inatteignables.
+Diffs : D82 (décisions 1-3 → section L2) ; D83 (A52 → règle 9) ; D84 (header v1.26).
+
+**Application (ouverture L3, Code — circuit A16, commit doc séparé)** :
+- **[D82]** `CLAUDE.md` section L2 du plan : puce « Décisions de la revue L2 » (décisions 1-3).
+- **[D83]** `CLAUDE.md` règle 9 : A52 ajoutée après le bloc D80.
+- **[D84]** en-tête `CLAUDE.md` **v1.26** (10/10/2026) + paragraphe de changelog v1.25 → v1.26.
+- **Constat d'ouverture (A33)** : `git status` PROPRE (HEAD `01a1c80`) ; `lake build` vert, **9**
+  avertissements `declaration uses sorry`, zéro autre. Charge machine à l'ouverture (`uptime`) :
+  load averages 2,60 / 2,92 / 3,32 — machine NON au repos complet, à garder en tête pour tout chrono
+  de cette session (le `make test` de clôture L2 avait pris 761 s contre 363 s).
