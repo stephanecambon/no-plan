@@ -7,7 +7,7 @@ With `s = tan(q/2)` the rotation of an UNLOCKED joint about a unit axis `a` (`K 
 `I + sin·K + (1-cos)·K²` and carries no variable. Homogeneous 4×4 NUMERATOR matrices are
 accumulated along the chain over the common denominator `D = ∏ (1+sᵢ²)` (unlocked joints of
 the chain only); entry `(3,3)` of each factor is its own denominator.
-The reference real-valued kinematics and the statement relating it to `N/D` (sorry in L1) are
+The reference real-valued kinematics and the statement relating it to `N/D` (proved in L3) are
 in `CnpVerify/Spec/Kinematics.lean`.
 -/
 import CnpVerify.Tensor

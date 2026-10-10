@@ -4,7 +4,7 @@ CnpVerify.Bernstein — exact tensor-product Bernstein transform over a box (L1,
 Port of `verify.py` `_shift_matrix` / `_bern_matrix` / `_apply_axis` /
 `_bernstein_control_points` / `_bern_all_nonneg`: per variable, the affine substitution
 `s = lo + (hi - lo) x` followed by the monomial-to-Bernstein change of basis on `[0,1]` at
-degree `d` (binomial formula). The soundness statement `bernstein_nonneg` (sorry in L1) is in
+degree `d` (binomial formula). The soundness statement `bernstein_nonneg` (proved in L2) is in
 `CnpVerify/Spec/Bernstein.lean`.
 -/
 import CnpVerify.Tensor
