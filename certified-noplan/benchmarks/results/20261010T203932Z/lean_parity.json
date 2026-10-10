@@ -1,0 +1,193 @@
+{
+ "meta": {
+  "utc": "20261010T203447Z",
+  "commit": "e5c04d3298efd5a3f18d0e4969021f1ca6226b68",
+  "git_dirty": false,
+  "lean": "Lean (version 4.34.1, arm64-apple-darwin24.6.0, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+  "lake": "Lake version 5.0.0-src+5045d00 (Lean version 4.34.1)",
+  "mathlib": "v4.34.1",
+  "mathlib_commit": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+  "machine": "Darwin 25.5.0 arm64, Apple M4, 10 cores, 24 GiB, macOS 26.5.1",
+  "max_load": 1.5,
+  "driver": "benchmarks/lean_quiet_bench.py",
+  "before": {
+   "local_time": "2026-10-10T22:39:27+02:00",
+   "uptime": "22:39  up  5:16, 2 users, load averages: 1.43 2.04 2.46",
+   "loadavg": [
+    1.43,
+    2.04,
+    2.46
+   ],
+   "waited_s": 280
+  },
+  "after": {
+   "local_time": "2026-10-10T22:41:13+02:00",
+   "uptime": "22:41  up  5:18, 2 users, load averages: 2.20 2.13 2.44",
+   "loadavg": [
+    2.2,
+    2.13,
+    2.44
+   ]
+  },
+  "wall_s": 105,
+  "command": "ARCHIVE=1 make lean-parity",
+  "exit": 0,
+  "log": "benchmarks/results/20261010T203932Z/lean_parity.log"
+ },
+ "log_header": {
+  "commit": "e5c04d3298efd5a3f18d0e4969021f1ca6226b68",
+  "git_dirty_at_start": "false",
+  "lean": "Lean (version 4.34.1, arm64-apple-darwin24.6.0, commit 5045d0056413266e57c625dcd7c365b10e377c52, Release)",
+  "lake": "Lake version 5.0.0-src+5045d00 (Lean version 4.34.1)",
+  "mathlib": "d13f23b723b8a846827a245b89c10fc7d3f11612 (rev = \"v4.34.1\")",
+  "python": "Python 3.12.13",
+  "machine": "Darwin 25.5.0 arm64, Apple M4",
+  "load average at start": "{ 1.56 2.06 2.46 }"
+ },
+ "shipped": [
+  {
+   "certificate": "scenes/S1_relais.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 0.087,
+   "lean_s": 0.095,
+   "lean_wall_s": 0.264,
+   "lean_over_python": 1.09
+  },
+  {
+   "certificate": "scenes/S2_peigne.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 0.171,
+   "lean_s": 0.126,
+   "lean_wall_s": 0.144,
+   "lean_over_python": 0.73
+  },
+  {
+   "certificate": "scenes/S3_shoulder_elbow.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 0.04,
+   "lean_s": 0.033,
+   "lean_wall_s": 0.05,
+   "lean_over_python": 0.82
+  },
+  {
+   "certificate": "scenes/S4_iiwa_bin.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 0.132,
+   "lean_s": 0.081,
+   "lean_wall_s": 0.099,
+   "lean_over_python": 0.61
+  },
+  {
+   "certificate": "scenes/S5_iiwa_shelf.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 3.004,
+   "lean_s": 1.655,
+   "lean_wall_s": 1.674,
+   "lean_over_python": 0.55
+  },
+  {
+   "certificate": "scenes/S6_iiwa_real_shelf.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 2.047,
+   "lean_s": 1.669,
+   "lean_wall_s": 1.69,
+   "lean_over_python": 0.82
+  },
+  {
+   "certificate": "scenes/usecase_binpicking_iiwa7.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 1.876,
+   "lean_s": 1.594,
+   "lean_wall_s": 1.613,
+   "lean_over_python": 0.85
+  },
+  {
+   "certificate": "scenes/usecase_capot_surete_iiwa7.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 1.978,
+   "lean_s": 1.589,
+   "lean_wall_s": 1.608,
+   "lean_over_python": 0.8
+  },
+  {
+   "certificate": "scenes/wall/k3.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 0.011,
+   "lean_s": 0.009,
+   "lean_wall_s": 0.028,
+   "lean_over_python": 0.85
+  },
+  {
+   "certificate": "scenes/wall/k4.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 0.052,
+   "lean_s": 0.05,
+   "lean_wall_s": 0.068,
+   "lean_over_python": 0.97
+  },
+  {
+   "certificate": "scenes/wall/k5.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 0.205,
+   "lean_s": 0.215,
+   "lean_wall_s": 0.234,
+   "lean_over_python": 1.05
+  },
+  {
+   "certificate": "scenes/wall/k6.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 1.068,
+   "lean_s": 0.968,
+   "lean_wall_s": 0.987,
+   "lean_over_python": 0.91
+  },
+  {
+   "certificate": "scenes/wall/k7.cert.json",
+   "python": "PROOF",
+   "lean": "PROOF",
+   "python_s": 6.031,
+   "lean_s": 5.863,
+   "lean_wall_s": 5.882,
+   "lean_over_python": 0.97
+  }
+ ],
+ "summary": {
+  "shipped": 13,
+  "corpus_rejected": 43,
+  "corpus_accepted": 5,
+  "divergences": 0,
+  "corpus_rows_ok": 48,
+  "corpus_rows": 48
+ },
+ "fuzz": {
+  "seed": 20261009,
+  "cases": 1000,
+  "both_proof": 498,
+  "both_reject": 487,
+  "python_raises_lean_rejects": 15,
+  "lean_stricter_at_parsing": 0,
+  "reason_differs": 6,
+  "verdict_divergences": 0,
+  "uncaught_python_exceptions": "{'IndexError': 15}"
+ },
+ "timing": {
+  "python_s_total": 16.702,
+  "lean_s_total": 13.947,
+  "lean_over_python_total": 0.835,
+  "lean_over_python_min": 0.55,
+  "lean_over_python_max": 1.09,
+  "lean_over_python_geomean": 0.833
+ }
+}
