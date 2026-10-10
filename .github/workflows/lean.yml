@@ -37,14 +37,14 @@ concurrency:
 
 jobs:
   lean:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04      # pinned: the image of the first green run (ubuntu-latest is about to move)
     timeout-minutes: 90
     defaults:
       run:
         shell: bash
         working-directory: certified-noplan
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install elan (the toolchain is pinned by lean/lean-toolchain)
         run: |
@@ -78,7 +78,7 @@ jobs:
       - name: Certificates as Lean terms — kernel evaluation, term check, full axiom audit
         run: time bash lean/check_certs.sh
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 

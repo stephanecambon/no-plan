@@ -729,7 +729,7 @@ What the kernel pays for the array operations the checker is written with — `b
 
 **Agreement with `verify.py`** (measured, not proved): `ARCHIVE=1 make lean-parity`, archived run `benchmarks/results/20261010T173121Z/lean_parity.log` (commit `9f0366e`, clean tree): 13 shipped certificates, PROOF on both sides; adversarial corpus, 43 rejected + 5 accepted, same verdict and same reason; seeded differential fuzz, 1 000 cases: 498 PROOF on both sides, 487 REJECT on both sides, 15 where Python raises and Lean rejects, 0 verdict divergence. The binary is byte-identical to the one of L1 (the two comment edits did not change the generated C). Forward kinematics: Lean `N/D` = `verify.py`'s on 1 299 exact rational values (`scripts/lean_fk_parity.py`, replayed in L4).
 
-**CI** (`.github/workflows/lean.yml`): written and rehearsed locally (the Python side without Drake); its duration on GitHub is measured after the closing push and recorded in `JOURNAL.md`, addendum to the L4 entry.
+**CI** (`.github/workflows/lean.yml`): first run green, 10 min 8 s on a GitHub-hosted runner (4 cores, 15 GiB, Linux x86_64; run `38073783664` on commit `63c8338`): Mathlib cache 93 s, `lake build` 54 s, axiom audit 11 s, certificates gate 4 min 52 s — of which the staged kernel proof of `check wallK3 = true` is re-checked in 200 s —, parity with `verify.py` (13 certificates, corpus, fuzz 200) 106 s. The kernel evaluation is therefore replayed on every push, on a second architecture.
 
 ---
 

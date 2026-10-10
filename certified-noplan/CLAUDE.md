@@ -1218,8 +1218,8 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   noyau** (S3 : cinématique, témoin et UNE face dépassent chacun 9 Gio ; S6 : `δ² − φ²` seul dépasse 9 Gio et le littéral de
   la cinématique, 262 440 coefficients, ne passe pas l'élaborateur) ; `native_decide` les prouve en secondes au prix d'un
   axiome par usage (`…._native.native_decide.ax_…` en Lean 4.34, pas `Lean.ofReduceBool`). Terme Lean = objet parsé sur les
-  trois certificats (`lean/CertTermCheck.lean`, contrôle négatif). CI `.github/workflows/lean.yml` ; audit d'axiomes asserté
-  (`scripts/lean_axioms.py`). Cœur exécutable : deux lignes de commentaire, binaire `cnp-verify` inchangé ; `verify.py`,
+  trois certificats (`lean/CertTermCheck.lean`, contrôle négatif). CI `.github/workflows/lean.yml` (verte, 10 min 8 s, dont la preuve noyau de k3 rejouée en 200 s) ; audit
+  d'axiomes asserté (`scripts/lean_axioms.py`). Cœur exécutable : deux lignes de commentaire, binaire `cnp-verify` inchangé ; `verify.py`,
   `src/`, `tests/` zéro diff. `make test` = 240 passed, 1 deselected ; parité archivée
   (`benchmarks/results/20261010T173121Z`) : 0 divergence. SPEC v1.11 (commentaire §3). Passe biblio A28 : 2 des 4 références
   du prompt corrigées (ordre des auteurs de Magron et al. 2015 ; « ValidSDP 2018 » = Martin-Dorel & Roux, CPP 2017).

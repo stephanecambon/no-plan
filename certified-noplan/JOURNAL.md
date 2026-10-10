@@ -5291,3 +5291,15 @@ seul, trois axiomes), à condition de dire « staged » ; (2) garder ou retirer 
 (6) le Théorème 1 du brouillon dit « certified bodies » au pluriel, le format et l'énoncé Lean ont UN corps ;
 (7) rejouer `make lean-kernel-bench` sur machine quiète avant de citer un chrono ; (8) mention du vérificateur Lean
 dans le README public.
+
+**Addendum L4 — CI mesurée (10/10/2026, 20 h 07).** Premier run de `.github/workflows/lean.yml`, déclenché par le push
+de clôture (`63c8338`), run GitHub `38073783664`, `ubuntu-latest` (4 cœurs, 15 Gio, x86_64) : **VERT du premier coup,
+10 min 8 s.** Par étape : installation d'elan < 1 s, toolchain 12 s ; `lake exe cache get` 93 s ; `lake build` 54 s
+(aucun `sorry`) ; audit d'axiomes des 19 et des lemmes cités 11 s ; `lean/check_certs.sh` 4 min 52 s, dont
+**`Certs.WallK3Kernel` 200 s — la preuve noyau de k3 est donc rejouée en CI, sur Linux x86_64** (plus vite que sur le
+Mac chargé : 277 à 359 s) ; environnement Python sans Drake ni Mosek 33 s ; parité 106 s (13 certificats, corpus
+43 + 5, fuzz 200 : 91 PROOF / 105 REJECT / 4 où Python lève, 0 divergence de verdict). **Le cache Mathlib ne rend pas
+le job trop long** : 93 s sur 608. Deux annotations non bloquantes, traitées dans le commit qui porte cet addendum :
+(1) `actions/checkout@v4` et `actions/setup-python@v5` visent Node 20, déprécié → `@v7` (dernières majeures, lues par
+l'API GitHub : `node24`) ; (2) `ubuntu-latest` passe à Ubuntu 26 à partir du 19 octobre 2026 → `runs-on: ubuntu-24.04`,
+l'image de ce run. Le run déclenché par ce changement est consigné à la ligne suivante.
