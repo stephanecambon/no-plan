@@ -1,6 +1,6 @@
 # CLAUDE.md — certified-noplan
 
-Version 1.27 — 10 octobre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/S12/P1/P2/S14/L1/L2/L3 ; v1.0..v1.26 dans git).
+Version 1.28 — 10 octobre 2026 (révision post-S7/S8 + pilotage + D26 + revues S9a-suite/S9c/DECISION-G2/S9e/S9f/G4'/S10-bis/S10-ter/S10-quinquies + arbitrage robot réaliste S10 + revues S11/S12/P1/P2/S14/L1/L2/L3/L4 + relecture des définitions de référence ; v1.0..v1.27 dans git).
 **[Numérotation]** — **v1.21 = D66, appliqué a posteriori le 29/09/2026** (ouverture S15) : la
 revue S12 (09/09) avait été livrée sans être remise dans un prompt, faute de circuit supervision ;
 elle est transcrite au journal en ouverture S15 avec D64/D65. Le lot P1 (D67-D70) avait pris
@@ -254,6 +254,24 @@ parité rejouée ; **(5)** constats 1-6 au papier (sous-section « What soundnes
 est un résultat à part entière. **[D85]** décisions 1-5 → section L3 du plan ; **[D86]** A53 → règle 9 ;
 **[D87]** ce header+changelog. Détail : entrée « Revue de supervision L3 » de JOURNAL.md.
 
+Changements v1.27 → v1.28 (revue L4, relecture des définitions de référence, **[A54]**, D88-D90) : **L4 validée —
+preuve noyau de k3 endossée (staged)** : `check wallK3 = true` prouvé par le noyau seul ⟹ `wallK3_disconnected_ref`
+aux trois axiomes standard ; pour cette scène, compilateur, runtime, binaire et parseur sortent de la base de
+confiance ; S3 et S6 hors de portée du noyau, `native_decide` au prix d'un axiome par usage. Décisions 1-8 :
+**(1)** la preuve par étapes vaut « évaluation dans le noyau », en disant « staged » ; **(2)** théorèmes `_native`
+gardés, jamais cités comme vérifiés par le noyau ; **(3)** lakefile/Makefile validés ; **(4)** SPEC v1.11 validée ;
+**(5)** jumeau du checker pour le noyau : pas maintenant, future work ; **(6)** théorème 1 : un corps par
+certificat ; **(7)** aucun chrono L4 cité avant re-bench sur machine quiète (L4-bis) ; **(8)** README public, court.
+**Définitions de référence validées** par la relecture de la supervision (sept conventions cinématiques vérifiées
+contre `verify.py` ET contre la convention standard ; rien à corriger dans Lean ; cinq points pour le papier, dont
+« start/goal ∈ boîte » non testé = condition de sens → S13, groupé D69). **Benchs à rejouer quiet ; README.**
+Passe biblio : troisième fois que des citations de mémoire de la supervision sont fausses — plus aucune citation
+dans un prompt sans vérification préalable (A28, renforcé). **[A54]** la relecture d'une définition de référence
+se fait contre l'implémentation ET contre la convention standard indépendante, par un tiers. **[D88]** décisions
+1-8 → section L4 du plan ; **[D89]** relecture → section L4, A54 → règle 9, « start/goal ∈ boîte » → S13 ;
+**[D90]** ce header+changelog. Détail : entrées « Revue de supervision L4 » et « Relecture des définitions de
+référence Lean par la supervision » de JOURNAL.md.
+
 ---
 
 ## Règles non négociables
@@ -387,6 +405,11 @@ est un résultat à part entière. **[D85]** décisions 1-5 → section L3 du pl
    de SOUNDNESS vs cohérence avec le générateur). À extraire systématiquement de toute preuve
    mécanisée. Leçon L3 : la preuve de S1 jette le contrôle cinématique ; axes unitaires et
    cos²+sin²=1 sont des conditions de sens (l'énoncé parle de rotations), pas de soundness.
+   **[A54, relecture L4, D89] La relecture d'une définition de RÉFÉRENCE se fait contre
+   l'implémentation qu'elle reflète ET contre la convention standard indépendante, par quelqu'un qui
+   n'a écrit ni l'une ni l'autre** : deux objets accordés peuvent partager une erreur ; seule la
+   troisième référence la révélerait. Leçon : les sept conventions cinématiques vérifiées des deux
+   côtés (`verify.py`, produit vectoriel droitier / demi-angle / composition affine).
 10. **macOS arm64** : Python Homebrew 3.12, venv `.venv`, `make setup`
     (installe `.[drake,dev]` depuis S1). Modèles Drake téléchargés une fois
     (cache local) ; pré-télécharger avant les sessions qui en dépendent (S9-S10).
@@ -1057,6 +1080,9 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   diff de `verify.py` vaut plus qu'une ligne ; règles 1 et 4 (suite adversariale complète,
   < 500 lignes). Pas un défaut de soundness (le vérificateur lève au lieu d'accepter). Le papier
   porte déjà la phrase honnête (D-P2 (a)).
+  **[D89, relecture L4 — ajouté à la liste D69, groupé, jamais isolé]** test `start_s`, `goal_s` ∈ boîte
+  (condition de sens, une ligne, `verify.py` ET checker Lean, parité à rejouer) : aujourd'hui ni l'un ni
+  l'autre ne le teste ; hors boîte ⟹ théorème vacuously vrai.
 - **[D65, revue S12 — FW-perf]** (soundness NON concernée) : build FK sympy ~39 s par process (cache
   par scène / Drake RationalFK) ; `_body_numerators` calculé deux fois ; l'audit par feuille de l'export
   coûte ≈ un verify complet (A47 : on garde l'arbitre comme garde, on n'optimise pas en le
@@ -1226,6 +1252,33 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   **Chronos pris sur machine NON quiète** (jeu en cours) : à rejouer (`make lean-kernel-bench`) avant citation. Écarts à
   valider par la supervision : preuve par étapes au lieu de `by decide` ; `lakefile.toml` (+ bibliothèque `Certs`, hors
   cibles par défaut) et `Makefile` (+ deux cibles) modifiés ; théorèmes `…_native` pour S3 et S6. (voir JOURNAL.md L4.)
+- **Décisions de la revue L4 [D88, 10/10/2026]** : **(1)** la preuve par étapes VAUT « évaluation dans le noyau », en
+  disant « staged » — chaque étape est une équation vérifiée par le noyau, la composition est une preuve vérifiée par le
+  noyau, les valeurs intermédiaires ne sont PAS de confiance ; phrase du papier : « checked by the Lean kernel alone, as a
+  staged evaluation of 34 kernel-reduced equations » ; **(2)** théorèmes `_native` de S3/S6 : GARDÉS, dans un fichier dont
+  le nom dit `native`, jamais cités comme vérifiés par le noyau — leur `#print axioms` documente l'écart ;
+  **(3)** lakefile/Makefile : validés ; **(4)** SPEC v1.11 : validée ; **(5)** jumeau du checker pour le noyau (porter S6
+  au statut de k3) : PAS maintenant — k3 établit que le compilateur est RETIRABLE, l'étendre est de l'ingénierie, future
+  work dit tel quel ; **(6)** « certified bodies » au pluriel dans le théorème 1 : erreur du papier, un corps par
+  certificat, corrigé par la supervision ; **(7)** AUCUN chrono L4 cité avant re-bench sur machine quiète (objet de
+  L4-bis) ; **(8)** README public : oui, court — base de confiance, distinction compilé / noyau.
+- **Relecture des définitions de référence par la supervision [D89, 10/10/2026]** : définitions VALIDÉES, **rien à
+  corriger dans Lean**. Lues dans le source (`Spec/Kinematics.lean`, `Soundness.lean`, `Kinematics.lean`,
+  `Certs/WallK3.lean`), confrontées à `verify.py` ET, indépendamment, à la convention mathématique standard (A54, règle 9).
+  Sept conventions vérifiées des deux côtés : `skew` (produit vectoriel droitier) ; `rodrigues` (même objet que le
+  numérateur de `_rot_homog`, sens direct) ; demi-angle standard (le verrou ignore `s`) ; `Rigid.comp` (composition
+  affine) ; `refStep` (⟨R, offset⟩ composé à droite = `T = (T·Trans)·Rot`) ; joints 0..link inclus, départ identité ;
+  k-ième joint libre lit s_k. Objets non cinématiques : obstacle = ∩ de demi-espaces FERMÉS en coordonnées monde ; corps =
+  `convexHull ℝ` des sommets déplacés ; `CollisionFreeRef` quantifie sur TOUS les obstacles ; ¬∃γ = déconnexion de
+  l'espace libre. Chaîne de confiance cinématique, chaque maillon d'une nature différente : définitions (lues) =
+  polynômes du checker (K2, prouvé) = `verify.py` (1 299 valeurs, mesuré) = Drake (2·10⁻⁶ m, mesuré S10-bis).
+  **Cinq points pour le papier (v2, supervision)** : (1) UN corps par certificat (théorème 1, §3.1, §3.6 ; la « variante
+  deux-corps » du §6.2 est une mesure moteur, pas un certificat livré) ; (2) pont q ↔ s = homéomorphisme croissant par
+  coordonnée, une remarque au §4, à ne PAS formaliser ; (3) convention par joint à écrire au §3.2, une clause ;
+  (4) **start et goal ∈ boîte : NI `verify.py` NI le checker Lean ne le testent** — hors boîte ⟹ théorème vacuously vrai,
+  condition de SENS (famille de q* = 0 et « lien dans la chaîne ») : une phrase au papier + un test d'une ligne en S13
+  (groupé D69) ; (5) les hypothèses du théorème 1 sont de trois natures (soundness / sens / accord avec le générateur) —
+  tri de L3 confirmé, point 4 ajouté. (voir JOURNAL.md, « Relecture des définitions de référence Lean par la supervision ».)
 - **Prochaine étape** : relecture des définitions de référence par la supervision (`docs/paper/LEAN-NOTES.md`, partie b) ;
   v2 du papier (section « A machine-checked verifier ») ; preprint. Piste ouverte, non décidée : un jumeau du checker écrit
   pour le noyau et prouvé égal à `check`, seul chemin vu pour porter S6 au statut de k3.

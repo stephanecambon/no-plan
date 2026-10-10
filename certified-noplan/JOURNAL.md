@@ -5306,3 +5306,96 @@ l'image de ce run. Le run déclenché par ce changement est consigné à la lign
 **Second run** (commit `5ea244e`, run `38074577122`, `ubuntu-24.04`, `actions/checkout@v7`, `actions/setup-python@v7`) :
 **VERT, 9 min 58 s, plus aucune annotation** ; `Certs.WallK3Kernel` 197 s ; audit d'axiomes OK (les deux passes) ; parité
 fuzz 200 : 0 divergence de verdict.
+
+## 2026-10-10 — Revue de supervision L4 (claude.ai) — preuve noyau de k3 endossée, décisions 1-8
+
+*(transcrite par Code en ouverture L4-bis, 10/10/2026, circuit A16 — texte de la revue verbatim)*
+
+Verdict : L4 validée. `check wallK3 = true` prouvé par le NOYAU SEUL ⟹ `wallK3_disconnected_ref`
+aux trois axiomes standard : pour cette scène, compilateur, runtime, binaire et parseur SORTENT
+de la base de confiance. Par une preuve PAR ÉTAPES (34 évaluations `decide +kernel` recollées
+par des lemmes de recollement) : `by decide` échoue par transparence (`Rat` irréductible), une
+évaluation unique épuise la mémoire — le noyau n'a pas de tableaux (×25-30 sur `Array` de 125
+à 625 entrées contre ×5 pour une boucle). S3 et S6 hors de portée du noyau (> 9 Gio sur une
+seule face / un seul produit) ; `native_decide` les prouve en secondes au prix d'un axiome PAR
+USAGE, visible dans `#print axioms`. Terme Lean = objet parsé (contrôle à l'exécution + contrôle
+négatif). Cœur Lean : deux commentaires ; `verify.py`, `src/`, `tests/`, énoncés, preuves : zéro
+diff. CI verte. Passe biblio A28 : DEUX des quatre références de MÉMOIRE du prompt de supervision
+étaient fausses (Magron et al. 2015 : Magron premier auteur ; « Roux–Voronin–Magron ValidSDP
+2018 » n'existe pas — ValidSDP = Martin-Dorel & Roux, CPP 2017) : troisième fois que la passe
+attrape la supervision sur des citations de mémoire — plus aucune citation dans un prompt sans
+vérification préalable (A28, renforcé).
+DÉCISIONS : (1) la preuve par étapes VAUT « évaluation dans le noyau », en disant « staged » —
+chaque étape est une équation vérifiée par le noyau, la composition est une preuve vérifiée par
+le noyau, les valeurs intermédiaires ne sont PAS de confiance ; phrase du papier : « checked by
+the Lean kernel alone, as a staged evaluation of 34 kernel-reduced equations » ; (2) théorèmes
+`_native` de S3/S6 : GARDÉS, dans un fichier dont le nom dit `native`, jamais cités comme
+vérifiés par le noyau — leur `#print axioms` documente l'écart ; (3) lakefile/Makefile :
+validés ; (4) SPEC v1.11 : validée ; (5) jumeau du checker pour le noyau (porter S6 au statut de
+k3) : PAS maintenant — k3 établit que le compilateur est RETIRABLE, l'étendre est de
+l'ingénierie, future work dit tel quel ; (6) « certified bodies » au pluriel dans le théorème 1 :
+erreur du papier, un corps par certificat, corrigé par la supervision ; (7) AUCUN chrono L4 cité
+avant re-bench sur machine quiète (objet de L4-bis) ; (8) README public : oui, court — base de
+confiance, distinction compilé / noyau.
+Diffs : D88 (décisions 1-8 → section L4) ; voir D89-D90 ci-dessous.
+
+## 2026-10-10 — Relecture des définitions de référence Lean par la supervision (claude.ai) — définitions VALIDÉES ; cinq points pour le papier ; A54
+
+*(transcrite par Code en ouverture L4-bis, 10/10/2026, circuit A16 — texte de la relecture verbatim)*
+
+Objet : la seule pièce de la base de confiance qui exige un lecteur n'ayant pas écrit les
+preuves. Lu dans le SOURCE (`Spec/Kinematics.lean:17-67`, `Soundness.lean:22-48`,
+`Kinematics.lean:50`, `Certs/WallK3.lean`), pas dans les extraits de LEAN-NOTES (fidèles,
+vérifié) ; confronté à `verify.py:171-219, 246-276` ET, indépendamment, à la convention
+mathématique standard — parce que Lean = Python pourrait partager la même erreur.
+Les sept conventions, chacune vérifiée des DEUX côtés : (1) `skew` = table de `_skew`
+(l. 171-174) ET produit vectoriel droitier ((a×v)₀ = a₁v₂ − a₂v₁) ; (2) `rodrigues` =
+`I + sin·K + (1−cos)·K²` ; le numérateur `den·δ + 2s·K + 2s²·K²` de `_rot_homog` est le même
+objet (2s²/(1+s²) = 1−cos) ; test indépendant a = z, q = +90° ⟹ x ↦ y, sens direct ;
+(3) demi-angle standard, verrou ignore `s` (`s_index=None`) ; (4) `Rigid.comp` = composition
+affine ⟨GH, G·h_t + g_t⟩ ; (5) `refStep` compose ⟨R, offset⟩ = (y ↦ Ry + offset) À DROITE,
+exactement `T = (T·Trans)·Rot` (l. 275) ; (6) joints 0..link inclus, départ identité
+(`range(body_link+1)`, T = I) ; (7) k-ième joint libre lit s_k, les verrous n'avancent pas
+(`s_of`, l. 254). Objets non cinématiques : obstacle = ∩ de demi-espaces FERMÉS en coordonnées
+monde ; corps = `convexHull ℝ` des sommets déplacés (un déplacement rigide est affine) ;
+`CollisionFreeRef` quantifie sur TOUS les obstacles ; la conclusion ¬∃γ est exactement la
+déconnexion de l'espace libre. RIEN À CORRIGER DANS LEAN. Chaîne de confiance cinématique
+complète, chaque maillon d'une nature différente : définitions (lues) = polynômes du checker
+(K2, prouvé) = `verify.py` (1 299 valeurs, mesuré) = Drake (2·10⁻⁶ m, mesuré S10-bis).
+Cinq points pour le PAPIER (v2, supervision) : (1) UN corps par certificat — théorème 1,
+§3.1 « some certified body », §3.6 « Different pairs have different passive sets » (toutes les
+paires d'un certificat partagent le corps, donc l'ensemble actif ; la « variante deux-corps »
+du §6.2 est une mesure moteur, pas un certificat livré) ; (2) pont q ↔ s : §3.1 définit P en
+angles, certificat/checker/Lean sont en s ; le pont est un homéomorphisme croissant par
+coordonnée ((q*−π, q*+π) → ℝ) — une remarque au §4, à ne PAS formaliser ; (3) la convention
+par joint n'est pas écrite au §3.2 (« frame of joint i = frame of joint i−1 translated by
+offset_i then rotated by q_i about axis_i; link i is that frame ») — une clause ; (4) start
+et goal ∈ boîte : NI `verify.py` NI le checker Lean ne le testent (seul le cross-check scène
+les compare au fichier) ; hors boîte ⟹ théorème vacuously vrai — condition de SENS, même
+famille que q* = 0 et « lien dans la chaîne » ; une phrase au papier + un test d'une ligne au
+chantier S13 (groupé D69) ; (5) les hypothèses du théorème 1 sont de trois natures et le papier
+les présente à plat — le tri de L3 (soundness / sens / accord avec le générateur) est confirmé
+par la relecture, qui y ajoute le point 4.
+[A54] La relecture d'une définition de RÉFÉRENCE se fait contre l'implémentation qu'elle
+reflète ET contre la convention standard indépendante, par quelqu'un qui n'a écrit ni l'une
+ni l'autre : deux objets accordés peuvent partager une erreur ; seule la troisième référence
+la révélerait. Leçon : les sept conventions cinématiques vérifiées des deux côtés (verify.py,
+produit vectoriel droitier / demi-angle / composition affine).
+Diffs : D89 (relecture → section L4 ; A54 → règle 9 ; « start/goal ∈ boîte » → S13) ; D90
+(header CLAUDE.md v1.28, changelog « v1.27→v1.28 (revue L4, relecture, A54) : preuve noyau k3
+endossée (staged) ; définitions de référence validées ; benchs à rejouer quiet ; README »).
+
+**Application (ouverture L4-bis, Code — circuit A16, commit doc séparé)** :
+- **[D88]** `CLAUDE.md` section L4 du plan : puce « Décisions de la revue L4 » (décisions 1-8).
+- **[D89]** `CLAUDE.md` section L4 du plan : puce « Relecture des définitions de référence » ; règle 9 : A54 ajoutée
+  après le bloc A53 ; section S13 : « test `start_s`, `goal_s` ∈ boîte » ajouté à la puce D69 (groupé, jamais isolé).
+- **[D90]** en-tête `CLAUDE.md` **v1.28** (10/10/2026) + paragraphe de changelog v1.27 → v1.28.
+- **Renvois de ligne de la relecture, recomptés contre le source (A48)** : `_skew` = `src/cnp/verify.py:171-174` ✓ ;
+  `T = (T·Trans)·Rot` = l. 275 ✓ ; `range(body_link + 1)` = l. 265 ✓ ; **`s_of` est défini l. 261** (et lu
+  l. 273-274), pas l. 254 — la ligne 254 est le test `q_star = 0` ; l'intervalle cité 246-276 le contient, le fond
+  est inchangé. Texte transcrit tel quel, écart consigné ici.
+- **Constat d'ouverture (A33)** : `git status` PROPRE, HEAD `cd27cd1` = `origin/main` (clôture L4 poussée).
+  **Machine quiète VÉRIFIÉE** : à l'ouverture (22 h 10) la charge était de 3,58 / 4,10 / 4,24 (Spotify ~120 % de CPU,
+  machine virtuelle Docker ~60 %) ; Stéphane a fermé les deux ; charge 1 min échantillonnée toutes les 20 s,
+  **1,48 à 22 h 15 min 31 s**, seuil de 1,5 franchi 2 min 40 s après la relance. `make test` lancé ensuite, EN PREMIER,
+  avant tout bench.
