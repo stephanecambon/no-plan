@@ -636,6 +636,15 @@ theorem eval_monomial (e : Array ℕ) (c : ℚ) (x : Fin n → ℝ) :
     (monomial e c : Tensor n).eval x = (c : ℝ) * ∏ i : Fin n, x i ^ e.getD i.val 0 := by
   rw [eval_eq_aeval, toMv_monomial, aeval_mono]
 
+/-- A fold of sums denotes the sum of the values. -/
+theorem eval_foldl_add {α : Type} (l : List α) (F : α → Tensor n) (init : Tensor n)
+    (s : Fin n → ℝ) :
+    (l.foldl (fun acc a => acc + F a) init).eval s
+      = init.eval s + (l.map fun a => (F a).eval s).sum := by
+  induction l generalizing init with
+  | nil => simp
+  | cons a l ih => simp [ih, eval_add, add_assoc]
+
 /-! ### Continuity (used by the intermediate value theorem in `soundness`) -/
 
 /-- A tensor denotes a continuous function `ℝⁿ → ℝ`: it is the evaluation of the polynomial

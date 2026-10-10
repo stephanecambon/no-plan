@@ -119,28 +119,285 @@ theorem bodyDenominator_pos (n : ℕ) (chain : Array Joint) (link : ℕ) (s : Fi
       positivity
     | some _ => exact hst
 
+/-! ### The polynomial matrices represent rigid motions
+
+A `Mat4` evaluated at `s` is `d · [R t; 0 1]` for a real rigid motion `(R, t)` and a scalar `d`
+(the common denominator so far). The product of polynomial matrices then represents the
+composition of the motions, with the product of the scalars. -/
+
+section Represents
+
+variable {n : ℕ}
+
+theorem Mat4.get_ofFn (f : Fin 4 → Fin 4 → Tensor n) (i j : Fin 4) :
+    (Mat4.ofFn f).get i j = f i j := by
+  simp [Mat4.get, Mat4.ofFn]
+
+/-- Entries of a product of polynomial matrices, evaluated. -/
+theorem Mat4.eval_mul_get (A B : Mat4 n) (i j : Fin 4) (s : Fin n → ℝ) :
+    ((A.mul B).get i j).eval s = ∑ k : Fin 4, (A.get i k).eval s * (B.get k j).eval s := by
+  unfold Mat4.mul
+  rw [Mat4.get_ofFn, Tensor.eval_foldl_add, Tensor.eval_zero, zero_add, Fin.sum_univ_def]
+  simp only [Tensor.eval_mul]
+
+/-- `M`, evaluated at `s`, is `d` times the homogeneous matrix `[R t; 0 1]` of the rigid
+motion `g = (R, t)`. -/
+structure Mat4.Represents (M : Mat4 n) (s : Fin n → ℝ) (d : ℝ) (g : Rigid) : Prop where
+  rot : ∀ i j : Fin 3, (M.get i.castSucc j.castSucc).eval s = d * g.rot i j
+  trans : ∀ i : Fin 3, (M.get i.castSucc (Fin.last 3)).eval s = d * g.trans i
+  bot : ∀ j : Fin 3, (M.get (Fin.last 3) j.castSucc).eval s = 0
+  corner : (M.get (Fin.last 3) (Fin.last 3)).eval s = d
+
+theorem Mat4.Represents.mul {A B : Mat4 n} {s : Fin n → ℝ} {d e : ℝ} {g h : Rigid}
+    (hA : A.Represents s d g) (hB : B.Represents s e h) :
+    (A.mul B).Represents s (d * e) (g.comp h) := by
+  constructor
+  · intro i j
+    rw [Mat4.eval_mul_get, Fin.sum_univ_castSucc]
+    simp only [hA.rot, hB.rot, hA.trans, hB.bot, Rigid.comp, Matrix.mul_apply, Finset.mul_sum]
+    rw [mul_zero, add_zero]
+    exact Finset.sum_congr rfl fun k _ => by ring
+  · intro i
+    rw [Mat4.eval_mul_get, Fin.sum_univ_castSucc]
+    simp only [hA.rot, hB.trans, hA.trans, hB.corner, Rigid.comp, Matrix.mulVec, dotProduct,
+      Pi.add_apply, mul_add, Finset.mul_sum]
+    congr 1
+    · exact Finset.sum_congr rfl fun k _ => by ring
+    · ring
+  · intro j
+    rw [Mat4.eval_mul_get, Fin.sum_univ_castSucc]
+    simp only [hA.bot, hB.bot, zero_mul, mul_zero, Finset.sum_const_zero, add_zero]
+  · rw [Mat4.eval_mul_get, Fin.sum_univ_castSucc]
+    simp only [hA.bot, hA.corner, hB.corner, zero_mul, Finset.sum_const_zero, zero_add]
+
+theorem castSucc_ne_three (i : Fin 3) : i.castSucc ≠ (3 : Fin 4) := Fin.castSucc_ne_last i
+
+theorem represents_one (s : Fin n → ℝ) : (Mat4.one : Mat4 n).Represents s 1 ⟨1, 0⟩ := by
+  constructor
+  · intro i j
+    by_cases hij : i = j <;>
+      simp [Mat4.one, Mat4.get_ofFn, Tensor.eval_const, Tensor.eval_zero, Matrix.one_apply, hij]
+  · intro i
+    simp [Mat4.one, Mat4.get_ofFn, Tensor.eval_zero, castSucc_ne_three i]
+  · intro j
+    simp [Mat4.one, Mat4.get_ofFn, Tensor.eval_zero, (castSucc_ne_three j).symm]
+  · simp [Mat4.one, Mat4.get_ofFn, Tensor.eval_const]
+
+theorem represents_trans (o : Vec3) (s : Fin n → ℝ) :
+    (transHomog n o).Represents s 1 ⟨1, vecR o⟩ := by
+  constructor
+  · intro i j
+    by_cases hij : i = j
+    · simp [transHomog, Mat4.get_ofFn, Tensor.eval_const, Matrix.one_apply, hij]
+    · have hj : ¬ (j : ℕ) = 3 := j.isLt.ne
+      simp [transHomog, Mat4.get_ofFn, Tensor.eval_zero, hij, hj]
+  · intro i
+    simp [transHomog, Mat4.get_ofFn, Tensor.eval_const, castSucc_ne_three i, vecR]
+  · intro j
+    simp [transHomog, Mat4.get_ofFn, Tensor.eval_zero, (castSucc_ne_three j).symm]
+  · simp [transHomog, Mat4.get_ofFn, Tensor.eval_const]
+
+theorem skewR_apply (a : Vec3) (i j : Fin 3) : skewR a i j = ((skew a i j : ℚ) : ℝ) := rfl
+
+/-- `skewSq` is the square of the cross-product matrix. -/
+theorem skewR_mul_self_apply (a : Vec3) (i j : Fin 3) :
+    (skewR a * skewR a) i j = ((skewSq a i j : ℚ) : ℝ) := by
+  unfold skewSq
+  rw [Tensor.foldl_add_eq_sum, zero_add, ← Fin.sum_univ_def, Matrix.mul_apply]
+  push_cast
+  rfl
+
+theorem represents_rot_locked (a : Vec3) (idx : ℕ) (co si : ℚ) (s : Fin n → ℝ) :
+    (rotHomog n a idx (some (co, si))).Represents s 1 ⟨rodrigues a (co : ℝ) (si : ℝ), 0⟩ := by
+  constructor
+  · intro i j
+    simp only [rotHomog, Mat4.get_ofFn, Fin.val_castSucc, i.isLt, j.isLt, and_self, dite_true,
+      Tensor.eval_const, one_mul, rodrigues, Matrix.add_apply, Matrix.smul_apply, smul_eq_mul,
+      Matrix.one_apply, skewR_mul_self_apply, skewR_apply, Fin.castSucc_inj, Fin.eta]
+    push_cast
+    by_cases hij : i = j <;> simp [hij]
+  · intro i
+    have hi : ¬ (i : ℕ) = 3 := i.isLt.ne
+    simp [rotHomog, Mat4.get_ofFn, Tensor.eval_zero, hi]
+  · intro j
+    have hj : ¬ (j : ℕ) = 3 := j.isLt.ne
+    simp [rotHomog, Mat4.get_ofFn, Tensor.eval_zero, hj]
+  · simp [rotHomog, Mat4.get_ofFn, Tensor.eval_const]
+
+theorem represents_rot_unlocked (a : Vec3) (idx : ℕ) (s : Fin n → ℝ) :
+    (rotHomog n a idx none).Represents s (1 + varAt s idx ^ 2)
+      ⟨rodrigues a ((1 - varAt s idx ^ 2) / (1 + varAt s idx ^ 2))
+        (2 * varAt s idx / (1 + varAt s idx ^ 2)), 0⟩ := by
+  have hpos : (1 + varAt s idx ^ 2) ≠ 0 := by positivity
+  constructor
+  · intro i j
+    simp only [rotHomog, Mat4.get_ofFn, Fin.val_castSucc, i.isLt, j.isLt, and_self, dite_true,
+      Tensor.eval_add, Tensor.eval_scale, eval_unit, rodrigues, Matrix.add_apply,
+      Matrix.smul_apply, smul_eq_mul, Matrix.one_apply, skewR_mul_self_apply, skewR_apply,
+      Fin.castSucc_inj, Fin.eta]
+    by_cases hij : i = j
+    · simp only [hij, ite_true, eval_onePlusSq]
+      field_simp
+      push_cast
+      ring
+    · simp only [hij, ite_false, Tensor.eval_zero]
+      field_simp
+      push_cast
+      ring
+  · intro i
+    have hi : ¬ (i : ℕ) = 3 := i.isLt.ne
+    simp [rotHomog, Mat4.get_ofFn, Tensor.eval_zero, hi]
+  · intro j
+    have hj : ¬ (j : ℕ) = 3 := j.isLt.ne
+    simp [rotHomog, Mat4.get_ofFn, Tensor.eval_zero, hj]
+  · simp [rotHomog, Mat4.get_ofFn, eval_onePlusSq]
+
+theorem Mat4.Represents.congr {M : Mat4 n} {s : Fin n → ℝ} {d d' : ℝ} {g g' : Rigid}
+    (h : M.Represents s d g) (hd : d = d') (hg : g = g') : M.Represents s d' g' :=
+  hd ▸ hg ▸ h
+
+/-- One joint: the polynomial step and the reference step stay in correspondence, provided an
+unlocked joint reads a variable index `< n`. -/
+theorem fkStep_represents (s : Fin n → ℝ) (j : Joint) (st : FKState n) (rs : RefState)
+    (hvar : st.nextVar = rs.nextVar)
+    (hrep : st.pose.Represents s (st.den.eval s) rs.pose)
+    (hlt : j.locked = none → rs.nextVar < n) :
+    (fkStep n st j).nextVar = (refStep s rs j).nextVar
+      ∧ (fkStep n st j).pose.Represents s ((fkStep n st j).den.eval s) (refStep s rs j).pose := by
+  rcases hj : j.locked with _ | ⟨co, si⟩
+  · have hlt' := hlt hj
+    have hv : varAt s st.nextVar = s ⟨rs.nextVar, hlt'⟩ := by
+      simp [varAt, hvar, hlt']
+    refine ⟨by simp [fkStep, refStep, hj, hvar], ?_⟩
+    simp only [fkStep, refStep, hj, Joint.homog, Joint.rotation, dite_eq_left hlt']
+    refine (hrep.mul ((represents_trans j.offset s).mul
+      (represents_rot_unlocked j.axis st.nextVar s))).congr ?_ ?_
+    · rw [Tensor.eval_mul, eval_onePlusSq, one_mul]
+    · simp [Rigid.comp, hv]
+  · refine ⟨by simp [fkStep, refStep, hj, hvar], ?_⟩
+    simp only [fkStep, refStep, hj, Joint.homog, Joint.rotation]
+    refine (hrep.mul ((represents_trans j.offset s).mul
+      (represents_rot_locked j.axis st.nextVar co si s))).congr ?_ ?_
+    · rw [one_mul, mul_one]
+    · simp [Rigid.comp]
+
+theorem refStep_nextVar (s : Fin n → ℝ) (rs : RefState) (j : Joint) :
+    (refStep s rs j).nextVar = rs.nextVar + (if j.locked.isNone then 1 else 0) := by
+  unfold refStep
+  cases j.locked <;> simp
+
+/-- The invariant along the chain. -/
+theorem fkFold_represents (s : Fin n → ℝ) (l : List Joint) (st : FKState n) (rs : RefState)
+    (hvar : st.nextVar = rs.nextVar)
+    (hrep : st.pose.Represents s (st.den.eval s) rs.pose)
+    (hcount : rs.nextVar + (l.filter (·.locked.isNone)).length ≤ n) :
+    (l.foldl (fkStep n) st).pose.Represents s ((l.foldl (fkStep n) st).den.eval s)
+      (l.foldl (refStep s) rs).pose := by
+  induction l generalizing st rs with
+  | nil => exact hrep
+  | cons j l ih =>
+    simp only [List.foldl_cons]
+    have hlt : j.locked = none → rs.nextVar < n := by
+      intro hj
+      simp [hj] at hcount
+      omega
+    obtain ⟨h1, h2⟩ := fkStep_represents s j st rs hvar hrep hlt
+    refine ih _ _ h1 h2 ?_
+    rw [refStep_nextVar]
+    by_cases hj : j.locked.isNone <;> simp [hj] at hcount ⊢ <;> omega
+
+end Represents
+
 /-- [K2] The polynomial kinematics is the reference kinematics: the world position of the
-body-frame point `p` of link `link` is `eval (N·p) / eval D`. -/
+body-frame point `p` of link `link` is `eval (N·p) / eval D`.
+
+Proof (L3): along the chain, the pose numerator matrix of the checker evaluated at `s` is `D(s)`
+times the homogeneous matrix of the reference pose (`fkFold_represents`, by induction on the
+joints: `Trans(offset) · Rot` on one side, `translate(offset) ∘ rotate` on the other, the factor
+`1 + s²` of an unlocked joint going to `D`). The hypothesis `unlockedUpTo chain link ≤ n` is what
+makes every unlocked joint of the chain read an actual variable: beyond `n`, the checker's
+polynomials read the constant `1` and the reference reads `0`. `D(s) ≠ 0` is K1. -/
 theorem body_position (n : ℕ) (chain : Array Joint) (link : ℕ) (p : Vec3) (s : Fin n → ℝ)
     (hn : unlockedUpTo chain link ≤ n) (i : Fin 3) :
     (linkPose chain link s).apply (vecR p) i
       = ((bodyNumerators n chain link p)[i]).eval s / (bodyDenominator n chain link).eval s := by
-  sorry
+  have hD := bodyDenominator_pos n chain link s
+  have hrep : (bodyPose n chain link).Represents s ((bodyDenominator n chain link).eval s)
+      (linkPose chain link s) := by
+    unfold bodyPose bodyDenominator bodyFK linkPose
+    rw [← Array.foldl_toList, ← Array.foldl_toList]
+    refine fkFold_represents s _ _ _ rfl ?_ ?_
+    · simpa [Tensor.eval_const] using represents_one (n := n) s
+    · change 0 + _ ≤ n
+      rw [Nat.zero_add, ← Array.toList_filter, Array.length_toList]
+      exact hn
+  rw [eq_div_iff hD.ne']
+  have e0 : ((bodyPose n chain link).get ⟨i.val, by omega⟩ 0).eval s = _ := hrep.rot i 0
+  have e1 : ((bodyPose n chain link).get ⟨i.val, by omega⟩ 1).eval s = _ := hrep.rot i 1
+  have e2 : ((bodyPose n chain link).get ⟨i.val, by omega⟩ 2).eval s = _ := hrep.rot i 2
+  have e3 : ((bodyPose n chain link).get ⟨i.val, by omega⟩ 3).eval s = _ := hrep.trans i
+  simp only [bodyNumerators, vertexNumerators, Fin.getElem_fin, Vector.getElem_ofFn,
+    Tensor.eval_add, Tensor.eval_scale, Rigid.apply, Matrix.mulVec, dotProduct,
+    Fin.sum_univ_three, Pi.add_apply, vecR, e0, e1, e2, e3, Fin.val_zero, Fin.val_one,
+    Fin.val_two]
+  ring
 
 /-- [K3] The half-angle parametrisation is the rotation of angle `q`: with `s = tan (q/2)` and
-`|q| < π`, the rational expressions in `s` are `cos q` and `sin q`. -/
+`|q| < π`, the rational expressions in `s` are `cos q` and `sin q`.
+
+Proof (L3): Mathlib's `Real.cos_eq_two_mul_tan_half_div_one_sub_tan_half_sq` (which needs
+`cos q ≠ -1`, i.e. `|q| < π` here) and `Real.sin_eq_two_mul_tan_half_div_one_add_tan_half_sq`. -/
 theorem rotation_half_angle (a : Vec3) (q : ℝ) (hq : |q| < Real.pi) :
     rodrigues a ((1 - Real.tan (q / 2) ^ 2) / (1 + Real.tan (q / 2) ^ 2))
         (2 * Real.tan (q / 2) / (1 + Real.tan (q / 2) ^ 2))
       = rodrigues a (Real.cos q) (Real.sin q) := by
-  sorry
+  have hcos : Real.cos q ≠ -1 := by
+    have h : Real.cos Real.pi < Real.cos |q| :=
+      Real.cos_lt_cos_of_nonneg_of_le_pi (abs_nonneg q) le_rfl hq
+    rw [Real.cos_pi, Real.cos_abs] at h
+    exact ne_of_gt h
+  rw [← Real.cos_eq_two_mul_tan_half_div_one_sub_tan_half_sq q hcos,
+    ← Real.sin_eq_two_mul_tan_half_div_one_add_tan_half_sq q]
+
+/-- `|a|²` over `ℝ`. -/
+def normSqR (a : Vec3) : ℝ := (a[0] : ℝ) ^ 2 + (a[1] : ℝ) ^ 2 + (a[2] : ℝ) ^ 2
+
+/-- `R Rᵀ` for Rodrigues' matrix, as a polynomial identity (no hypothesis): the defect from the
+identity is a multiple of `K²` whose coefficient vanishes when `|a| = 1` and `cos² + sin² = 1`. -/
+theorem rodrigues_mul_transpose (a : Vec3) (co si : ℝ) :
+    rodrigues a co si * (rodrigues a co si).transpose
+      = 1 + ((1 - co ^ 2 - si ^ 2) - (normSqR a - 1) * (1 - co) ^ 2) • (skewR a * skewR a) := by
+  ext i j
+  fin_cases i <;> fin_cases j <;>
+    simp [rodrigues, skewR, skew, normSqR, Matrix.mul_apply, Fin.sum_univ_three,
+      Matrix.one_apply] <;>
+    ring
+
+/-- The determinant of Rodrigues' matrix, as a polynomial identity (no hypothesis). -/
+theorem rodrigues_det (a : Vec3) (co si : ℝ) :
+    (rodrigues a co si).det = (1 - (1 - co) * normSqR a) ^ 2 + si ^ 2 * normSqR a := by
+  simp only [Matrix.det_fin_three, rodrigues, skewR, skew, normSqR, Matrix.mul_apply,
+    Fin.sum_univ_three, Matrix.add_apply, Matrix.smul_apply, Matrix.one_apply, Matrix.of_apply,
+    smul_eq_mul]
+  simp
+  ring
 
 /-- [K4] For a unit axis and `cos² + sin² = 1`, Rodrigues' matrix is a rotation (orthogonal,
 determinant `1`). This is where the hypotheses "exact unit axis" and "`cos² + sin² = 1`" of
-the checker are used. -/
+the checker are used.
+
+Proof (L3): the two polynomial identities above, then the two hypotheses. -/
 theorem rodrigues_mem_specialOrthogonal (a : Vec3) (co si : ℝ)
     (ha : ((a[0] : ℝ)) ^ 2 + (a[1] : ℝ) ^ 2 + (a[2] : ℝ) ^ 2 = 1) (hcs : co ^ 2 + si ^ 2 = 1) :
     rodrigues a co si ∈ Matrix.specialOrthogonalGroup (Fin 3) ℝ := by
-  sorry
+  rw [Matrix.mem_specialOrthogonalGroup_iff, Matrix.mem_orthogonalGroup_iff]
+  have ha' : normSqR a = 1 := ha
+  refine ⟨?_, ?_⟩
+  · have h0 : (1 - co ^ 2 - si ^ 2) - (normSqR a - 1) * (1 - co) ^ 2 = 0 := by
+      rw [ha']
+      linear_combination -hcs
+    rw [rodrigues_mul_transpose, h0, zero_smul, add_zero]
+  · rw [rodrigues_det, ha']
+    linear_combination hcs
 
 end CnpVerify

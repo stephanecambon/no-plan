@@ -242,14 +242,6 @@ theorem array_sum_getD {α : Type} (a : Array α) (f : α → ℝ) (d : α) :
   rw [list_sum_getD a.toList f d]
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
 
-theorem eval_foldl_add {n : ℕ} {α : Type} (l : List α) (F : α → Tensor n) (init : Tensor n)
-    (s : Fin n → ℝ) :
-    (l.foldl (fun acc a => acc + F a) init).eval s
-      = init.eval s + (l.map fun a => (F a).eval s).sum := by
-  induction l generalizing init with
-  | nil => simp
-  | cons a l ih => simp [ih, Tensor.eval_add, add_assoc]
-
 /-- [C2] An accepted outside leaf is disjoint from the OPEN slab: `|φ| ≥ δ` on its cell.
 
 Proof (L3): the check succeeds only if one of its two Bernstein tests answers `true`
@@ -365,7 +357,7 @@ theorem checkCollisionLeaf_sound (c : Certificate) (i : ℕ) (cell : Box c.n) (o
       refine ⟨hr'.symm, fun hj' => ?_⟩
       have h0 := bernNonneg_sound _ _ _ _ hb s hs
       simp only [Tensor.eval_add, Tensor.eval_scale, Tensor.eval_const, Tensor.eval_mul,
-        eval_foldl_add, Tensor.eval_zero, Fin.getElem_fin, Vector.getElem_ofFn, zero_add,
+        Tensor.eval_foldl_add, Tensor.eval_zero, Fin.getElem_fin, Vector.getElem_ofFn, zero_add,
         list_sum_range, ← Fin.sum_univ_def] at h0
       have hT : 0 ≤ (c.delta : ℝ) * c.delta - c.phi.eval s * c.phi.eval s := by
         have := abs_le.1 hslab
@@ -389,7 +381,7 @@ theorem checkCollisionLeaf_sound (c : Certificate) (i : ℕ) (cell : Box c.n) (o
     have h1 := Tensor.eval_eq_of_beqPoly _ _ hb s
     rw [Tensor.eval_const, ← Array.foldl_toList] at h1
     have h2 : (List.foldl (fun x1 x2 => x1 + x2) Tensor.zero lam.toList).eval s = _ :=
-      eval_foldl_add lam.toList id Tensor.zero s
+      Tensor.eval_foldl_add lam.toList id Tensor.zero s
     rw [h2, Tensor.eval_zero, zero_add] at h1
     rw [← array_sum_getD lam (fun t => t.eval s) Tensor.zero]
     simpa using h1
@@ -425,11 +417,51 @@ theorem checkCollisionLeaf_sound (c : Certificate) (i : ℕ) (cell : Box c.n) (o
     exact (div_le_iff₀ hDpos).2 h1
   exact Set.disjoint_left.1 (hfree obs (Array.mem_of_find?_eq_some hobs)) hy1 hy2
 
+/-- The unlocked joints of the chain of a link are among the unlocked joints of the chain. -/
+theorem unlockedUpTo_le (chain : Array Joint) (link : ℕ) :
+    unlockedUpTo chain link ≤ (chain.filter (·.locked.isNone)).size := by
+  unfold unlockedUpTo
+  rw [← Array.length_toList, Array.toList_filter, ← Array.length_toList, Array.toList_filter]
+  apply List.Sublist.length_le
+  apply List.Sublist.filter
+  rw [Array.toList_extract]
+  simpa using List.take_sublist _ _
+
+/-- (0') gives: the number of unlocked joints of the chain is `n`. (The other tests — `q* = 0`,
+unit axes, `cos² + sin² = 1`, body link in range — are not needed for C4.) -/
+theorem checkKinematics_ok (c : Certificate) (h : checkKinematics c = .ok ()) :
+    (c.chain.filter (·.locked.isNone)).size = c.n := by
+  unfold checkKinematics at h
+  by_cases h1 : (c.qStar.any (· != 0)) = true
+  · rw [ite_eq_left h1] at h
+    exact absurd h (by simp [reject, throw, throwThe, MonadExceptOf.throw, bind, Except.bind])
+  rw [ite_eq_right h1] at h
+  by_cases h2 : (c.chain.any fun j => normSq j.axis != 1) = true
+  · rw [ite_eq_left h2] at h
+    exact absurd h (by simp [reject, throw, throwThe, MonadExceptOf.throw, bind, Except.bind])
+  rw [ite_eq_right h2] at h
+  by_contra h3
+  have h3' : ((c.chain.filter (·.locked.isNone)).size != c.n) = true := by simpa using h3
+  rw [ite_eq_left h3'] at h
+  exact absurd h (by simp [reject, throw, throwThe, MonadExceptOf.throw, bind, Except.bind])
+
 /-- [C4] Under the kinematic hypotheses tested by the checker, collision-freeness on the
-polynomial kinematics IS collision-freeness on the reference kinematics. -/
+polynomial kinematics IS collision-freeness on the reference kinematics.
+
+Proof (L3): by K2 the world vertices `eval N_k / eval D` are the reference positions of the body
+vertices, so the two bodies are the same set. Of the kinematic check, only "`n` is the number of
+unlocked joints" is used (it gives the hypothesis of K2); unit axes and `cos² + sin² = 1` are
+what makes the reference motions ROTATIONS (K4), not what makes the two kinematics agree. -/
 theorem collisionFree_iff_ref (c : Certificate) (h : checkKinematics c = .ok ())
     (s : Fin c.n → ℝ) : CollisionFree c s ↔ CollisionFreeRef c s := by
-  sorry
+  have hn : unlockedUpTo c.chain c.bodyLink ≤ c.n :=
+    (checkKinematics_ok c h) ▸ unlockedUpTo_le c.chain c.bodyLink
+  have hv : (fun k : Fin c.hull.size => c.worldVertex k s)
+      = fun k : Fin c.hull.size => (linkPose c.chain c.bodyLink s).apply (vecR c.hull[k]) := by
+    funext k i
+    exact (body_position c.n c.chain c.bodyLink c.hull[k] s hn i).symm
+  unfold CollisionFree CollisionFreeRef Certificate.bodyAt
+  rw [hv]
 
 /-! ### What each check of `checkE` gives -/
 
@@ -489,6 +521,13 @@ theorem checkLeaves_ok (c : Certificate) (h : checkLeaves c = .ok ()) :
   have hr' : ForInStep.yield PUnit.unit = r := by simpa [pure, Except.pure] using hr
   exact ⟨hr'.symm, fun _ => hu⟩
 
+/-- `check c = true` means that the sequence of checks succeeded. -/
+theorem checkE_of_check (c : Certificate) (h : check c = true) : checkE c = .ok () := by
+  unfold check at h
+  cases hce : checkE c with
+  | ok u => rfl
+  | error e => rw [hce] at h; simp at h
+
 /-! ### Main statement -/
 
 /-- **[S1] Soundness of the checker.** If `check c = true`, there is no continuous path
@@ -512,11 +551,7 @@ theorem soundness (c : Certificate) :
           (∀ t, γ t ∈ c.box.toSet) ∧ γ 0 = vecR c.sStart ∧ γ 1 = vecR c.sGoal
             ∧ ∀ t, CollisionFree c (γ t) := by
   rintro hc ⟨γ, hbox, h0, h1, hfree⟩
-  have hE : checkE c = .ok () := by
-    unfold check at hc
-    cases hce : checkE c with
-    | ok u => rfl
-    | error e => rw [hce] at hc; simp at hc
+  have hE := checkE_of_check c hc
   unfold checkE at hE
   obtain ⟨hA, hE⟩ := checkM_seq_ok _ _ hE
   obtain ⟨hI, hE⟩ := checkM_seq_ok _ _ hE
@@ -541,12 +576,23 @@ theorem soundness (c : Certificate) :
       (by rw [ht, abs_zero]; exact hδ.le) (hfree t)
   · exact reject_ne_ok _ _ _ _ _ hleaf
 
-/-- [S2] The same statement on the reference kinematics (corollary of S1 and C4). -/
+/-- **[S2] Soundness on the reference kinematics** (corollary of S1 and C4): if `check c = true`,
+no continuous path inside the box joins the start to the goal while the certified body, moved by
+the real rigid motions `linkPose` of the declared chain, stays out of every obstacle. -/
 theorem soundness_ref (c : Certificate) :
     check c = true →
       ¬ ∃ γ : C(unitInterval, Fin c.n → ℝ),
           (∀ t, γ t ∈ c.box.toSet) ∧ γ 0 = vecR c.sStart ∧ γ 1 = vecR c.sGoal
             ∧ ∀ t, CollisionFreeRef c (γ t) := by
-  sorry
+  rintro hc ⟨γ, hbox, h0, h1, hfree⟩
+  have hK : checkKinematics c = .ok () := by
+    have hE := checkE_of_check c hc
+    unfold checkE at hE
+    obtain ⟨-, hE⟩ := checkM_seq_ok _ _ hE
+    obtain ⟨-, hE⟩ := checkM_seq_ok _ _ hE
+    obtain ⟨-, hE⟩ := checkM_seq_ok _ _ hE
+    exact (checkM_seq_ok _ _ hE).1
+  exact soundness c hc
+    ⟨γ, hbox, h0, h1, fun t => (collisionFree_iff_ref c hK (γ t)).2 (hfree t)⟩
 
 end CnpVerify
