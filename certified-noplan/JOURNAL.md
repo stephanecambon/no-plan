@@ -4212,3 +4212,237 @@ exactement (après retrait de `pypdf`, présent dans le venv de référence mais
 - **Prochaine étape** : Stéphane passe le repo en public. Plus tard, s'il le décide : release GitHub + Zenodo
   (DOI daté), ORCID, soumission arXiv (cs.RO + math.OC, cs.SC) — il suffira alors de remplir `\ZENODODOI{}`,
   recompiler et régénérer l'archive.
+
+## 2026-10-09 — Session L1 (Claude Code, AUTONOME) — **VÉRIFICATEUR LEAN, étape 1 : `cnp-verify` exécutable en Lean 4, parité de verdict ET de raison avec `verify.py` sur les 13 certificats et les 48 certificats du corpus adversarial ; AUCUNE preuve (19 énoncés en `sorry`)** ; `verify.py` et `src/` zéro diff
+
+Nouveau sous-projet `certified-noplan/lean/` (projet Lake `CnpVerify`). `verify.py` reste la spécification et
+l'arbitre du verdict PROOF ; le binaire Lean est un second vérificateur, pas encore un vérificateur prouvé.
+
+**Ouverture [A33].** `git status` PROPRE (HEAD `0a89100`). `make test` d'ouverture : **240 passed, 1 deselected,
+0 skipped, 0 warnings** (363 s). Lus : `verify.py` en entier, SPEC §2/§4/§5, `paper.tex` §3-§5, `scenes/wall/k3.cert.json`
+et le flagship `scenes/S6_iiwa_real_shelf.cert.json`. Le certificat simple nommé par le prompt
+(`scenes/S2b_spatial3.cert.json`) **n'existe pas** — S2b n'est certifié que dans les tests ; `wall/k3` a servi de cas
+simple, et le certificat S2b est régénéré par l'export de mutations.
+
+**Outillage.** L'instruction d'installer elan ne figurant que dans le prompt collé, la question a été posée à
+Stéphane : **elan 4.2.4 par Homebrew** (`brew install elan-init`), pas de script distant. `lake init CnpVerify math` ⟹
+**Lean v4.34.1** (`lean-toolchain`), **Mathlib rev `v4.34.1` = `d13f23b7`** (`lakefile.toml`, `lake-manifest.json` commité,
+qui épingle aussi batteries, aesop, Qq, proofwidgets, plausible, importGraph, LeanSearchClient, Cli), Lake 5.0.0. Cache
+Mathlib : 8 908 fichiers, `lean/.lake` = **7,6 Go** (gitignoré). `lake build` à vide vert. Noms Mathlib vérifiés dans cette
+révision : `bernsteinPolynomial` (`Mathlib/RingTheory/Polynomial/Bernstein.lean:55`), `bernsteinPolynomial.sum` (`:273`),
+`Polynomial.continuous` (`Mathlib/Topology/Algebra/Polynomial.lean:57`, `protected` dans l'espace de noms `Polynomial`),
+`intermediate_value_Icc` (`Mathlib/Topology/Order/IntermediateValue.lean:558`). En plus : Mathlib porte déjà un
+`bernstein_nonneg` à la racine (`Mathlib/Analysis/SpecialFunctions/Bernstein.lean:71`, univarié sur l'intervalle unité) —
+c'est le lemme univarié dont L2 a besoin ; le nôtre est `CnpVerify.bernstein_nonneg`, pas de collision.
+
+### Fait
+
+**Cœur exécutable (core Lean seulement, 1 087 lignes)** — `Tensor.lean` (tenseur dense ℚ, `n` variables, degré ≤ `deg` par
+variable, indice plat C-order = convention numpy de `polylin.py` et tuples d'exposants de `verify.py` ; `add`, `mul`,
+`scale`, `padTo?`, `evalQ`, `beqPoly`), `Bernstein.lean` (`shiftMatrix`, `bernMatrix`, `applyAxis`, `bernsteinCoeffs : Box
+→ Tensor → Array ℚ`, `allNonneg`), `Kinematics.lean` (`Joint {offset, axis, locked : Option (ℚ × ℚ)}`, `Joint.homog`,
+`bodyNumerators`, `bodyDenominator`), `Certificate.lean` (structure `Certificate`, parsing `Lean.Json`, `describe` /
+`ToString`), `Check.lean` (les contrôles dans l'ordre de `verify.verify`, chacun `Except Reject Unit` ; `check :
+Certificate → Bool`), `Main.lean` (`cnp-verify [--json] [--dump] <cert.json>` : PROOF / REJECT [code], sortie 0/1, temps).
+`#print axioms CnpVerify.check` : `propext, Classical.choice, Quot.sound` — pas de `sorryAx` dans le chemin exécutable ;
+ni `axiom`, ni `implemented_by`, ni `partial`, ni `unsafe` dans le projet.
+
+**Couche de spécification (Mathlib, 283 lignes, TOUT en `sorry`)** — `Spec/Tensor.lean` (`Tensor.eval : Tensor n → (Fin n
+→ ℝ) → ℝ`, noncomputable), `Spec/Bernstein.lean` (`Box.toSet`, `bernstein_nonneg`), `Spec/Kinematics.lean` (cinématique de
+RÉFÉRENCE sur ℝ sans aucun polynôme : `rodrigues`, `Joint.rotation`, `linkPose`, et `body_position` : position =
+`eval(N·p)/eval(D)`), `Soundness.lean` (`Obstacle.toSet`, `Certificate.bodyAt`, `CollisionFree` — définis depuis
+`bodyNumerators`/`bodyDenominator` et les H-rep, sans référence au checker — et `soundness`). `lake build` : 19
+avertissements `declaration uses sorry`, zéro autre. L'énoncé principal, tel que compilé :
+
+```lean
+theorem soundness (c : Certificate) :
+    check c = true →
+      ¬ ∃ γ : C(unitInterval, Fin c.n → ℝ),
+          (∀ t, γ t ∈ c.box.toSet) ∧ γ 0 = vecR c.sStart ∧ γ 1 = vecR c.sGoal
+            ∧ ∀ t, CollisionFree c (γ t)
+```
+
+`Tensor.coeff` / `flatIndex`, qui ne servent QU'AUX énoncés (la parité ne les exerce pas), ont été testés à part :
+`flatIndex = encode` sur les 64 indices d'une mise en page 4³ ; sur `(1 + 2 s₀s₂²)(3 s₁ − s₀)`, `coeff` relit les
+coefficients attendus et `Σ_e coeff(e)·∏ xᵢ^eᵢ` (la définition de `eval`, en rationnels) redonne `evalQ` = 707 en (2, 3, 5).
+Les AUTRES définitions de la couche Spec (`linkPose`, `rodrigues`, `CollisionFree`…) ne sont validées par rien d'autre que
+leur relecture et le typage : une définition de référence fausse rendrait un énoncé improuvable ou, pire, prouvable et
+hors sujet — c'est à L2/L3 et à la relecture de la supervision de l'attraper.
+
+**Obligations de preuve (19, énoncés exacts dans `lean/PROOF-OBLIGATIONS.md`, extraits des sources par script).**
+T1 `Tensor.evalQ_cast`, T2 `eval_const`, T3 `eval_add`, T4 `eval_scale`, T5 `eval_mul`, T6 `eval_padTo`, T7
+`eval_eq_of_beqPoly` ; B0 `binom_eq_choose`, **B1 `bernstein_nonneg`** ; K1 `bodyDenominator_pos`, K2 `body_position`, K3
+`rotation_half_angle`, K4 `rodrigues_mem_specialOrthogonal` ; C1 `verifyCover_covers` (COUVERTURE seule), C2
+`checkOutsideLeaf_sound`, C3 `checkCollisionLeaf_sound`, C4 `collisionFree_iff_ref` ; **S1 `soundness`**, S2 `soundness_ref`.
+
+**Export du corpus** — `scripts/export_mutations.py` écrit dans un dossier donné les certificats mutés et un `manifest.json`
+(verdict + message Python), sans toucher aux tests : les 26 mutations de `test_verify.py` et les 6 de
+`test_locked_joints.py` sont IMPORTÉES ; les 8 de la suite spatiale de `test_adversarial.py` sont des lambdas locales aux
+tests, donc transcrites avec leur ligne d'origine ; s'y ajoutent les 4 entrées garbage et les 4 certificats de base. **48
+certificats : 43 rejetés et 5 acceptés par Python** (les 4 bases + l'échange de géométrie « internement valide » que seul
+le cross-check de scène attrape). Le script refuse d'écrire si un verdict Python contredit ce que la suite attend.
+
+**Parité — critère de sortie L1.** `make lean-parity` (= `lean/check_all.sh` : build de l'exécutable ET de la bibliothèque
+avec ses énoncés, export, `scripts/lean_parity.py`), hors `make test`. Run de référence **`benchmarks/results/20261009T214354Z/lean_parity.log`**
+(commit `4f88c7a`, `git_dirty_at_start = false`, Apple M4, charge 1 min 2,96 au départ) :
+
+| certificat | Python | Lean | Python (s) | Lean (s) | Lean / Python |
+|---|---|---|---|---|---|
+| S1_relais | PROOF | PROOF | 0,088 | 0,069 | ×0,78 |
+| S2_peigne | PROOF | PROOF | 0,169 | 0,131 | ×0,77 |
+| S3_shoulder_elbow | PROOF | PROOF | 0,041 | 0,033 | ×0,80 |
+| S4_iiwa_bin | PROOF | PROOF | 0,131 | 0,082 | ×0,63 |
+| S5_iiwa_shelf (iiwa-LIKE) | PROOF | PROOF | 2,952 | 1,687 | ×0,57 |
+| **S6_iiwa_real_shelf (flagship)** | PROOF | PROOF | 1,924 | 1,547 | ×0,80 |
+| usecase_binpicking_iiwa7 | PROOF | PROOF | 1,895 | 1,600 | ×0,84 |
+| usecase_capot_surete_iiwa7 | PROOF | PROOF | 2,005 | 1,629 | ×0,81 |
+| wall/k3 | PROOF | PROOF | 0,011 | 0,009 | ×0,82 |
+| wall/k4 | PROOF | PROOF | 0,052 | 0,051 | ×0,99 |
+| wall/k5 | PROOF | PROOF | 0,209 | 0,208 | ×0,99 |
+| wall/k6 | PROOF | PROOF | 1,074 | 0,979 | ×0,91 |
+| wall/k7 | PROOF | PROOF | 6,081 | 5,936 | ×0,98 |
+
+Temps Python = `verify.verify` dans le process du harnais (certificat déjà chargé) ; temps Lean = horloge interne du
+binaire (parsing + contrôles, démarrage du process exclu ; le mur ajoute ~0,02 s). **Du même ordre, Lean un peu plus
+rapide (×0,57 à ×0,99)** ; aucun profilage nécessaire. Les 2,41 s du flagship dans `reproduce.json` sont une autre mesure
+(process séparé `python -S -I`, chargement compris) — ne pas mélanger.
+
+Corpus adversarial — **48/48 : même verdict, même code de raison, même feuille et même indice de face** que Python (le
+message Python est ramené au code Lean par la table `PY_CODES` ; la feuille est retrouvée par sa cellule) :
+
+| raison (code Lean = classe du message Python) | nb | certificats (p = planaire, l = verrouillé, s = spatial, g = garbage) |
+|---|---|---|
+| `face_not_certified` (même feuille, même face) | 13 | p: mu_huge, obstacle_b_shrunk, obstacle_a_changed, hull_vertex_changed, link_length_changed, body_link_changed, obstacle_swapped_in_leaf ; l: lock_moved_flip, lock_moved_quarter, lock_moved_straight, lock_wrong_index ; s: axis_flipped_to_y, offset_lifted |
+| `tiling_not_bisection` | 6 | p: cut_shifted, drop_leaf_gap, duplicate_leaf_overlap, box_shrunk, extra_cell_outside_box ; s: leaf_popped |
+| `lambda_sum` | 4 | p: lambda_breaks_sum, lambda_scaled, lambda_negative ; s: lambda_busted |
+| `not_disconnection` | 4 | p: theorem_changed ; g: empty, leaves_only, null_field |
+| `cond_i_start` | 3 | p: delta_x20, start_wrong_side, phi_sign_flipped |
+| `mu_negative` | 2 | p: mu_negative ; s: mu_negative |
+| `outside_not_disjoint` | 2 | p, s: collision_relabelled_outside |
+| `malformed` | 2 | p: outside_relabelled_collision ; g: theorem_only |
+| `qstar_nonzero`, `delta_nonpos`, `cond_i_goal`, `unknown_substitution`, `lock_not_unit`, `n_mismatch`, `axis_not_unit` | 1 chacun | p: qstar_changed, delta_negative, goal_wrong_side, substitution_changed ; l: cos_sin_not_unit, lock_removed ; s: axis_not_unit |
+| PROOF (acceptés par les deux) | 5 | 4 bases + s: geometry_swap_internally_valid |
+
+**Fuzz différentiel seedé** (ajout hors prompt, dans le même gate ; `--fuzz 5000 --seed 20261009`, même run archivé) : une
+mutation aléatoire d'un petit certificat valide par cas (μ, λ à somme préservée ou non, terme de degré 0-3, géométrie,
+barrière dont δ posé EXACTEMENT sur une arête de cellule, pavage dont re-bissection valide et permutation des feuilles,
+structure, ré-écriture des nombres à valeur égale, garbage). **5 000 cas : 2 536 PROOF des deux côtés, 2 405 REJECT des
+deux côtés, 54 où `verify.py` LÈVE (`IndexError`, hors de son `except`) et Lean rejette, 5 où Lean rejette au parsing un
+certificat que Python accepte (voir écarts), 0 divergence de verdict dans l'autre sens.** Raison différente sur 20 cas
+rejetés par les deux (toujours `malformed` côté Lean). Le gate échoue si la classe « Lean plus strict au parsing » dépasse
+1 % des cas.
+
+**Contrôle du contrôle** (un harnais doit pouvoir échouer) : un faux binaire qui répond toujours PROOF ⟹ sortie 1, 43
+divergences sur le corpus, 109 sur 200 cas de fuzz ; un faux binaire qui rejette toujours ⟹ sortie 1, 59 divergences
+(13 certificats livrés, 5 acceptés du corpus, 41 raisons), et le seuil de 1 % déclenché sur le fuzz. **Grammaire des
+nombres** comparée à `Fraction(str)` sur 39 écritures (fraction, décimal, exposant, `_`, espaces, formes invalides) : 38
+identiques, 1 écart (chiffre Unicode pleine chasse, voir ci-dessous).
+
+### Divergences Lean ↔ Python (RÉSULTATS)
+
+**Aucun bug de `verify.py` trouvé ; aucun cas où Lean accepte ce que Python rejette.** Sur les certificats bien formés
+les deux vérificateurs coïncident. Les écarts sont tous du même côté — **Lean rejette (`malformed`) des entrées mal
+formées que `verify.py` accepte ou sur lesquelles il lève** — et viennent d'un choix de conception : `verify.py` lit le
+JSON paresseusement pendant qu'il vérifie, Lean le parse d'abord en un `Certificate` typé (l'objet de l'énoncé). Chaque
+ligne a été exécutée sur les deux :
+
+| entrée | Python | Lean |
+|---|---|---|
+| nombre en chiffres Unicode non ASCII (`"１"`) — `\d` de Python les lit | accepte la valeur | `malformed` |
+| nombre JSON non entier (`"delta": 0.1`) — `Fraction(float)`, valeur binaire exacte | PROOF | `malformed` |
+| booléen JSON à la place d'un nombre (`Fraction(True) = 1`) | lu comme 1 | `malformed` |
+| nombre illisible dans un champ jamais lu : obstacle qu'aucune feuille ne nomme, cos/sin d'un verrou en aval du corps | PROOF | `malformed` |
+| `start_s`/`goal_s` plus courts que `n` quand φ ne lit pas les coordonnées absentes | PROOF | `malformed` |
+| boîte et cellules avec un intervalle de plus que `n` | PROOF | `malformed` |
+| `body.link = -1` (boucle FK vide ⟹ corps FIXE) + point dans l'obstacle | PROOF | `malformed` |
+| `obstacles` donné en liste (contre-exemple D69) | lève `AttributeError` | `malformed` |
+| lien du corps hors chaîne, boîte plus courte que `n`, verrou sur un joint inexistant | lève `IndexError` | `malformed` |
+| certificat à DEUX défauts | raison du premier contrôle | souvent `malformed` (le parsing passe avant) |
+
+Trois de ces lignes sont des observations sur `verify.py` — **pas des défauts de soundness** (aucune ne fait accepter un
+énoncé faux sur la géométrie déclarée), à verser au chantier D69 (S13), `verify.py` n'ayant pas été touché : (a)
+`IndexError` n'est pas dans le `except` de `verify.py:490` (54 cas sur 5 000 au fuzz) ; (b) `body.link` négatif accepté — le
+certificat prouve alors quelque chose d'un corps qui n'est sur aucun lien ; le cross-check de scène compare `body.link`
+(`scenes.py:305`) et le refuserait ; (c) longueurs de `start_s`/`goal_s`/`box` non contrôlées contre `n`. Reproduit à
+l'identique par Lean : un coefficient EXPLICITEMENT nul de degré supérieur au degré déclaré est rejeté dans un λ (le
+test porte sur les clés listées) et ignoré dans φ (`_t_add` filtre les zéros).
+
+**Affirmations du prompt et du papier que le code contredit (A48 ; `paper.tex` NON modifié — à intégrer par la supervision).**
+1. **Papier §5, « The five checks, in order: (0) hypotheses — rational unit axes, cos²+sin²=1 for locked joints, δ>0, box
+   within the no-wrap-around range »** (et le prompt L1, même formulation). Dans `verify.py`, (0) = type de théorème,
+   substitution, `δ > 0`, boîte `lo < hi`, forme des obstacles (`verify.py:320-333`). L'unité des axes et `cos²+sin²=1`
+   sont testés **après (ii)**, dans `_body_fk` (`verify.py:239-240`, `269-270`) ; `cos²+sin²=1` seulement pour les
+   verrous de la chaîne du corps (`j ≤ body.link`) — exécuté : sur `S4_iiwa_bin` (corps sur le lien 2, verrous 5 et 6),
+   poser `cos = sin = 1/2` sur le verrou 6 laisse PROOF, chez Python comme chez Lean ; c'est correct, ce joint n'entre
+   pas dans la cinématique du corps. **Aucun test « no-wrap-around » n'existe** — et aucun n'est requis :
+   toute boîte finie en `s` correspond à des angles dans (−π, π), c'est une propriété de la paramétrisation. Le port suit
+   l'ORDRE RÉEL (`checkKinematics` après `checkPartition`), sans quoi les raisons divergeraient.
+2. **Prompt, « rationnels en chaîne num/den »** : les bornes de cellule sont des décimaux (`"-0.8"`, `"0.0625"`),
+   `certificate.py` sérialisant `str(lo)` depuis S4. Le parser Lean suit la grammaire de `Fraction(str)`. **SPEC §4
+   amendée (v1.9, règle 12).** Observation attenante, non mesurée : l'exactitude repose sur le fait que les milieux
+   flottants du moteur s'écrivent en décimal exact ; un milieu inexact donnerait un rejet du pavage, jamais un faux PROOF.
+3. **Prompt, `bodies` au pluriel ; papier, « every certified body »** : le schéma porte UN corps par certificat.
+4. **Prompt, « boîte dans la plage sans wrap-around » comme contrôle (0)** : voir 1.
+
+### Décisions (Code, dans le mandat)
+
+- **Architecture : les fichiers demandés sont là, mais `eval` et les énoncés vivent dans `CnpVerify/Spec/*.lean` et
+  `Soundness.lean`, pas dans `Tensor.lean` / `Bernstein.lean` / `Kinematics.lean`.** Écart délibéré au prompt : `eval` exige
+  ℝ donc Mathlib, et un fichier qui importe Mathlib met tout Mathlib dans la fermeture d'imports de l'exécutable. Le cœur
+  n'importe que core Lean (`Rat` et `Lean.Json` y sont) : `lake build cnp-verify` prend 6 s sans le cache Mathlib, et ce
+  que le binaire exécute ne dépend pas de Mathlib. L'alternative (tout dans les mêmes fichiers, binaire lié à Mathlib)
+  n'a pas été mesurée. L2/L3 se greffent dans `Spec/` et `Soundness.lean`.
+- **Parsing typé avant contrôle** (d'où les écarts ci-dessus) : c'est le `Certificate` typé que le théorème quantifie.
+- **Tenseur dense à forme canonique** (résultats « rognés » au degré effectif) et produit au degré serré `maxᵢ(degᵢ a +
+  degᵢ b)` : sans cela le produit de la chaîne FK gonfle la mise en page uniforme (degré 2k après k joints).
+- **`soundness` est énoncé sur la cinématique polynomiale `N/D`, comme demandé** ; j'ai ajouté la cinématique de référence
+  (`linkPose`), le pont C4 et `soundness_ref`. Constat utile au papier : la preuve de S1 n'utilise PAS les hypothèses
+  cinématiques (axes unitaires, `cos²+sin²=1`, `q*=0`) ; elles servent à ce que `N/D` SOIT la cinématique de la chaîne
+  déclarée (K2-K4). **Lequel de S1 ou S2 le papier cite : à trancher par la supervision.**
+- **Fuzz différentiel** ajouté au gate (hors périmètre strict) : la parité sur 48 certificats ne dit rien des frontières.
+- Linter d'en-tête Mathlib désactivé (`weak.linter.style.header = false`) ; `.github/` et README du gabarit `math`
+  retirés (pas de CI en L1).
+
+### Limites assumées
+
+Aucune preuve. `eval` noncomputable. Pas de CI. Le chemin est en `s` : le passage d'un chemin en angles à un chemin en
+`s` n'est pas énoncé. Tant que les 19 obligations ne sont pas déchargées, `cnp-verify` offre la même NATURE de garantie
+que `verify.py` (un programme court, relisible) plus un accord mesuré avec lui — **pas une preuve mécanisée, et rien ne
+doit le présenter ainsi.**
+
+### Pièges
+
+- **Le premier clone git de Mathlib a échoué** (`curl 92 HTTP/2 stream … CANCEL`, 10 min perdues) ; relancé avec
+  `http.version=HTTP/1.1` pour ce seul process (variables `GIT_CONFIG_*`), sans toucher à la config git globale.
+- **`lakefile.toml` : une clé d'option entre guillemets** (`"weak.linter.style.header"`) devient une option au nom littéral
+  et casse le build ; les options s'écrivent en clés pointées nues.
+- **Le dossier d'archive du harnais rendait l'arbre dirty avant la lecture de son état** : le run `20261009T213706Z`
+  (arbre propre, commit `d02bc9d`) s'est noté `git_dirty_at_start = true`. Corrigé (`4f88c7a`) ; ce run est archivé tel
+  quel (règle 7) et **non cité** ; mêmes verdicts et mêmes comptes que le run de référence, temps Lean à 12 % près au
+  plus (S4 : 0,092 contre 0,082 s).
+- `grep -v` sous `set -o pipefail` renvoie 1 quand il filtre tout : protégé par `|| true` dans `check_all.sh`.
+- Le gabarit `lake init … math` dépose des workflows GitHub et active les linters de style de Mathlib.
+- Le `\d` des regex Python accepte les chiffres Unicode : `Fraction("１/10")` vaut 1/10.
+
+
+**Décompte exact** : `make test` = **240 passed, 1 deselected, 0 skipped, 0 warnings** à l'ouverture (363 s) ET à la
+clôture (354 s, sur le commit `4f88c7a`). `make lean-parity` : sortie 0 (run de référence `20261009T214354Z`, arbre
+propre). `git diff 0a89100 -- src tests` : **vide** — `verify.py`, `src/` et `tests/` zéro diff.
+
+**Diffs CLAUDE.md** (règle 14 b, état d'avancement seulement — aucune règle, aucun critère, aucune porte touchés, version
+inchangée v1.24) : section « L1 » ajoutée en fin de plan (entrée / sortie / ✅ actée / prochaine étape), marquée comme
+tenue par Code faute de diff de supervision. **Diff SPEC** : v1.8 → v1.9 (§4 : nombres « num/den » OU décimaux, grammaire
+de `Fraction(str)` ; §3 : dossier `lean/`) — amendement de constat, aucun changement de code, **à valider par la
+supervision**.
+
+**Commits** : `d02bc9d` (code L1), `4f88c7a` (correctif du harnais + run non cité), commit de clôture (journal, état,
+run de référence). Le dépôt étant PUBLIC, ce qui est poussé a été relu pour fuite (D77) : aucun chemin personnel, aucune
+adresse, aucun secret dans `lean/`, les deux scripts et les deux logs ; le log porte le modèle de machine (Apple M4), déjà
+public dans le papier.
+
+**Prochaine étape : L2** — preuve de `bernstein_nonneg` (B1 : identité monôme → Bernstein par induction sur les
+variables, depuis `bernsteinPolynomial.sum` et le `bernstein_nonneg` univarié de Mathlib ; B0 `binom_eq_choose` et les
+lemmes T1-T7 dont B1 a besoin) et de la couverture du pavage (C1 `verifyCover_covers`). **À trancher par la supervision
+avant L2** : (1) l'écart d'architecture (énoncés dans `Spec/`, binaire sans Mathlib) ; (2) S1 ou S2 comme énoncé cité ;
+(3) la phrase du papier §5 sur l'ordre et le contenu du contrôle (0) ; (4) l'amendement SPEC v1.9 ; (5) le versement des
+trois observations `verify.py` au chantier D69.

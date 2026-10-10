@@ -1080,6 +1080,22 @@ dense 0-libre) + oracle corps-convexe. `verify.py` SACRÉ.
   secret ; G1 (Stéphane) : MIT, retraits en HEAD sans purge, P1-P9, versions figées (`make setup LOCK=1`) ;
   **pas d'arXiv pour l'instant** — repo rendu public par Stéphane ; archive arXiv prête. (voir JOURNAL.md S15.)
 
+### L1 — VÉRIFICATEUR LEAN, étape 1 : checker exécutable, sans preuve [prompt de supervision du 09/10/2026]
+- Entrée : S15 actée. Sous-projet `lean/` (projet Lake `CnpVerify`, Mathlib). **`verify.py` et `src/` SACRÉS, zéro diff.**
+  Section tenue par Code au titre de l'état d'avancement (règle 14 b) : le prompt L1 n'a pas encore été porté au plan
+  par un diff de supervision (circuit A16).
+- Sortie : `lake exe cnp-verify <cert.json>` rend PROOF / REJECT(raison) avec les mêmes verdicts que
+  `cnp.verify.verify_file` sur tous les certificats du repo et toutes les mutations adversariales ; énoncés des lemmes en
+  `sorry` ; `make lean-parity` hors `make test`.
+- ✅ **L1 ACTÉE (09/10/2026)** — Lean 4.34.1 + Mathlib `v4.34.1` épinglés ; cœur exécutable sans Mathlib (1 087 l.) +
+  couche `Spec/` (283 l.) ; **13/13 certificats PROOF, corpus 48/48 (43 rejets + 5 acceptations) même verdict, même
+  raison, même feuille et même face** ; fuzz différentiel 5 000 cas sans divergence de verdict ; temps Lean ×0,57 à ×0,99
+  de Python ; **19 obligations de preuve, AUCUNE déchargée** (`lean/PROOF-OBLIGATIONS.md`) ; SPEC v1.9 (§4 nombres
+  décimaux). `make test` = 240 passed, 1 deselected. Écarts au prompt à valider par la supervision : énoncés dans
+  `Spec/` (binaire sans Mathlib) ; ordre réel des contrôles de `verify.py` ; parsing typé plus strict. (voir JOURNAL.md L1.)
+- **Prochaine étape : L2** — preuve de `bernstein_nonneg` (B1, avec B0 et T1-T7 selon besoin) et de la couverture du
+  pavage (C1).
+
 ---
 
 ## Estimation honnête (inchangée sur le fond)
