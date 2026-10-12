@@ -1,0 +1,58 @@
+\section{A verifier proved sound in Lean}\label{sec:lean}
+
+\new{The Python verifier of \S\ref{sec:verifier} is small enough to read; this section replaces reading with a proof. We re-implemented the verifier in Lean~4~\cite{lean4} and proved, with Mathlib~\cite{mathlib2020}, that whenever it accepts a certificate, no collision-free path exists. The Python program remains the one a user runs; the Lean development says what accepting a certificate \emph{means}, and the two are compared on every certificate we ship. Every number below is read from two archived runs on a quiet machine (10 October 2026, Apple M4, 10 cores, 24~GiB; each run started only once the 1-minute load average was below 1.5), and the development is replayed by continuous integration on a second architecture.}
+
+\subsection{What was built}
+\new{The executable core---tensor arithmetic, the Bernstein transform, the rational kinematics, the certificate type, the five checks and a \texttt{main}---is 1\,087 lines of Lean in six files and compiles to a binary, \texttt{cnp-verify}, that reads a certificate and prints \texttt{PROOF} or a rejection with its reason, exactly as the Python verifier does. On top of it sits a proof layer of 2\,501 lines and 145 theorems, among them the 19 proof obligations of the plan: the tensor operations compute the polynomial operations they claim; non-negative Bernstein coefficients imply non-negativity on the box; an accepted tiling covers the box; an accepted outside leaf has $|\vphi|\ge\delta$ on its cell; an accepted collision leaf is in collision wherever $|\vphi|\le\delta$ on its cell; the common denominator is positive; the polynomial kinematics $N/D$ is the reference kinematics; $s=\tan(q/2)$ gives the rotation of angle $q$; and Rodrigues' matrix is a rotation for a unit axis. There is no \texttt{sorry}. An audit script asserts that every statement depends on the three standard axioms of Lean---\texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}---and on nothing else.}
+
+\subsection{The two statements}
+\new{Two theorems are proved about the checker \texttt{check}. The first, \texttt{soundness}, is stated with the checker's own polynomial kinematics:}
+\begin{quote}\new{\small\ttfamily
+theorem soundness (c : Certificate) :\\
+\ \ check c = true $\to$\\
+\ \ \ \ $\lnot\,\exists$ $\gamma$ : C(unitInterval, Fin c.n $\to$ $\mathbb{R}$),\\
+\ \ \ \ \ \ ($\forall$ t, $\gamma$ t $\in$ c.box.toSet) $\wedge$ $\gamma$ 0 = vecR c.sStart $\wedge$ $\gamma$ 1 = vecR c.sGoal\\
+\ \ \ \ \ \ \ \ $\wedge$ $\forall$ t, CollisionFree c ($\gamma$ t)}
+\end{quote}
+\new{where \texttt{CollisionFree} says that, for every declared obstacle, the convex hull of the body's vertices moved by $N/D$ is disjoint from the closed polytope. The second, \texttt{soundness\_ref}, is the same statement with \texttt{CollisionFree} replaced by a version written against \emph{reference} definitions that contain no polynomial and never mention the checker: a joint is Rodrigues' rotation $I+\sin\theta\,[a]_\times+(1-\cos\theta)[a]_\times^2$ at $(\cos\theta,\sin\theta)=\big((1-s^2)/(1+s^2),\,2s/(1+s^2)\big)$ for an unlocked joint and at its rational $(\cos,\sin)$ for a locked one; the pose of link $\ell$ is the right-composition of (translate by the offset, then rotate) along joints $0..\ell$, the $k$-th unlocked joint reading $s_k$; the body at $s$ is the convex hull of its vertices under that pose; obstacles are closed half-space intersections in the world frame. The statement reads eight fields of the certificate---$n$, the chain, the body's link, its vertices, the obstacles, the box, $s_{\mathrm{start}}$ and $s_{\mathrm{goal}}$. The barrier, $\delta$, the leaves and their multipliers are the material of the proof and do not occur in the conclusion.}
+
+\new{The reference definitions were re-read, independently of their author, against both the Python verifier and the textbook conventions---right-handed cross product, Rodrigues' formula, half-angle identities, affine composition on the right, joints $0..\ell$ inclusive---since a proof shows that the checker agrees with the definitions, not that the definitions say what a roboticist means. Nothing had to be changed. Three things the statement does not say: it is a statement in $s$-space (the translation of a joint-angle path within $(-\pi,\pi)$ into an $s$-path, a per-coordinate homeomorphism, is not formalised); it is about one body and the listed obstacles, and touching counts as a collision; it is soundness only---nothing says the checker accepts every true disconnection, nor anything about the program that produced the certificate.}
+
+\subsection{What soundness depends on}\label{sec:depends}
+\new{A mechanised proof also says which tests of the checker the theorem \emph{needs}, and the answer sorts the verifier's conditions into three kinds. \emph{Soundness} hypotheses are the ones the proof uses: $\delta>0$, the strict side conditions (i), coverage of the box by the leaves, and the two leaf tests (iii) and (iv) with the positivity of the common denominator. \emph{Meaning} hypotheses are tests the proof never reads but which make the formal object the robot's configuration space: $q^*=0$ (which is what makes $s=\tan(q/2)$ the right reading of the certificate), unit axes and $\cos^2+\sin^2=1$ (without them \texttt{soundness\_ref} would still be true, about maps that are no longer rigid motions), and the position of $s_{\mathrm{start}}$ and $s_{\mathrm{goal}}$ inside the box (not tested by either verifier; a start outside $P$ makes the theorem vacuously true). \emph{Agreement} conventions are tests that let the verifier reconstruct the generator's tiling but that no proof uses: that cuts are at midpoints, the degree test on $\lambda_k$, the count of the $\mu_j$---a missing $\mu_j$ is read as $0$, which only makes the condition stricter. In particular \texttt{soundness} does not use the kinematic check at all, and \texttt{soundness\_ref} uses one fact of it: that $n$ is the number of unlocked joints. We found this sorting more informative than the proof itself, and it is reflected in the wording of \S\ref{sec:theorem}.}
+
+\subsection{From the theorem to a binary, and for one scene to a theorem}
+\new{A \texttt{PROOF} printed by the binary rests on the theorem plus what the theorem is not about: the JSON parser (ordinary unverified code; \texttt{cnp-verify --dump} prints the object actually checked), the Lean compiler and its run time (rationals on GMP, arrays, the \texttt{extern} replacements of core functions), the few lines of \texttt{main}, and the kernel and Mathlib themselves. For one shipped scene these items drop out. The hypothesis \texttt{check wallK3 = true} for the 3-joint sealed wall was proved by evaluation \emph{in the kernel}, so the disconnection of that scene is a theorem of Lean/Mathlib with the three standard axioms: no compiler, no binary, no parser---the certificate is a term written out in a Lean file, and that the term is the content of the JSON file is checked at run time by two independent readers, with a negative control. The kernel evaluation had to be cut into 34 stages glued by lemmas, each stage a kernel evaluation with its own memory; the whole file takes 102.8~s (101.6~s in the kernel) with a peak of 5.63~GiB. The plain \texttt{decide} tactic cannot do it at any resource limit (core rational arithmetic is irreducible to the elaborator), a single kernel evaluation exceeds 9~GiB on this smallest certificate, and the staged proof does not carry to the 4-joint anchor or to the 7-DOF flagship: three kinds of stage each exceed 9~GiB there, because the array operations the checker is written with are quadratic in the kernel ($\times25$ to $\times30$ from 125 to 625 entries, against $\times5$ for a loop). Carrying the flagship to that status needs a twin of the checker written for the kernel and proved equal to \texttt{check}; we have not attempted it. Lean's \texttt{native\_decide} would prove all three in seconds, but it adds the compiler to the trust base as an explicit axiom per use; we keep such statements in a separate file, named as such, and the audit refuses the axiom anywhere else.}
+
+\subsection{Agreement with the Python verifier, measured}
+\new{Agreement between the two verifiers is measured, not proved. On the 13 shipped certificates both print \texttt{PROOF}; on an adversarial corpus of 48 certificates (43 to reject, 5 to accept) they return the same verdict and the same reason in 48 cases; on 1\,000 seeded differential fuzz cases, 498 are \texttt{PROOF} on both sides, 487 rejected on both, 15 raise in Python and are rejected in Lean, and there is no verdict divergence. Their forward kinematics agree on 1\,299 exact rational values. Table~\ref{tab:lean} gives the time of each checker on the same run; the Lean binary is somewhat faster on every scene but one, which was never the point. Continuous integration rebuilds the development, re-runs the axiom audit, re-checks the staged kernel proof (200~s on a 4-core Linux runner) and replays the parity suite on every push: 10~min~8~s in all.}
+
+\begin{table}[t]
+\centering\small
+\caption{\new{The two verifiers on the 13 shipped certificates, same quiet-machine run (archived \texttt{lean\_parity.json}, 10 October 2026). Python: \texttt{verify.py} in process; Lean: the time \texttt{cnp-verify} reports, process start-up excluded. All \texttt{PROOF} on both sides.}}
+\label{tab:lean}
+\new{\begin{tabular}{@{}lccc@{}}
+\toprule
+Certificate & Python & Lean & Lean/Python \\
+\midrule
+Planar relay (S1)          & 0.087~s & 0.095~s & $\times1.09$ \\
+Comb (S2)                  & 0.171~s & 0.126~s & $\times0.73$ \\
+Shoulder--elbow (S3)       & 0.040~s & 0.033~s & $\times0.82$ \\
+iiwa-like bin (S4)         & 0.132~s & 0.081~s & $\times0.61$ \\
+iiwa7 shelf, earlier model (S5) & 3.004~s & 1.655~s & $\times0.55$ \\
+iiwa7 shelf, flagship (S6) & 2.047~s & 1.669~s & $\times0.82$ \\
+iiwa7 stacked crate        & 1.876~s & 1.594~s & $\times0.85$ \\
+iiwa7 safety guard         & 1.978~s & 1.589~s & $\times0.80$ \\
+Sealed wall $k=3$          & 0.011~s & 0.009~s & $\times0.85$ \\
+Sealed wall $k=4$          & 0.052~s & 0.050~s & $\times0.97$ \\
+Sealed wall $k=5$          & 0.205~s & 0.215~s & $\times1.05$ \\
+Sealed wall $k=6$          & 1.068~s & 0.968~s & $\times0.91$ \\
+Sealed wall $k=7$          & 6.031~s & 5.863~s & $\times0.97$ \\
+\midrule
+Total                      & 16.702~s & 13.947~s & $\times0.83$ \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsection{What this changes}
+\new{Before, the trust anchor was a 499-line program a person reads in an afternoon. Now the reading is of a statement and of a dozen reference definitions that contain no polynomial, and the kernel checks the rest; for one scene the kernel also checks the certificate. The Python verifier is kept because it is what a user without a Lean toolchain runs, and because two independent checkers that agree on 1\,061 inputs are better evidence than either alone. What the formalisation does not cover is listed above so that nobody over-reads it: the $q\leftrightarrow s$ translation, the parser and compiler behind a binary \texttt{PROOF}, the fidelity of a certificate to a scene or a robot, and anything about the generator.}
